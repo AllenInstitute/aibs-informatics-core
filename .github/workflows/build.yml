@@ -26,6 +26,7 @@ jobs:
         uses: ./.github/actions/setup-ai-github-urls
         with:
           token: ${{ secrets.AI_PACKAGES_TOKEN }}
+          ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
       - name: Run Release
         run: |
           make release
