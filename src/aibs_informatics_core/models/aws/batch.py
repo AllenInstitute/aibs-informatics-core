@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from aibs_informatics_core.collections import ValidatedStr
-from aibs_informatics_core.models.base.custom_fields import IntegerField, ListField
-from aibs_informatics_core.models.base.field_utils import custom_field
-from aibs_informatics_core.models.base.model import SchemaModel
+from aibs_informatics_core.models.base import IntegerField, ListField, SchemaModel, custom_field
 
 
 class JobName(ValidatedStr):

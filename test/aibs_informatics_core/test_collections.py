@@ -21,8 +21,9 @@ class DeepChainMapTests(unittest.TestCase):
             "a": 1,
             "b": {0: False, 1: {"1": {1: 1}}, 1: ["a"], "2": ["a"]},
         }
-
-        self.assertDictEqual(DeepChainMap(d2, d1).to_dict(), merged)
+        dcm = DeepChainMap(d2, d1)
+        self.assertDictEqual(dcm.to_dict(), merged)
+        self.assertEqual(dcm["a"], 1)
 
 
 class AlphaNumericStr(ValidatedStr):
@@ -48,6 +49,20 @@ class ValidatedStrTests(unittest.TestCase):
         s = "!2asdfe"
         with self.assertRaises(ValueError):
             AlphaNumericStr(s)
+
+    def test__suball__works(self):
+        class S(ValidatedStr):
+            regex_pattern: ClassVar[Pattern] = r"([\w]*)"  # type: ignore
+
+        self.assertEqual(S.suball("a12-123b-1232", lambda _: _.groups()[0][:1]), "a-1-1")
+
+    def test__is_valid__works(self):
+        class S(ValidatedStr):
+            regex_pattern: ClassVar[Pattern] = r"([\w]*)"
+
+        self.assertTrue(S.is_valid("a12_123b"))
+        self.assertTrue(S.is_valid(S("a12_123b")))
+        self.assertFalse(S.is_valid("a12-@#$@#"))
 
     def test__TwoParts__initializes_and_match_groups_returns_parts(self):
         region = TwoParts("part1-part2")

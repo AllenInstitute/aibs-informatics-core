@@ -1,3 +1,10 @@
+__all__ = [
+    "AttributeBaseExpression",
+    "ConditionBaseExpression",
+    "ConditionBaseExpressionString",
+    "ConditionBaseExpressionOrString",
+]
+
 import re
 from dataclasses import dataclass
 from typing import Any, ClassVar, List, Optional, Pattern, Union, cast
@@ -9,8 +16,8 @@ from aibs_informatics_core.models.base import (
     RawField,
     SchemaModel,
     UnionField,
+    custom_field,
 )
-from aibs_informatics_core.models.base.field_utils import custom_field
 
 
 @dataclass

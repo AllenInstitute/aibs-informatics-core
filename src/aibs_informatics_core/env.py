@@ -75,7 +75,7 @@ class EnvBase(ValidatedStr):
         return self.prefixed(*names)
 
     def get_repository_name(self, *names: str) -> str:
-        return self.concat("gcs", self, self.concat(*names), delim="/")
+        return self.concat(self, self.concat(*names), delim="/")
 
     def get_resource_name(self, *names: str) -> str:
         return self.prefixed(*names)
@@ -95,7 +95,7 @@ class EnvBase(ValidatedStr):
     def get_state_machine_log_group_name(self, name: str) -> str:
         return self.concat(
             # https://docs.aws.amazon.com/step-functions/latest/dg/bp-cwl.html
-            "/aws/vendedlogs/gcs",
+            "/aws/vendedlogs",
             self,
             "states",
             name,
@@ -103,13 +103,13 @@ class EnvBase(ValidatedStr):
         )
 
     def get_metric_namespace(self, name: str) -> str:
-        return self.concat("GCS", self, name, delim="/")
+        return self.concat("AIBS", self, name, delim="/")
 
     def get_bucket_name(self, base_name: str, account_id: str, region: str) -> str:
         return self.concat(self, base_name, region, account_id, delim="-")
 
     def get_ssm_param_name(self, *names: str) -> str:
-        return self.concat("/gcs", self, self.concat(*names), delim="/")
+        return self.concat("", self, self.concat(*names), delim="/")
 
     def prefixed(self, *names: str, delim: SupportedDelim = "-") -> str:
         """Returns as <env_base>-<name1>-<name2>..."""

@@ -1,3 +1,22 @@
+__all__ = [
+    "S3PathStats",
+    "S3URI",
+    "S3BucketName",
+    "S3KeyPrefix",
+    "S3Key",
+    "S3StorageClass",
+    "S3StorageClassStr",
+    "S3TransferRequest",
+    "S3CopyRequest",
+    "S3TransferResponse",
+    "S3CopyResponse",
+    "S3UploadRequest",
+    "S3DownloadRequest",
+    "S3UploadResponse",
+    "S3RestoreStatus",
+    "S3RestoreStatusEnum",
+]
+
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -25,7 +44,7 @@ from dateutil import parser as date_parser
 from aibs_informatics_core.collections import OrderedStrEnum, ValidatedStr
 from aibs_informatics_core.models.base import CustomStringField, EnumField
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     # from mypy_boto3_s3.service_resource import Object as S3_Object
     class S3_Object(Protocol):
         storage_class: Optional[str]
@@ -389,7 +408,7 @@ class S3StorageClass(OrderedStrEnum):
 
     @classmethod
     def from_boto_s3_obj(cls, s3_obj: S3_Object) -> "S3StorageClass":
-        """Get S3StorageClass of an Boto3 S3_Object returned by gcs_aws_utils.s3.get_object"""
+        """Get S3StorageClass of an Boto3 S3_Object returned by s3.get_object"""
         if s3_obj.storage_class is None:
             return S3StorageClass.STANDARD
         else:

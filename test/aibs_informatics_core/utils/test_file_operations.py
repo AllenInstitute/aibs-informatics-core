@@ -10,16 +10,19 @@ from pytest import mark, param
 from aibs_informatics_core.utils.file_operations import (
     ArchiveType,
     PathLock,
+    copy_path,
     extract_archive,
     get_path_hash,
     get_path_size_bytes,
     get_path_with_root,
     make_archive,
+    move_path,
     remove_path,
+    strip_path_root,
 )
 
 
-class FileUtilsBaseTest(BaseTest):
+class FileOperationsBaseTest(BaseTest):
     def assertDirectoryContents(self, root_path: Path, expected_file_paths: List[str]):
         relative_extracted_paths = [
             str(_) for _ in self.os_walk(root_path, include_dirs=False, include_root=False)
@@ -86,7 +89,16 @@ class FileUtilsBaseTest(BaseTest):
         return sorted(paths)
 
 
-class ArchiveTests(FileUtilsBaseTest):
+class ArchiveTests(FileOperationsBaseTest):
+    def test__is_archive__works(self):
+        path = self.create_tar_archive(self.tmp_path(), ["a.txt", "b.txt"])
+        self.assertTrue(ArchiveType.is_archive(path))
+
+    def test__is_archive_type__works(self):
+        path = self.create_tar_archive(self.tmp_path(), ["a.txt", "b.txt"])
+        self.assertTrue(ArchiveType.TAR_GZ.is_archive_type(path))
+        self.assertFalse(ArchiveType.TAR_GZ.is_archive_type(self.tmp_file()))
+
     def test__extract_archive__extracts_tar_gz__no_dest_provided(self):
         paths = ["a.txt", "b.txt"]
         archive_path = self.create_tar_archive(self.tmp_path(), paths)
@@ -160,7 +172,7 @@ class ArchiveTests(FileUtilsBaseTest):
         self.assertDirectoryContents(new_dir_path, paths)
 
 
-class FileUtilsTests(FileUtilsBaseTest):
+class FileOperationsTests(FileOperationsBaseTest):
     def setUp(self) -> None:
         super().setUp()
 
@@ -225,6 +237,74 @@ class FileUtilsTests(FileUtilsBaseTest):
         path.write_text("_" * 5)
         self.assertEqual(get_path_size_bytes(path), 5)
 
+    def test__move_path__handles_file(self):
+        path = self.tmp_file()
+        path.write_text("_" * 5)
+        path_content = path.read_text()
+        new_path = self.tmp_file()
+        self.assertFalse(new_path.exists())
+        move_path(path, new_path)
+        self.assertFalse(path.exists())
+        self.assertTrue(new_path.exists())
+        self.assertEqual(new_path.read_text(), path_content)
+
+    def test__move_path__handles_file__destination_exists(self):
+        path = self.tmp_file()
+        path.write_text("_" * 5)
+        path_content = path.read_text()
+        new_path = self.tmp_file()
+        new_path.touch()
+        self.assertTrue(new_path.exists())
+        self.assertNotEqual(new_path.read_text(), path_content)
+        with self.assertRaises(ValueError):
+            move_path(path, new_path)
+        move_path(path, new_path, exists_ok=True)
+        self.assertEqual(new_path.read_text(), path_content)
+
+    def test__move_path__handles_dir(self):
+        root = self.tmp_path()
+        (path := root / "old").mkdir()
+        (path / "a").write_text("a" * 5)
+        (path / "b").write_text("b" * 5)
+        new_path = self.tmp_path() / "new"
+        self.assertFalse(new_path.exists())
+        move_path(path, new_path)
+        self.assertFalse(path.exists())
+        self.assertTrue(new_path.exists())
+        self.assertDirectoryContents(new_path, ["a", "b"])
+
+    def test__copy_path__handles_file(self):
+        path = self.tmp_file()
+        path.write_text("_" * 5)
+        new_path = self.tmp_file()
+        self.assertFalse(new_path.exists())
+        copy_path(path, new_path)
+        self.assertTrue(new_path.exists())
+        self.assertEqual(new_path.read_text(), path.read_text())
+
+    def test__copy_path__handles_file__destination_exists(self):
+        path = self.tmp_file()
+        path.write_text("_" * 5)
+        new_path = self.tmp_file()
+        new_path.touch()
+        self.assertTrue(new_path.exists())
+        self.assertNotEqual(new_path.read_text(), path.read_text())
+        with self.assertRaises(ValueError):
+            copy_path(path, new_path)
+        copy_path(path, new_path, exists_ok=True)
+        self.assertEqual(new_path.read_text(), path.read_text())
+
+    def test__copy_path__handles_dir(self):
+        root = self.tmp_path()
+        (path := root / "old").mkdir()
+        (path / "a").write_text("a" * 5)
+        (path / "b").write_text("b" * 5)
+        new_path = self.tmp_path() / "new"
+        self.assertFalse(new_path.exists())
+        copy_path(path, new_path)
+        self.assertTrue(new_path.exists())
+        self.assertDirectoryContents(new_path, ["a", "b"])
+
     def test__remove_path__handles_file(self):
         path = self.tmp_file()
         path.write_text("_" * 5)
@@ -267,4 +347,16 @@ class FileUtilsTests(FileUtilsBaseTest):
 )
 def test__get_path_with_root(path: Union[Path, str], root: Union[Path, str], expected: str):
     actual = get_path_with_root(path=path, root=root)
+    assert actual == expected
+
+
+@mark.parametrize(
+    "path, root, expected",
+    [
+        param(Path("file"), Path("/path/to/"), "file", id="simple file [P/P]"),
+        param("file", Path("/path/to/"), "file", id="simple file [P/P]"),
+    ],
+)
+def test__strip_path_root__works(path, root, expected):
+    actual = strip_path_root(path, root)
     assert actual == expected

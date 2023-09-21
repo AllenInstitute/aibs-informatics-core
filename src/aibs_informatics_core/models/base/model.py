@@ -1,8 +1,6 @@
 __all__ = [
     "BaseModel",
     "BaseSchema",
-    "ESM",
-    "ExplicitSchemaModel",
     "DCM",
     "DataClassModel",
     "M",
@@ -26,7 +24,7 @@ from dataclasses import Field, dataclass, fields
 from functools import wraps
 from pathlib import Path
 from types import MethodType
-from typing import Any, ClassVar, Dict, Protocol, Tuple, Type, TypeVar, cast
+from typing import Any, ClassVar, Dict, Protocol, Tuple, Type, TypeVar, Union, cast
 
 import marshmallow as mm
 import yaml
@@ -44,7 +42,6 @@ from aibs_informatics_core.utils.tools.dict_helpers import remove_matching_value
 T = TypeVar("T")
 
 
-DEFAULT_MANY = False
 DEFAULT_PARTIAL = False
 DEFAULT_VALIDATE = True
 
@@ -57,20 +54,21 @@ VM = TypeVar("VM", bound="ValidatedBaseModel")
 DCM = TypeVar("DCM", bound="DataClassModel")
 
 SM = TypeVar("SM", bound="SchemaModel")
-ESM = TypeVar("ESM", bound="ExplicitSchemaModel")
 
 
 class BaseModel(abc.ABC):
     @classmethod
     @abc.abstractmethod
     def from_dict(cls: Type[M], data: JSONObject, **kwargs) -> M:
-        raise NotImplementedError(f"Not Implemented. Must implement this method in {cls.__name__}")
+        raise NotImplementedError(
+            f"Must implement this method in {cls.__name__}"
+        )  # pragma: no cover
 
     @abc.abstractmethod
     def to_dict(self, **kwargs) -> JSONObject:
         raise NotImplementedError(
-            f"Not Implemented. Must implement this method in {self.__class__.__name__}"
-        )
+            f"Must implement this method in {self.__class__.__name__}"
+        )  # pragma: no cover
 
     @classmethod
     def from_json(cls: Type[M], data: str, **kwargs) -> M:
@@ -146,14 +144,13 @@ class ValidatedBaseModel(BaseModel):
 
     @classmethod
     @abc.abstractmethod
-    def validate(
-        cls,
-        data: Dict[str, Any],
-        many: bool = DEFAULT_MANY,
-        partial: bool = DEFAULT_PARTIAL,
-        **kwargs,
-    ):
-        raise NotImplementedError("Must implement")
+    def validate(cls, data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs):
+        raise NotImplementedError("Must implement")  # pragma: no cover
+
+
+# --------------------------------------------------------------
+#                     SchemaModel
+# --------------------------------------------------------------
 
 
 class SchemaModel(DataClassModel, ValidatedBaseModel):
@@ -179,7 +176,6 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
         Returns:
             SM: _description_
         """
-        cls.validate(data=data, partial=partial)
         return cls.model_schema(partial=partial, **kwargs).load(data=data, partial=partial)
 
     def to_dict(
@@ -205,37 +201,29 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
             else:
                 setattr(self, field.name, new_value)
 
-    def validate_self(self, partial: bool = False, **kwargs):
-        model_dict = super().to_dict(**kwargs)
-        self.validate(model_dict, partial=partial, **kwargs)
+    def validate_obj(self, partial: bool = DEFAULT_PARTIAL, **kwargs):
+        self.validate(self, partial=partial, **kwargs)
 
     @classmethod
     def validate(
-        cls,
-        data: Dict[str, Any],
-        many: bool = DEFAULT_MANY,
-        partial: bool = DEFAULT_PARTIAL,
-        **kwargs,
+        cls: Type[SM], data: Union[Dict[str, Any], SM], partial: bool = DEFAULT_PARTIAL, **kwargs
     ):
-        errors = cls.model_schema(partial=partial, many=many).validate(
-            data, many=many, partial=partial
-        )
-        if any(errors):
-            raise mm.ValidationError(
-                f"Trying to validate ({data}) resulted in the following "
-                f"validation errors: {errors}"
-            )
+        try:
+            if isinstance(data, cls):
+                data = data.to_dict(partial=partial)
+            cls.from_dict(data, partial=partial)
+        except Exception as e:
+            raise mm.ValidationError(f"Validation failed for {cls.__name__}: {e}")
+
+    def is_valid_obj(self, partial: bool = DEFAULT_PARTIAL, **kwargs) -> bool:
+        return self.is_valid(self, partial=partial, **kwargs)
 
     @classmethod
     def is_valid(
-        cls,
-        data: Dict[str, Any],
-        many: bool = DEFAULT_MANY,
-        partial: bool = DEFAULT_PARTIAL,
-        **kwargs,
+        cls: Type[SM], data: Union[Dict[str, Any], SM], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> bool:
         try:
-            cls.validate(data, many=many, partial=partial, **kwargs)
+            cls.validate(data, partial=partial, **kwargs)
         except mm.ValidationError:
             return False
         return True
@@ -250,21 +238,17 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
     # ----------------------------------------
 
     @classmethod
-    def as_mm_field(
-        cls, many: bool = DEFAULT_MANY, partial: bool = DEFAULT_PARTIAL, **kwargs
-    ) -> NestedField:
-        return NestedField(cls.model_schema(many=many, partial=partial, **kwargs))
+    def as_mm_field(cls, partial: bool = DEFAULT_PARTIAL, **kwargs) -> NestedField:
+        return NestedField(cls.model_schema(partial=partial, **kwargs))
 
     @classmethod
-    def model_schema(
-        cls, many: bool = DEFAULT_MANY, partial: bool = DEFAULT_PARTIAL, **kwargs
-    ) -> mm.Schema:
+    def model_schema(cls, partial: bool = DEFAULT_PARTIAL, **kwargs) -> mm.Schema:
         """Marshmallow Schema representing this class.
 
         By default, a schema is generated for you.
 
         """
-        return cls.schema(many=many, partial=partial, **kwargs)
+        return cls.schema(partial=partial, **kwargs)
 
     # ----------------------------------------
     # Default schema hooks
@@ -332,23 +316,20 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
                 return True
         return False
 
-    def copy(self: SM, many: bool = DEFAULT_MANY, partial: bool = DEFAULT_PARTIAL, **kwargs) -> SM:
+    def copy(self: SM, partial: bool = DEFAULT_PARTIAL, **kwargs) -> SM:
         return self.from_dict(
-            data=self.to_dict(many=many, partial=partial, **kwargs),
-            many=many,
-            partial=partial,
-            **kwargs,
+            data=self.to_dict(partial=partial, **kwargs), partial=partial, **kwargs
         )
 
 
 class ModelSchemaMethod(Protocol):
-    def __call__(self, cls: Type[SM], partial: bool, many: bool, **kwargs) -> mm.Schema:
-        ...
+    def __call__(self, cls: Type[SM], partial: bool, **kwargs) -> mm.Schema:
+        ...  # pragma: no cover
 
 
 class ModelClassMethod(Protocol):
     def __call__(*args, **kwargs) -> Any:
-        ...
+        ...  # pragma: no cover
 
 
 def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = True):
@@ -401,13 +382,13 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
     @cache
     @wraps(model_schema_method)
     def model_schema_with_hooks(
-        cls: Type[SM], partial: bool = DEFAULT_PARTIAL, many: bool = DEFAULT_MANY, **kwargs
+        cls: Type[SM], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> mm.Schema:
 
-        schema = model_schema_method(cls, partial=partial, many=many, **kwargs)
+        schema = model_schema_method(cls, partial=partial, **kwargs)
 
         if remove_post_load_hooks:
-            post_load_key = (POST_LOAD, many)
+            post_load_key = (POST_LOAD, False)
             for post_load_method_name in schema._hooks.get(post_load_key, []):
                 try:
                     post_load_method = getattr(schema, post_load_method_name)
@@ -433,33 +414,6 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
 
 class BaseSchema(mm.Schema):
     pass
-
-
-class ExplicitSchemaModel(SchemaModel):
-    """
-    Model which validates data against a paired schema when loading, updating, or dumping
-    and allows partial model instantiation!
-    """
-
-    @classmethod
-    def empty(cls: Type[ESM]) -> ESM:
-        empty: Dict[str, Any] = {}
-        return cls.from_dict(empty, partial=True)
-
-    def update(self, data: Dict[str, Any]):
-        """Update dataclass attributes with validation"""
-        existing_data = self.to_dict(partial=True)
-        existing_data.update(data)
-        updated_self = self.from_dict(existing_data, partial=True)
-
-        for field in fields(self):
-            new_value = getattr(updated_self, field.name)
-
-            if FieldProps(field).requires_init():
-                if new_value is not None:
-                    setattr(self, field.name, new_value)
-            else:
-                setattr(self, field.name, new_value)
 
 
 @dataclass

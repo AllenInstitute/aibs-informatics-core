@@ -3,7 +3,7 @@ from test.base import BaseTest
 from aibs_informatics_core.utils.os_operations import expandvars
 
 
-class OSUtilsTests(BaseTest):
+class OSOperationsTests(BaseTest):
     def test__expandvars__expands_env_vars_without_brackets(self):
         self.set_env_vars(("V1", "signal"), ("V2", "the"))
         self.assertEqual(expandvars("$V1 between $V2 noise"), "signal between the noise")

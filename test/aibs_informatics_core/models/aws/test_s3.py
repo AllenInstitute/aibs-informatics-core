@@ -1,10 +1,23 @@
 from contextlib import nullcontext as does_not_raise
+from datetime import datetime, timezone
 from typing import Union
 
 import marshmallow as mm
 import pytest
+from click import Path
 
-from aibs_informatics_core.models.aws.s3 import S3URI, S3StorageClass
+from aibs_informatics_core.models.aws.s3 import (
+    S3URI,
+    S3CopyRequest,
+    S3CopyResponse,
+    S3RestoreStatus,
+    S3RestoreStatusEnum,
+    S3StorageClass,
+    S3TransferRequest,
+    S3TransferResponse,
+    S3UploadRequest,
+    S3UploadResponse,
+)
 
 
 @pytest.mark.parametrize(
@@ -326,69 +339,130 @@ def test__S3URI__floordiv__works(this: S3URI, other: Union[str, S3URI], expected
     assert this // other == expected
 
 
-# @pytest.mark.parametrize(
-#     "s3_object_fixture, expected",
-#     [
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.STANDARD.value},
-#             # expected
-#             S3StorageClass.STANDARD,
-#             id="Test S3StorageClass.from_boto_s3_obj - STANDARD storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.STANDARD_IA.value},
-#             # expected
-#             S3StorageClass.STANDARD_IA,
-#             id="Test S3StorageClass.from_boto_s3_obj - STANDARD_IA storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.INTELLIGENT_TIERING.value},
-#             # expected
-#             S3StorageClass.INTELLIGENT_TIERING,
-#             id="Test S3StorageClass.from_boto_s3_obj - INTELLIGENT_TIERING storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.ONEZONE_IA.value},
-#             # expected
-#             S3StorageClass.ONEZONE_IA,
-#             id="Test S3StorageClass.from_boto_s3_obj - ONEZONE_IA storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.GLACIER_IR.value},
-#             # expected
-#             S3StorageClass.GLACIER_IR,
-#             id="Test S3StorageClass.from_boto_s3_obj - GLACIER_IR storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.GLACIER.value},
-#             # expected
-#             S3StorageClass.GLACIER,
-#             id="Test S3StorageClass.from_boto_s3_obj - GLACIER storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.DEEP_ARCHIVE.value},
-#             # expected
-#             S3StorageClass.DEEP_ARCHIVE,
-#             id="Test S3StorageClass.from_boto_s3_obj - DEEP_ARCHIVE storage class",
-#         ),
-#         pytest.param(
-#             # s3_object_fixture
-#             {"mock_object_storage_class": S3StorageClass.REDUCED_REDUNDANCY.value},
-#             # expected
-#             S3StorageClass.REDUCED_REDUNDANCY,
-#             id="Test S3StorageClass.from_boto_s3_obj - REDUCED_REDUNDANCY storage class",
-#         ),
-#     ],
-#     indirect=["s3_object_fixture"],
-# )
-# def test__s3_storage_class__from_boto_s3_obj(s3_object_fixture, expected):
-#     s3_obj = get_object(s3_object_fixture)
-#     result = S3StorageClass.from_boto_s3_obj(s3_obj)
-#     assert expected == result
+def test__S3URI__with_folder_suffix__works():
+    this = S3URI("s3://my-bucket/my-key")
+    expected = S3URI("s3://my-bucket/my-key/")
+    assert this.with_folder_suffix == expected
+
+
+@pytest.mark.parametrize(
+    "s3_object_fixture, expected",
+    [
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.STANDARD.value},
+            # expected
+            S3StorageClass.STANDARD,
+            id="Test S3StorageClass.from_boto_s3_obj - STANDARD storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.STANDARD_IA.value},
+            # expected
+            S3StorageClass.STANDARD_IA,
+            id="Test S3StorageClass.from_boto_s3_obj - STANDARD_IA storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.INTELLIGENT_TIERING.value},
+            # expected
+            S3StorageClass.INTELLIGENT_TIERING,
+            id="Test S3StorageClass.from_boto_s3_obj - INTELLIGENT_TIERING storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.ONEZONE_IA.value},
+            # expected
+            S3StorageClass.ONEZONE_IA,
+            id="Test S3StorageClass.from_boto_s3_obj - ONEZONE_IA storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.GLACIER_IR.value},
+            # expected
+            S3StorageClass.GLACIER_IR,
+            id="Test S3StorageClass.from_boto_s3_obj - GLACIER_IR storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.GLACIER.value},
+            # expected
+            S3StorageClass.GLACIER,
+            id="Test S3StorageClass.from_boto_s3_obj - GLACIER storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.DEEP_ARCHIVE.value},
+            # expected
+            S3StorageClass.DEEP_ARCHIVE,
+            id="Test S3StorageClass.from_boto_s3_obj - DEEP_ARCHIVE storage class",
+        ),
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": S3StorageClass.REDUCED_REDUNDANCY.value},
+            # expected
+            S3StorageClass.REDUCED_REDUNDANCY,
+            id="Test S3StorageClass.from_boto_s3_obj - REDUCED_REDUNDANCY storage class",
+        ),
+    ],
+)
+def test__s3_storage_class__from_boto_s3_obj(s3_object_fixture, expected):
+    class S3_Object:
+        def __init__(self, storage_class):
+            self.storage_class = storage_class
+
+    s3_obj = S3_Object(**s3_object_fixture)
+    result = S3StorageClass.from_boto_s3_obj(s3_obj)
+    assert expected == result
+
+
+def test__S3RestoreStatus__works():
+
+    assert S3RestoreStatus.from_raw_s3_restore_status(None) == S3RestoreStatus(
+        S3RestoreStatusEnum.NOT_STARTED
+    )
+    assert S3RestoreStatus.from_raw_s3_restore_status('ongoing-request="true"') == S3RestoreStatus(
+        S3RestoreStatusEnum.IN_PROGRESS
+    )
+    assert S3RestoreStatus.from_raw_s3_restore_status(
+        'ongoing-request="false", expiry-date="Fri, 21 Dec 2012 00:00:00 GMT"'
+    ) == S3RestoreStatus(
+        S3RestoreStatusEnum.FINISHED,
+        restore_expiration_time=datetime(2012, 12, 21, 0, 0, 0, 0, tzinfo=timezone.utc),
+    )
+
+
+def test__S3UploadResponse__fails_if_no_reason():
+    with pytest.raises(ValueError):
+        S3UploadResponse(
+            request=S3UploadRequest(
+                source_path=Path("/tmp/my-file"),
+                destination_path=S3URI("s3://my-bucket/my-key"),
+            ),
+            failed=True,
+            reason=None,
+        )
+
+
+def test__S3CopyResponse__fails_if_no_reason():
+    with pytest.raises(ValueError):
+        S3CopyResponse(
+            request=S3CopyRequest(
+                source_path=S3URI("s3://my-bucket/my-key"),
+                destination_path=S3URI("s3://tmp/my-file"),
+            ),
+            failed=True,
+            reason=None,
+        )
+
+
+def test__S3TransferResponse__fails_if_no_reason():
+    with pytest.raises(ValueError):
+        S3TransferResponse(
+            request=S3TransferRequest(
+                source_path=S3URI("s3://my-bucket/my-key"),
+                destination_path=Path("/tmp/my-file"),
+            ),
+            failed=True,
+            reason=None,
+        )

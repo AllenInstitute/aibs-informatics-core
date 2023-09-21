@@ -1,9 +1,27 @@
+import os
 from test.base import BaseTest
 
-from aibs_informatics_core.env import EnvBase, EnvType
+from aibs_informatics_core.env import (
+    ENV_BASE_KEY,
+    ENV_BASE_KEY_ALIAS,
+    ENV_LABEL_KEY,
+    ENV_LABEL_KEY_ALIAS,
+    ENV_TYPE_KEY,
+    ENV_TYPE_KEY_ALIAS,
+    LABEL_KEY,
+    LABEL_KEY_ALIAS,
+    EnvBase,
+    EnvType,
+    get_env_base,
+    get_env_label,
+    get_env_type,
+)
 
 
 class EnvBaseTests(BaseTest):
+
+    reset_environ = True
+
     def setUp(self) -> None:
         super().setUp()
         self.env_base = EnvBase("prod-marmot")
@@ -76,6 +94,44 @@ class EnvBaseTests(BaseTest):
         self.assertEqual(
             self.env_base.suffixed("construct", "x", delim="/"),
             "construct/x/prod-marmot",
+        )
+
+    def test__get_repository_name__returns_prefixed_value(self):
+        self.assertEqual(self.env_base.get_repository_name("repo", "x"), "prod-marmot/repo-x")
+
+    def test__get_resource_name__returns_prefixed_value(self):
+        self.assertEqual(
+            self.env_base.get_resource_name("resource", "x"), "prod-marmot-resource-x"
+        )
+
+    def test__get_state_machine_name__returns_prefixed_value(self):
+        self.assertEqual(
+            self.env_base.get_state_machine_name("state_machine-x"),
+            "prod-marmot-state_machine-x",
+        )
+
+    def test__get_state_machine_log_group_name__returns_prefixed_value(self):
+        self.assertEqual(
+            self.env_base.get_state_machine_log_group_name("state_machine-x"),
+            "/aws/vendedlogs/prod-marmot/states/state_machine-x",
+        )
+
+    def test__get_metric_namespace__returns_prefixed_value(self):
+        self.assertEqual(
+            self.env_base.get_metric_namespace("metric_namespace-x"),
+            "AIBS/prod-marmot/metric_namespace-x",
+        )
+
+    def test__get_bucket_name__returns_prefixed_value(self):
+        self.assertEqual(
+            self.env_base.get_bucket_name("bucket", "account", "region"),
+            "prod-marmot-bucket-region-account",
+        )
+
+    def test__get_ssm_param_name__returns_prefixed_value(self):
+        self.assertEqual(
+            self.env_base.get_ssm_param_name("param", "x"),
+            "/prod-marmot/param-x",
         )
 
     def test__from_type_and_label__succeeds(self):
@@ -198,3 +254,95 @@ class EnvBaseTests(BaseTest):
 
         self.set_env_vars(("env_base", "test"))
         self.assertEqual(EnvBase("test"), EnvBase.from_env())
+
+    def test__from_env__raises_exception_if_no_env_vars(self):
+        self.reset_all_env_vars()
+        with self.assertRaises(Exception):
+            EnvBase.from_env()
+
+    def test__load_env_type__from_env__priority_works(self):
+        self.reset_all_env_vars()
+        self.set_env_vars(
+            (ENV_TYPE_KEY_ALIAS, "prod"),
+        )
+        self.assertEqual(EnvType.PROD, EnvBase.load_env_type__from_env())
+        self.set_env_vars(
+            (ENV_TYPE_KEY_ALIAS, "test"),
+            (ENV_TYPE_KEY, "prod"),
+        )
+        self.assertEqual(EnvType.PROD, EnvBase.load_env_type__from_env())
+
+    def test__load_env_type__from_env__raises_exception_if_no_env_vars(self):
+        self.reset_all_env_vars()
+        with self.assertRaises(Exception):
+            EnvBase.load_env_type__from_env()
+
+    def test__load_env_label__from_env__priority_works(self):
+        self.reset_all_env_vars()
+        self.assertEqual(None, EnvBase.load_env_label__from_env())
+        self.set_env_vars((LABEL_KEY_ALIAS, "label1"))
+        self.assertEqual("label1", EnvBase.load_env_label__from_env())
+        self.set_env_vars((LABEL_KEY, "label2"))
+        self.assertEqual("label2", EnvBase.load_env_label__from_env())
+        self.set_env_vars((ENV_LABEL_KEY_ALIAS, "label3"))
+        self.assertEqual("label3", EnvBase.load_env_label__from_env())
+        self.set_env_vars((ENV_LABEL_KEY, "label4"))
+        self.assertEqual("label4", EnvBase.load_env_label__from_env())
+
+    def test__to_env__sets_env_var(self):
+        self.reset_all_env_vars()
+        self.assertFalse(ENV_BASE_KEY in os.environ)
+        env_base = EnvBase("test")
+        env_base.to_env()
+        self.assertEqual(os.environ[ENV_BASE_KEY], "test")
+        env_base2 = EnvBase("test-label")
+        env_base2.to_env()
+        self.assertEqual(os.environ[ENV_BASE_KEY], "test-label")
+
+    def test__get_env_base__works_as_expected(self):
+        self.reset_all_env_vars()
+        self.set_env_vars((ENV_BASE_KEY, "test"))
+        self.assertEqual(get_env_base(), EnvBase("test"))
+        self.assertEqual(get_env_base("test"), EnvBase("test"))
+        self.assertEqual(get_env_base(EnvBase("test")), EnvBase("test"))
+
+    def test__get_env_type__works_as_expected(self):
+        self.reset_all_env_vars()
+
+        # No default and no env vars
+        with self.assertRaises(Exception):
+            get_env_type()
+
+        self.assertEqual(get_env_type(default_env_type=EnvType.TEST), EnvType.TEST)
+        self.assertEqual(get_env_type(EnvType.TEST), EnvType.TEST)
+        self.assertEqual(get_env_type("test"), EnvType.TEST)
+
+    def test__get_env_label__works_as_expected(self):
+        self.reset_all_env_vars()
+
+        # No default and no env vars
+        self.assertEqual(get_env_label(), None)
+
+        # No default and env vars for label
+        self.set_env_vars((ENV_LABEL_KEY, "foo"))
+        self.assertEqual(get_env_label(), "foo")
+
+        # No default and env vars for env base
+        self.set_env_vars((ENV_BASE_KEY, "dev-bar"))
+        self.assertEqual(get_env_label(), "bar")
+
+        # Default supersedes env vars
+        self.assertEqual(get_env_label("qaz"), "qaz")
+        self.assertEqual(get_env_label(None), None)
+
+    def reset_all_env_vars(self):
+        self.set_env_vars(
+            (ENV_BASE_KEY, None),
+            (ENV_BASE_KEY_ALIAS, None),
+            (ENV_TYPE_KEY, None),
+            (ENV_TYPE_KEY_ALIAS, None),
+            (ENV_LABEL_KEY, None),
+            (ENV_LABEL_KEY_ALIAS, None),
+            (LABEL_KEY, None),
+            (LABEL_KEY_ALIAS, None),
+        )

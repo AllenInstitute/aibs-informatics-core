@@ -2,10 +2,10 @@ import datetime as dt
 import json
 import uuid
 from contextlib import nullcontext as does_not_raise
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from pathlib import Path
-from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import Any, ClassVar, Dict, Optional, Type, Union
+from tempfile import TemporaryDirectory
+from typing import Any, ClassVar, Dict, Optional
 
 import marshmallow as mm
 import pytest
@@ -14,10 +14,10 @@ from marshmallow import ValidationError
 
 from aibs_informatics_core.models.base import (
     MISSING,
+    BaseModel,
     BaseSchema,
     CustomAwareDateTime,
-    ExplicitSchemaModel,
-    FieldProps,
+    DataClassModel,
     FloatField,
     IntegerField,
     SchemaModel,
@@ -26,6 +26,93 @@ from aibs_informatics_core.models.base import (
     field_metadata,
 )
 from aibs_informatics_core.utils.decorators import cache
+from aibs_informatics_core.utils.json import JSONObject
+
+# ----------------------------------------------------------
+#                       BaseModel tests
+# ----------------------------------------------------------
+
+
+class SimpleBaseModel(BaseModel):
+    a_str: str
+    a_int: int
+
+    def __init__(self, a_str: str, a_int: int) -> None:
+        self.a_str = a_str
+        self.a_int = a_int
+
+    def to_dict(self, **kwargs) -> JSONObject:
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, data: JSONObject, **kwargs) -> "SimpleBaseModel":
+        return cls(**data)
+
+
+def test__BaseModel__to_dict__from_dict():
+    model = SimpleBaseModel(a_str="I'm a string!", a_int=42)
+    assert model.to_dict() == {"a_str": "I'm a string!", "a_int": 42}
+
+    new_model = SimpleBaseModel.from_dict(data={"a_str": "I'm a string!", "a_int": 42})
+    assert new_model.a_int == 42
+    assert new_model.a_str == "I'm a string!"
+
+
+def test__BaseModel__to_json__from_json():
+    model = SimpleBaseModel(a_str="I'm a string!", a_int=42)
+    assert model.to_json() == json.dumps({"a_str": "I'm a string!", "a_int": 42}, indent=4)
+
+    new_model = SimpleBaseModel.from_json(data='{"a_str": "I\'m a string!", "a_int": 42}')
+    assert new_model.a_int == 42
+    assert new_model.a_str == "I'm a string!"
+
+
+def test__BaseModel__copy():
+    model = SimpleBaseModel(a_str="I'm a string!", a_int=42)
+    new_model = model.copy()
+    assert new_model.a_int == 42
+    assert new_model.a_str == "I'm a string!"
+    assert new_model is not model
+
+
+# ----------------------------------------------------------
+#                       DataClassModel tests
+# ----------------------------------------------------------
+
+
+@dataclass
+class MyDataClassModel(DataClassModel):
+    a_str: str
+    a_int: int
+
+
+def test__DataClassModel__to_dict__from_dict():
+    model = MyDataClassModel(a_str="I'm a string!", a_int=42)
+    assert model.to_dict() == {"a_str": "I'm a string!", "a_int": 42}
+
+    new_model = MyDataClassModel.from_dict(data={"a_str": "I'm a string!", "a_int": 42})
+    assert new_model == model
+
+
+def test__DataClassModel__to_json__from_json():
+    model = MyDataClassModel(a_str="I'm a string!", a_int=42)
+    assert model.to_json() == json.dumps({"a_str": "I'm a string!", "a_int": 42}, indent=4)
+
+    new_model = MyDataClassModel.from_json(data='{"a_str": "I\'m a string!", "a_int": 42}')
+    assert new_model == model
+
+
+def test__DataClassModel__get_model_fields():
+    model_fields = MyDataClassModel.get_model_fields()
+
+    assert len(model_fields) == 2
+    assert model_fields[0].name == "a_str"
+    assert model_fields[1].name == "a_int"
+
+
+# ----------------------------------------------------------
+#          SchemaModel tests (with explicit schema)
+# ----------------------------------------------------------
 
 
 class MockEntrySchema(BaseSchema):
@@ -37,7 +124,7 @@ class MockEntrySchema(BaseSchema):
 
 
 @dataclass
-class MockEntry(ExplicitSchemaModel):
+class MockEntry(SchemaModel):
     a_uuid: uuid.UUID
     a_timestamp: dt.datetime
     a_str: str
@@ -56,7 +143,7 @@ class HasOptionalFieldSchema(BaseSchema):
 
 
 @dataclass
-class HasOptionalField(ExplicitSchemaModel):
+class HasOptionalField(SchemaModel):
     required_str: str
     optional_str: Optional[str] = None
 
@@ -269,7 +356,7 @@ class HasOptionalField(ExplicitSchemaModel):
         ),
     ],
 )
-def test__ExplicitSchemaModel__from_dict(
+def test__SchemaModel__with_explicit_model_schema__from_dict(
     model_class, input_data, partial, raise_expectation, expected
 ):
     with raise_expectation:
@@ -375,7 +462,9 @@ def test__ExplicitSchemaModel__from_dict(
         ),
     ],
 )
-def test__ExplicitSchemaModel__update(model_to_update, update_data, raise_expectation, expected):
+def test__SchemaModel__with_explicit_model_schema__update(
+    model_to_update, update_data, raise_expectation, expected
+):
     with raise_expectation:
         model_to_update.update(data=update_data)
 
@@ -478,7 +567,9 @@ def test__ExplicitSchemaModel__update(model_to_update, update_data, raise_expect
         ),
     ],
 )
-def test__ExplicitSchemaModel__to_dict(model_to_dump, partial, raise_expectation, expected):
+def test__SchemaModel__with_explicit_model_schema__to_dict(
+    model_to_dump, partial, raise_expectation, expected
+):
     with raise_expectation:
         obtained = model_to_dump.to_dict(partial=partial)
 
@@ -539,7 +630,9 @@ def test__ExplicitSchemaModel__to_dict(model_to_dump, partial, raise_expectation
         ),
     ],
 )
-def test__ExplicitSchemaModel__setattr(model_to_set, attr_value, raise_expectation, expected):
+def test__SchemaModel__with_explicit_model_schema__setattr(
+    model_to_set, attr_value, raise_expectation, expected
+):
     with raise_expectation:
         setattr(model_to_set, *attr_value)
 
@@ -836,27 +929,26 @@ def test__SchemaModel__to_path__from_path():
     assert new_model == model
 
 
-@dataclass
-class YetAnotherDC(SchemaModel):
-    req: str
-    opt: Optional[str]
-    another_opt: Union[int, Union[Optional[int], bool]]
-    opt_with_default: Optional[str] = None
-    non_opt_with_default: str = "empty_sm"
+def test__SchemaModel__is_partial():
+    model = Simple.empty()
+    assert model.is_partial()
+
+    model = Simple(int_value=1, str_value="s")
+    assert not model.is_partial()
 
 
-@pytest.mark.parametrize(
-    "cls_field, expected",
-    list(zip(fields(YetAnotherDC), [True, True, True, False, False])),
-)
-def test__FieldProps__requires_init_and_has_default(cls_field, expected):
-    assert FieldProps(cls_field).requires_init() == expected
-    assert FieldProps(cls_field).has_default() != expected
+def test__SchemaModel__validate_obj():
+    model = Simple(int_value=1, str_value="s")
+    model.validate_obj()
+
+    model = Simple(int_value=1, str_value="s")
+    model.int_value = "s"
+    with pytest.raises(ValidationError):
+        model.validate_obj()
 
 
-@pytest.mark.parametrize(
-    "cls_field, expected",
-    list(zip(fields(YetAnotherDC), [False, True, True, True, False])),
-)
-def test__FieldProps__is_optional_type(cls_field, expected):
-    assert FieldProps(cls_field).is_optional_type() == expected
+def test__SchemaModel__is_valid():
+    data = dict(int_value=1, str_value="s")
+    assert Simple.is_valid(data)
+
+    assert not Simple.is_valid({})

@@ -92,9 +92,7 @@ class EnumField(mm.fields.Field, Generic[E]):
 
 class PathField(mm.fields.Field):
     def _serialize(self, value, attr, obj, **kwargs):
-        if value is None:
-            return ""
-        return str(value)
+        return str(value) if isinstance(value, Path) else value
 
     def _deserialize(self, value, attr, data, **kwargs):
         return Path(value)

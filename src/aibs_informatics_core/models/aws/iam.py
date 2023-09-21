@@ -1,3 +1,8 @@
+__all__ = [
+    "PrincipalType",
+    "UserId",
+    "IAMArn",
+]
 import re
 from typing import ClassVar, Optional, Pattern
 

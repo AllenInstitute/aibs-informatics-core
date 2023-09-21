@@ -26,7 +26,6 @@ LogLevel = Union[str, int]
 
 
 def get_logger(name: Optional[str] = None):
-    # return logging.getLogger(name=f"gcs{'.' + name if name else ''}")
     return logging.getLogger(name=name)
 
 
