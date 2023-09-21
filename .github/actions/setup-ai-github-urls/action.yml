@@ -1,0 +1,26 @@
+name: AllenInstitute Repo Setup
+
+description: |
+  Configures all credentials to use AllenInstitute Repos in GitHub.
+inputs:
+  token:
+    required: false
+  ssh_private_key:
+    required: false
+  ssh_auth_sock:
+    required: false
+    default: "/tmp/ssh_agent.sock"
+
+runs: 
+  using: "composite"
+  steps:
+    - name: Configure AllenInstitute Repo URLs with PAT Authorization
+      if: ${{ inputs.token != '' }}
+      run: |
+        git config --global url."https://${{ github.actor }}:${{ inputs.token }}@github.com/AllenInstitute".insteadOf https://github.com/AllenInstitute
+      shell: bash
+    - name: Configure AllenInstitute Repo URLs with SSH Authorization
+      if: ${{ inputs.ssh_private_key != '' }}
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ inputs.ssh_private_key }}

@@ -1,0 +1,200 @@
+# -----------------------------------------------------------------------------
+##  Build System Configurations
+#   https://setuptools.pypa.io/en/latest/setuptools.html#building-and-distributing-packages-with-setuptools
+# -----------------------------------------------------------------------------
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# [build-system]
+# requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2", "wheel"]
+# build-backend = "setuptools.build_meta"
+
+# [tool.setuptools_scm]
+
+# -----------------------------------------------------------------------------
+[project]
+name = "aibs-informatics-core"
+version = "0.0.1"
+description = "Core package for informatics projects at the Allen Institute for Brain Science"
+readme = "README.md"
+# dynamic = [ "version"]
+requires-python = ">=3.9"
+
+dependencies = [
+    "marshmallow==3.14.1",
+    "dataclasses-json==0.5.7",
+    "pydantic==1.9.0",
+    "python-dateutil",
+    "pytz",
+    "pyyaml==6.0",
+    "requests",
+    "typing_inspect",
+]
+
+[project.optional-dependencies]
+dev = [
+    "aibs-informatics-test-resources",
+]
+
+# [tool.setuptools.dynamic]
+# version = {attr = "aibs_informatics_core.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ['py.typed']
+
+# -----------------------------------------------------------------------------
+##  Pyright Configurations
+#   https://github.com/microsoft/pyright/blob/main/docs/configuration.md
+# -----------------------------------------------------------------------------
+
+[tool.pyright]
+reportGeneralTypeIssues = false
+typeCheckingMode = "basic"
+
+# -----------------------------------------------------------------------------
+##  Coverage Configurations 
+#   https://coverage.readthedocs.io/en/7.0.4/config.html#
+# -----------------------------------------------------------------------------
+
+[tool.coverage]
+# Note: we use pytest-cov to generate coverage reports
+#       when running tests. but these coverage configs
+#       are read when doing so.  
+[tool.coverage.run]
+branch = true
+command_line = "coverage -m pytest"
+data_file = "build/.coverage"
+source = [
+    "src/"
+]
+
+[tool.coverage.report]
+omit = [
+    "test/*"
+]
+skip_empty = true
+
+[tool.coverage.html]
+directory = "build/documentation/coverage"
+
+[tool.coverage.xml]
+output = "build/documentation/coverage.xml"
+
+# -----------------------------------------------------------------------------
+##  pytest Configurations
+#   https://docs.pytest.org/en/7.2.x/reference/customize.html
+# -----------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra", 
+    "--verbose",
+    "--ignore=build/private",
+    # Coverage options should be managed in the .coveragerc file.
+    # The below configurations simply enable coverage and reporting.  
+    "--cov", 
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=0",
+    "--color=yes",
+] 
+testpaths = [
+    "test",
+]
+cache_dir = "build/.pytest_cache"
+  
+# -----------------------------------------------------------------------------
+##  MyPy Configurations
+#   https://mypy.readthedocs.io/en/stable/config_file.html#example-pyproject-toml
+# -----------------------------------------------------------------------------
+
+[tool.mypy]
+exclude = '''(?x)(
+    assets/
+    | build/
+    | build_tools
+    | setup.py$
+    | test/
+)'''
+
+cache_dir = "build/.mypy_cache"
+
+# Using no incremental to avoid known issue with mypy and some packages:
+# https://github.com/python/mypy/issues/9852
+incremental = false
+
+# Import Discovery
+# https://mypy.readthedocs.io/en/stable/config_file.html#import-discovery
+ignore_missing_imports = true
+follow_imports = "silent"
+no_site_packages = true
+
+# Untyped definitions and calls
+# https://mypy.readthedocs.io/en/stable/config_file.html#untyped-definitions-and-calls
+# TODO: enable and fix errors
+check_untyped_defs = false
+
+# Miscellaneous strictness flags
+# https://mypy.readthedocs.io/en/latest/config_file.html#miscellaneous-strictness-flags
+allow_redefinition = true
+
+
+# Configuring Error Messages
+# https://mypy.readthedocs.io/en/stable/config_file.html#configuring-error-messages
+show_error_codes = true
+color_output = true
+pretty = true
+show_absolute_path = false
+
+# Reporting Generation
+# https://mypy.readthedocs.io/en/stable/config_file.html#report-generation
+# [DEBUG] UNCOMMENT FOR DEBUG PURPOSES ONLY! Type coverage impacts test 
+# html_report = build/documentation/mypy/
+# xml_report = build/documentation/mypy/
+# cobertura_xml_report = build/documentation/mypy/
+
+# None and Optional handling
+# https://mypy.readthedocs.io/en/latest/config_file.html#none-and-optional-handling
+strict_optional = false
+
+# Miscellaneous
+# https://mypy.readthedocs.io/en/latest/config_file.html#miscellaneous
+# [DEBUG] If you need to better understand type error, increase verbosity
+verbosity = 0
+
+[[tool.mypy.overrides]]
+module = [
+    "src.*",
+    "test.*"
+]
+ignore_errors = false
+
+
+# -----------------------------------------------------------------------------
+##  Black Configurations
+#   https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#what-on-earth-is-a-pyproject-toml-file
+# -----------------------------------------------------------------------------
+
+
+[tool.black]
+line-length = 99
+include = '\.pyi?$'
+
+# -----------------------------------------------------------------------------
+##  isort Configurations
+#   https://pycqa.github.io/isort/docs/configuration/config_files.html
+# -----------------------------------------------------------------------------
+
+[tool.isort]
+# required for compatibility with black:
+line_length = 99
+profile = "black"
+src_paths = ["src", "test"]
+
