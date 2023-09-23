@@ -3,12 +3,89 @@ from re import S
 from marshmallow import ValidationError
 from pytest import raises
 
-from aibs_informatics_core.models.aws.batch import BatchJobDetail, KeyValuePairType
+from aibs_informatics_core.models.aws.batch import (
+    AttemptContainerDetail,
+    AttemptDetail,
+    BatchJobDetail,
+    ContainerDetail,
+    KeyValuePairType,
+)
 
 
 def test__KeyValuePairType__from_dict():
     data = dict(Name="asdf", Value="asdf")
     KeyValuePairType.from_dict(data)
+
+
+def test__AttemptDetail__properties_work():
+    detail = AttemptDetail(
+        Container=AttemptContainerDetail(
+            ContainerInstanceArn="asdf1",
+            TaskArn="asdf2",
+        ),
+        StartedAt=1,
+        StoppedAt=2,
+    )
+    assert detail.duration == 1
+    assert detail.container_instance_arn == "asdf1"
+    assert detail.container_task_arn == "asdf2"
+
+    detail2 = AttemptDetail(StartedAt=1)
+    assert detail2.duration == None
+    assert detail2.container_instance_arn == None
+    assert detail2.container_task_arn == None
+
+
+def test__BatchJobDetail__properties_work():
+    detail = BatchJobDetail(
+        JobName="JobName",
+        JobId="JobId",
+        JobQueue="JobQueue",
+        Status="Status",
+        StartedAt=1,
+        StoppedAt=2,
+        JobDefinition="JobDefinition",
+        Container=ContainerDetail(
+            Image="Image:Tag",
+            ContainerInstanceArn="ContainerInstanceArn",
+            TaskArn="TaskArn",
+            Environment=[KeyValuePairType(Name="Name", Value="Value")],
+        ),
+        Attempts=[
+            AttemptDetail(
+                Container=AttemptContainerDetail(
+                    ContainerInstanceArn="ContainerInstanceArn",
+                    TaskArn="TaskArn",
+                ),
+                StartedAt=1,
+                StoppedAt=2,
+            )
+        ],
+    )
+    assert detail.duration == 1
+    assert detail.container_instance_arn == "ContainerInstanceArn"
+    assert detail.container_name_and_tag == ("Image", "Tag")
+    assert detail.container_tag == "Tag"
+    assert detail.container_instance_arns == ["ContainerInstanceArn"]
+    assert detail.container_task_arn == "TaskArn"
+    assert detail.container_environment == {"Name": "Value"}
+
+    detail2 = BatchJobDetail(
+        JobName="JobName",
+        JobId="JobId",
+        JobQueue="JobQueue",
+        Status="Status",
+        JobDefinition="JobDefinition",
+        StartedAt=1,
+    )
+
+    assert detail2.duration == None
+    assert detail2.container_instance_arn == None
+    assert detail2.container_name_and_tag == ("NotAvailable", None)
+    assert detail2.container_tag == None
+    assert detail2.container_instance_arns == []
+    assert detail2.container_task_arn == None
+    assert detail2.container_environment == {}
 
 
 def test__BatchJobDetail__from_dict():

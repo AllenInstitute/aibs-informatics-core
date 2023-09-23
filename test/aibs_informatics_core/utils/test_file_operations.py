@@ -1,8 +1,10 @@
+import errno
 import os
 import tarfile
 import zipfile
 from pathlib import Path
 from typing import List, Literal, Sequence, Tuple, Union
+from unittest.mock import MagicMock, patch
 
 from aibs_informatics_test_resources import BaseTest
 from pytest import mark, param
@@ -237,6 +239,22 @@ class FileOperationsTests(FileOperationsBaseTest):
         path.write_text("_" * 5)
         self.assertEqual(get_path_size_bytes(path), 5)
 
+    @patch("aibs_informatics_core.utils.file_operations.find_all_paths")
+    @patch("aibs_informatics_core.utils.file_operations.Path")
+    def test__get_path_size_bytes__handles_errors(self, mock_find_all_paths, mock_Path):
+        mock_find_all_paths.return_value = ["a", "b"]
+        path = self.tmp_path()
+        e1 = MagicMock()
+        e1.stat.side_effect = FileNotFoundError()
+        e2 = MagicMock()
+        ose = OSError()
+        ose.errno = errno.ESTALE
+        e2.stat.side_effect = ose
+
+        e2.exists.side_effect = [True, False]
+        mock_Path.side_effect = [e1, e2]
+        self.assertEqual(get_path_size_bytes(path), 0)
+
     def test__move_path__handles_file(self):
         path = self.tmp_file()
         path.write_text("_" * 5)
@@ -331,6 +349,23 @@ class FileOperationsTests(FileOperationsBaseTest):
             lock_path = lock._lock_path
             self.assertTrue(lock_path.exists())
         self.assertFalse(lock_path.exists())
+
+    def test__PathLock__handles_stale_lock_file(self):
+        path = self.tmp_path()
+        with PathLock(path) as lock:
+            lock_path = lock._lock_path
+            self.assertTrue(lock_path.exists())
+            if lock._lock_file:
+                lock._lock_file.close()
+        lock.release()
+        self.assertFalse(lock_path.exists())
+
+    def test__PathLock__fails_if_lock_aquired(self):
+        path = self.tmp_path()
+        with PathLock(path) as lock:
+            with self.assertRaises(Exception):
+                with PathLock(path) as lock2:
+                    pass
 
 
 @mark.parametrize(

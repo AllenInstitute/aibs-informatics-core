@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 from test.base import BaseTest
 
 from aibs_informatics_core.env import (
@@ -11,7 +12,10 @@ from aibs_informatics_core.env import (
     LABEL_KEY,
     LABEL_KEY_ALIAS,
     EnvBase,
+    EnvBaseEnumMixins,
+    EnvBaseMixins,
     EnvType,
+    ResourceNameBaseEnum,
     get_env_base,
     get_env_label,
     get_env_type,
@@ -95,6 +99,15 @@ class EnvBaseTests(BaseTest):
             self.env_base.suffixed("construct", "x", delim="/"),
             "construct/x/prod-marmot",
         )
+
+    def test__get_table_name__returns_prefixed_value(self):
+        self.assertEqual(self.env_base.get_table_name("table-x"), "prod-marmot-table-x")
+
+    def test__get_function_name__returns_prefixed_value(self):
+        self.assertEqual(self.env_base.get_function_name("table-x"), "prod-marmot-table-x")
+
+    def test__get_job_name__returns_prefixed_value(self):
+        self.assertEqual(self.env_base.get_job_name("table", "x"), "prod-marmot-table-x")
 
     def test__get_repository_name__returns_prefixed_value(self):
         self.assertEqual(self.env_base.get_repository_name("repo", "x"), "prod-marmot/repo-x")
@@ -334,6 +347,39 @@ class EnvBaseTests(BaseTest):
         # Default supersedes env vars
         self.assertEqual(get_env_label("qaz"), "qaz")
         self.assertEqual(get_env_label(None), None)
+
+    def test__EnvBaseMixins__works(self):
+        self.reset_all_env_vars()
+        self.set_env_vars((ENV_BASE_KEY, "dev-marmot"))
+
+        class RandomClass(EnvBaseMixins):
+            pass
+
+        rc = RandomClass()
+        self.assertEqual(rc.env_base, EnvBase("dev-marmot"))
+
+        rc.env_base = EnvBase("prod-marmot")
+        self.assertEqual(rc.env_base, EnvBase("prod-marmot"))
+
+    def test__EnvBaseEnumMixins__works(self):
+        self.reset_all_env_vars()
+        self.set_env_vars((ENV_BASE_KEY, "dev-marmot"))
+
+        class RandomEnum(EnvBaseEnumMixins, Enum):
+            A = "a"
+
+        self.assertEqual(RandomEnum.A.prefix_with(), "dev-marmot-a")
+        self.assertEqual(RandomEnum.A.prefix_with("prod-marmot"), "prod-marmot-a")
+
+    def test__ResourceNameBaseEnum__works(self):
+        self.reset_all_env_vars()
+        self.set_env_vars((ENV_BASE_KEY, "dev-marmot"))
+
+        class RandomEnum(ResourceNameBaseEnum):
+            A = "a"
+
+        self.assertEqual(RandomEnum.A.prefix_with(), "dev-marmot-a")
+        self.assertEqual(str(RandomEnum.A), "a")
 
     def reset_all_env_vars(self):
         self.set_env_vars(

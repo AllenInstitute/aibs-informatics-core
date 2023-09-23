@@ -355,7 +355,7 @@ class PathLock:
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
             self._lock_file = open(self._lock_path, "w")
-            fcntl.flock(self._lock_file, fcntl.LOCK_EX)
+            fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
             self._lock_file.write(f"{datetime.now().timestamp()}")
             logger.info(f"Lock acquired!")
         except Exception as e:

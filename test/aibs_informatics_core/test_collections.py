@@ -137,6 +137,12 @@ class BaseTreeTests(unittest.TestCase):
         str_tree.add_sequence(*sequence)
         self.assertEqual(str_tree.get_sequence(*sequence), Tree[str]())
 
+    def test__to_sequences__returns_expected_results(self):
+        str_tree = Tree[str]()
+        sequence = tuple("abc")
+        str_tree.add_sequence(*sequence)
+        self.assertListEqual(str_tree.to_sequences(), [sequence])
+
 
 class PostInitMixinTests(unittest.TestCase):
     def test__simple_subclass__no_post_init__add_hook_enabled__succeeds(self):
