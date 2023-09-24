@@ -37,6 +37,7 @@ def test_version(input: str, expected: Optional[Version], raises_error):
 @mark.parametrize(
     "this, comparison_operator, other",
     [
+        param(VersionStr("1.2.3"), "==", "1.2.3"),
         param(VersionStr("1.2.3").version, "==", VersionStr("1.2.3").version),
         param(VersionStr("1.2.3"), ">", Version(1, 2, 2)),
         param(VersionStr("1.2.3"), ">=", Version(1, 2, 2)),
@@ -70,3 +71,11 @@ def test__Version__comparison(this, other, comparison_operator):
         assert this >= other
     else:
         assert False
+
+
+def test__unsupported_comparisons():
+
+    assert not Version(1, 2, 3) == 1.2
+    assert not Version(1, 2, 3) == None
+    assert not VersionStr("1.2.3") == 1.2
+    assert not VersionStr("1.2.3") == "1.2.a13bc"

@@ -50,22 +50,37 @@ def get_stdout_handler(
 
 
 def get_all_handlers(logger: logging.Logger) -> List[logging.Handler]:
-    handlers: List[logging.Handler] = logger.handlers or []
+    handlers: List[logging.Handler] = []
+    if logger.handlers:
+        handlers.extend(list(logger.handlers))
     while logger.parent:
         logger = logger.parent
-        handlers.extend(logger.handlers or [])
+        if logger.handlers:
+            handlers.extend(list(logger.handlers))
     return handlers
 
 
 def check_formatter_equality(
     this: Optional[logging.Formatter], other: Optional[logging.Formatter]
 ) -> bool:
-    return this == other
+    if this is None and other is None:
+        return True
+    if this is None or other is None:
+        return False
+    else:
+        return this._fmt == other._fmt and this.datefmt == other.datefmt
 
 
 def check_handler_equality(this: logging.Handler, other: logging.Handler) -> bool:
-    formatters_equal = check_formatter_equality(this.formatter, other.formatter)
-    return formatters_equal and this == other
+    if type(this) != type(other):
+        return False
+    if this.level != other.level:
+        return False
+    if this.get_name() != other.get_name():
+        return False
+    if not check_formatter_equality(this.formatter, other.formatter):
+        return False
+    return True
 
 
 def enable_stdout_logging(
@@ -76,7 +91,7 @@ def enable_stdout_logging(
 
     handler = get_stdout_handler(format=format, level=level)
 
-    if handler in get_all_handlers(logger):
+    if any([check_handler_equality(handler, existing) for existing in get_all_handlers(logger)]):
         return logger
 
     logger.addHandler(handler)

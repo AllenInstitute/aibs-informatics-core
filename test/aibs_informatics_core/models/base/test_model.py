@@ -2,6 +2,7 @@ import datetime as dt
 import json
 import uuid
 from contextlib import nullcontext as does_not_raise
+from dataclasses import MISSING as MISSING_
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -947,8 +948,40 @@ def test__SchemaModel__validate_obj():
         model.validate_obj()
 
 
+def test__SchemaModel__is_valid_obj():
+    model = Simple(int_value=1, str_value="s")
+    assert model.is_valid_obj()
+
+
+def test__SchemaModel__copy():
+    model = Simple(int_value=1, str_value="s")
+    new_model = model.copy()
+
+    assert model == new_model
+    assert model is not new_model
+
+
 def test__SchemaModel__is_valid():
     data = dict(int_value=1, str_value="s")
     assert Simple.is_valid(data)
 
     assert not Simple.is_valid({})
+
+
+def test__SchemaModel__make_object() -> None:
+    @dataclass
+    class X(SchemaModel):
+        a: str
+        b: int
+        c: Optional[int]
+        d: int = field(init=False, default=42)
+
+    result = X.make_object({}, partial=True)
+    assert result == X(a=MISSING, b=MISSING, c=None)
+
+
+def test__SchemaModel__is_missing():
+    assert Simple.is_missing(MISSING)
+    assert Simple.is_missing(MISSING_)
+    assert Simple.is_missing(...)
+    assert not Simple.is_missing(1)

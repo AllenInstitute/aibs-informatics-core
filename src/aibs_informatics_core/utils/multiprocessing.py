@@ -6,7 +6,7 @@ __all__ = [
 
 from itertools import repeat
 from multiprocessing import pool as mp_pool
-from typing import Any, Callable, List, Mapping, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, Type, TypeVar, Union
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -14,13 +14,31 @@ U = TypeVar("U")
 POOL = TypeVar("POOL", bound=mp_pool.Pool)
 
 
-def starmap_with_kwargs(pool, fn, args_iter, kwargs_iter):
+def starmap_with_kwargs(
+    pool,
+    fn: Callable,
+    args_iter: Sequence[Iterable[Any]],
+    kwargs_iter: Sequence[Mapping[str, Any]],
+):
     args_for_starmap = zip(repeat(fn), args_iter, kwargs_iter)
     return pool.starmap(apply_args_and_kwargs, args_for_starmap)
 
 
-def apply_args_and_kwargs(fn, args, kwargs):
-    return fn(*args, **kwargs)
+def apply_args_and_kwargs(fn, args: Iterable[Any], kwargs: Mapping[str, Any]):
+    return fn(*args, **kwargs)  # pragma: no cover
+
+
+def _starmap_apply(
+    fn: Callable[
+        [
+            Any,
+        ],
+        U,
+    ],
+    args: Sequence[Any],
+    kwargs: Mapping[str, Any],
+) -> U:
+    return fn(*args, **kwargs)  # type: ignore  # pragma: no cover
 
 
 def parallel_starmap(
@@ -47,18 +65,6 @@ def parallel_starmap(
             if not isinstance(keyword_arguments, Sequence)
             else keyword_arguments,
         )
-
-        def _starmap_apply(
-            fn: Callable[
-                [
-                    Any,
-                ],
-                U,
-            ],
-            args: Sequence[Any],
-            kwargs: Mapping[str, Any],
-        ) -> U:
-            return fn(*args, **kwargs)  # type: ignore
 
         async_results = [
             pool.starmap_async(

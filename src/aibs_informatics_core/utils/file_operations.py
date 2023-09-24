@@ -25,11 +25,11 @@ import tarfile
 import tempfile
 import zipfile
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Pattern, Type, Union, cast
+from typing import Dict, List, Literal, Optional, Pattern, Union, cast
 
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
@@ -67,11 +67,18 @@ class ArchiveType(Enum):
             return False
 
     @classmethod
-    def is_archive(cls, path) -> bool:
-        return tarfile.is_tarfile(path) or zipfile.is_zipfile(path)
+    def is_archive(cls, path: Path) -> bool:
+        try:
+            cls.from_path(path)
+        except:
+            return False
+        else:
+            return True
 
     @classmethod
     def from_path(cls, path: Path) -> "ArchiveType":
+        if not path.exists() or path.is_dir():
+            raise ValueError(f"Path {path} does not exist or is a directory")
         if tarfile.is_tarfile(path):
             compression_type = cls._get_compression_type(path)
             if compression_type == "gz":
@@ -137,13 +144,13 @@ def make_archive(
     destination_path: Optional[Path] = None,
     archive_type: Union[ArchiveType, ArchiveFormat] = ArchiveType.TAR_GZ,
 ) -> Path:
-    """tar/zip data batch into a dedicate folder
-    Example: batch_of_samples.tar.gz -> batch_of_samples
+    """tar/zip data batch from a folder
+    Example: batch_of_samples -> batch_of_samples.tar.gz
 
     Args:
-        source_path (Path): archived batch data
+        source_path (Path): folder of data to archive
         destination_path (Optional[Path]): Optional destination path for archived file.
-            If none, then source path name used with extension removed.
+            If none, then tmp file is created and used
 
     Raises:
         RuntimeError: If archiving operation fails
@@ -172,7 +179,7 @@ def make_archive(
             move_path(actual_archive_path, archive_path)
         return archive_path
     except Exception as e:
-        raise RuntimeError(f"Error extracting file {source_path}. [{e}]") from e
+        raise ValueError(f"Error extracting file {source_path}. [{e}]") from e
 
 
 def move_path(source_path: Path, destination_path: Path, exists_ok: bool = False):

@@ -23,7 +23,7 @@ class Version:
         elif isinstance(other, VersionStr):
             return self == other.version
         else:
-            return NotImplemented
+            return False
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, Version):
@@ -90,7 +90,7 @@ class VersionStr(ValidatedStr):
             else:
                 return self == other
         else:
-            return NotImplemented
+            return False
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, Version):

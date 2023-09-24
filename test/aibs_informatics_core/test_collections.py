@@ -50,11 +50,17 @@ class ValidatedStrTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             AlphaNumericStr(s)
 
-    def test__suball__works(self):
-        class S(ValidatedStr):
+    def test__suball__works(self) -> None:
+        class S1(ValidatedStr):
             regex_pattern: ClassVar[Pattern] = r"([\w]*)"  # type: ignore
 
-        self.assertEqual(S.suball("a12-123b-1232", lambda _: _.groups()[0][:1]), "a-1-1")
+        self.assertEqual(S1.suball("a12-123b-1232", lambda _: _.groups()[0][:1]), "a-1-1")
+
+        # No-op for validated string with no regex pattern
+        class S2(ValidatedStr):
+            max_len: ClassVar[int] = 10
+
+        self.assertEqual(S2.suball("abcd", "xyz"), "abcd")
 
     def test__is_valid__works(self):
         class S(ValidatedStr):
@@ -292,6 +298,15 @@ class BaseEnumTests(unittest.TestCase):
         self.assertEqual(Ints.UNO, Ints.ONE.value)
         self.assertEqual(Ints.TWO, Ints.TWO.value)
 
+    def test__contains__works_as_expected(self):
+        class Ints(BaseEnum):
+            ONE = 1
+            TWO = "2"
+
+        self.assertIn(Ints.ONE, Ints)
+        self.assertIn(1, Ints)
+        self.assertIn("2", Ints)
+
     def test__values__returns_values(self):
         class Ints(BaseEnum):
             ONE = 1
@@ -352,3 +367,11 @@ class OrderedStrEnumTests(unittest.TestCase):
         self.assertGreater(ACBs.C, ACBs.A.value)
         self.assertLess(ACBs.C, ACBs.B)
         self.assertLess(ACBs.C, ACBs.B.value)
+
+    def test__values__works(self):
+        class ACBs(OrderedStrEnum):
+            A = "a"
+            C = "C"
+            B = "B"
+
+        self.assertListEqual(ACBs.values(), ["a", "C", "B"])

@@ -18,6 +18,8 @@ from aibs_informatics_core.models.aws.s3 import (
     S3UploadRequest,
     S3UploadResponse,
 )
+from aibs_informatics_core.models.base import CustomStringField
+from aibs_informatics_core.models.base.custom_fields import EnumField
 
 
 @pytest.mark.parametrize(
@@ -339,6 +341,14 @@ def test__S3URI__floordiv__works(this: S3URI, other: Union[str, S3URI], expected
     assert this // other == expected
 
 
+def test__S3URI__as_dict__works():
+    assert S3URI("s3://my-bucket/my-key").as_dict() == {"Bucket": "my-bucket", "Key": "my-key"}
+
+
+def test__S3URI__as_mm_field__works():
+    assert isinstance(S3URI("s3://my-bucket/my-key").as_mm_field(), CustomStringField)
+
+
 def test__S3URI__with_folder_suffix__works():
     this = S3URI("s3://my-bucket/my-key")
     expected = S3URI("s3://my-bucket/my-key/")
@@ -348,6 +358,13 @@ def test__S3URI__with_folder_suffix__works():
 @pytest.mark.parametrize(
     "s3_object_fixture, expected",
     [
+        pytest.param(
+            # s3_object_fixture
+            {"storage_class": None},
+            # expected
+            S3StorageClass.STANDARD,
+            id="Test S3StorageClass.from_boto_s3_obj - STANDARD storage class (None)",
+        ),
         pytest.param(
             # s3_object_fixture
             {"storage_class": S3StorageClass.STANDARD.value},
@@ -414,6 +431,18 @@ def test__s3_storage_class__from_boto_s3_obj(s3_object_fixture, expected):
     s3_obj = S3_Object(**s3_object_fixture)
     result = S3StorageClass.from_boto_s3_obj(s3_obj)
     assert expected == result
+
+
+def test__list_transitionable_storage_classes__works():
+    assert S3StorageClass.STANDARD in S3StorageClass.list_transitionable_storage_classes()
+
+
+def test__list_archive_storage_classes__works():
+    assert S3StorageClass.GLACIER in S3StorageClass.list_archive_storage_classes()
+
+
+def test__S3StorageClass__as_mm_field__works():
+    assert isinstance(S3StorageClass.as_mm_field(), EnumField)
 
 
 def test__S3RestoreStatus__works():

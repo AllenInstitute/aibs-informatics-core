@@ -170,7 +170,7 @@ def custom_field(
     encoder: Optional[EncoderType] = None,
     decoder: Optional[DecoderType] = None,
 ) -> T:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
@@ -186,7 +186,7 @@ def custom_field(
     encoder: Optional[EncoderType] = None,
     decoder: Optional[DecoderType] = None,
 ) -> T:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
@@ -201,7 +201,7 @@ def custom_field(
     encoder: Optional[EncoderType] = None,
     decoder: Optional[DecoderType] = None,
 ) -> Any:
-    ...
+    ...  # pragma: no cover
 
 
 def custom_field(

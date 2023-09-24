@@ -96,10 +96,18 @@ class ArchiveTests(FileOperationsBaseTest):
         path = self.create_tar_archive(self.tmp_path(), ["a.txt", "b.txt"])
         self.assertTrue(ArchiveType.is_archive(path))
 
+        # Invalid cases: non-existent path, non-archive path
+        path = self.tmp_file()
+        self.assertFalse(ArchiveType.is_archive(path))
+
+        path.touch()
+        self.assertFalse(ArchiveType.is_archive(path))
+
     def test__is_archive_type__works(self):
         path = self.create_tar_archive(self.tmp_path(), ["a.txt", "b.txt"])
         self.assertTrue(ArchiveType.TAR_GZ.is_archive_type(path))
-        self.assertFalse(ArchiveType.TAR_GZ.is_archive_type(self.tmp_file()))
+        path = self.tmp_file()
+        self.assertFalse(ArchiveType.TAR_GZ.is_archive_type(path))
 
     def test__extract_archive__extracts_tar_gz__no_dest_provided(self):
         paths = ["a.txt", "b.txt"]
@@ -173,6 +181,10 @@ class ArchiveTests(FileOperationsBaseTest):
         actual_dir_path = extract_archive(archive_path, destination_path=new_dir_path)
         self.assertDirectoryContents(new_dir_path, paths)
 
+    def test__make_archive__fails_for_bad_path(self):
+        with self.assertRaises(ValueError):
+            make_archive(self.tmp_path() / "non-existent-path")
+
 
 class FileOperationsTests(FileOperationsBaseTest):
     def setUp(self) -> None:
@@ -241,7 +253,7 @@ class FileOperationsTests(FileOperationsBaseTest):
 
     @patch("aibs_informatics_core.utils.file_operations.find_all_paths")
     @patch("aibs_informatics_core.utils.file_operations.Path")
-    def test__get_path_size_bytes__handles_errors(self, mock_find_all_paths, mock_Path):
+    def test__get_path_size_bytes__handles_errors(self, mock_Path, mock_find_all_paths):
         mock_find_all_paths.return_value = ["a", "b"]
         path = self.tmp_path()
         e1 = MagicMock()
@@ -252,8 +264,15 @@ class FileOperationsTests(FileOperationsBaseTest):
         e2.stat.side_effect = ose
 
         e2.exists.side_effect = [True, False]
-        mock_Path.side_effect = [e1, e2]
+        mock_Path.side_effect = [e1, e2, e2]
         self.assertEqual(get_path_size_bytes(path), 0)
+
+        with self.assertRaises(OSError):
+            ose.errno = errno.ETIME
+            e1.stat.side_effect = ose
+            mock_find_all_paths.return_value = ["a"]
+            mock_Path.side_effect = [e1]
+            get_path_size_bytes(path)
 
     def test__move_path__handles_file(self):
         path = self.tmp_file()
