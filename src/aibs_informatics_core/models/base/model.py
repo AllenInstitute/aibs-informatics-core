@@ -1,14 +1,11 @@
 __all__ = [
-    "BaseModel",
+    "ModelProtocol",
+    "ModelBase",
     "BaseSchema",
-    "DCM",
     "DataClassModel",
-    "M",
     "MISSING",
     "NONE",
-    "SM",
     "SchemaModel",
-    "VM",
     "ValidatedBaseModel",
     "post_dump",
     "pre_dump",
@@ -45,18 +42,49 @@ T = TypeVar("T")
 DEFAULT_PARTIAL = False
 DEFAULT_VALIDATE = True
 
-# --------------------------------------------------------------
-#                             BaseModel ABC
-# --------------------------------------------------------------
-M = TypeVar("M", bound="BaseModel")
+M = TypeVar("M", bound="ModelBase")
 VM = TypeVar("VM", bound="ValidatedBaseModel")
-
 DCM = TypeVar("DCM", bound="DataClassModel")
-
 SM = TypeVar("SM", bound="SchemaModel")
 
 
-class BaseModel(abc.ABC):
+# --------------------------------------------------------------
+#                             ModelProtocol
+# --------------------------------------------------------------
+
+
+class ModelProtocol(Protocol):
+    @classmethod
+    def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T:
+        ...  # pragma: no cover
+
+    def to_dict(self, **kwargs) -> JSONObject:
+        ...  # pragma: no cover
+
+    @classmethod
+    def from_json(cls: Type[T], data: str, **kwargs) -> T:
+        ...  # pragma: no cover
+
+    def to_json(self, **kwargs) -> str:
+        ...  # pragma: no cover
+
+    @classmethod
+    def from_path(cls: Type[T], path: Path, **kwargs) -> T:
+        ...  # pragma: no cover
+
+    def to_path(self, path: Path, **kwargs):
+        ...  # pragma: no cover
+
+    def copy(self: T, **kwargs) -> T:
+        ...  # pragma: no cover
+
+
+# --------------------------------------------------------------
+#                             BaseModel ABC
+# --------------------------------------------------------------
+
+
+class ModelBase(ModelProtocol):
     @classmethod
     @abc.abstractmethod
     def from_dict(cls: Type[M], data: JSONObject, **kwargs) -> M:
@@ -98,7 +126,7 @@ class BaseModel(abc.ABC):
 # --------------------------------------------------------------
 
 
-class DataClassModel(DataClassJsonMixin, BaseModel):
+class DataClassModel(DataClassJsonMixin, ModelBase):
     dataclass_json_config: ClassVar[dict] = config(
         undefined=Undefined.EXCLUDE,  # default behavior for handling undefined fields
         exclude=lambda f: f is None,  # excludes values if None by default
@@ -139,7 +167,7 @@ class DataClassModel(DataClassJsonMixin, BaseModel):
 MISSING = mm.missing
 
 
-class ValidatedBaseModel(BaseModel):
+class ValidatedBaseModel(ModelBase):
     """Provides Validations for model for (/de-)serialization"""
 
     @classmethod

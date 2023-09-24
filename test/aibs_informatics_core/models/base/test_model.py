@@ -15,12 +15,12 @@ from marshmallow import ValidationError
 
 from aibs_informatics_core.models.base import (
     MISSING,
-    BaseModel,
     BaseSchema,
     CustomAwareDateTime,
     DataClassModel,
     FloatField,
     IntegerField,
+    ModelBase,
     SchemaModel,
     StringField,
     UUIDField,
@@ -34,7 +34,7 @@ from aibs_informatics_core.utils.json import JSONObject
 # ----------------------------------------------------------
 
 
-class SimpleBaseModel(BaseModel):
+class SimpleBaseModel(ModelBase):
     a_str: str
     a_int: int
 

@@ -7,14 +7,14 @@ from typing import Generic, Optional, Type, TypeVar
 from aibs_informatics_core.collections import PostInitMixin
 from aibs_informatics_core.env import EnvBaseMixins
 from aibs_informatics_core.models.aws.s3 import S3URI
-from aibs_informatics_core.models.base import BaseModel
+from aibs_informatics_core.models.base import ModelProtocol
 from aibs_informatics_core.utils.json import JSON, JSONObject, load_json_object
 
 logger = logging.getLogger(__name__)
 
 
-REQUEST = TypeVar("REQUEST", bound=BaseModel)
-RESPONSE = TypeVar("RESPONSE", bound=BaseModel)
+REQUEST = TypeVar("REQUEST", bound=ModelProtocol)
+RESPONSE = TypeVar("RESPONSE", bound=ModelProtocol)
 
 
 @dataclass  # type: ignore[misc] # mypy #5374
