@@ -1,8 +1,10 @@
+import os
 import uuid
 from test.base import does_not_raise
 
 import marshmallow as mm
 import pytest
+from aibs_informatics_test_resources import reset_environ_after_test
 
 from aibs_informatics_core.models.unique_ids import UniqueID
 
@@ -61,3 +63,26 @@ def test_uniqueid_create():
 
     assert isinstance(obt.as_uuid(), uuid.UUID)
     assert isinstance(uuid.UUID(obt, version=4), uuid.UUID)
+
+
+@reset_environ_after_test
+def test__UniqueID__from_env__works():
+    for var in UniqueID.ENV_VARS:
+        os.unsetenv(var)
+    with pytest.raises(Exception):
+        UniqueID.from_env()
+
+    uuid_str = "e31ed78e-f165-4bf6-9236-dc4a877c20c0"
+    os.environ[UniqueID.ENV_VARS[0]] = uuid_str
+
+    obt = UniqueID.from_env()
+
+    assert uuid_str == obt
+    assert uuid.UUID(uuid_str, version=4) == obt.as_uuid()
+
+
+def test__UniqueID__as_mm_field():
+    field = UniqueID.as_mm_field()
+    uuid_str = "e31ed78e-f165-4bf6-9236-dc4a877c20c0"
+    uuid_obj = UniqueID(uuid_str)
+    assert field.deserialize(uuid_str) == uuid_obj

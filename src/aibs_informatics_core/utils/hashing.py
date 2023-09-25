@@ -1,20 +1,25 @@
 __all__ = [
-    "uuid_str",
-    "sha256_hexdigest",
     "b64_decoded_str",
     "b64_encoded_str",
+    "generate_file_hash",
+    "generate_path_hash",
+    "sha256_hexdigest",
     "urlsafe_b64_decoded_str",
     "urlsafe_b64_encoded_str",
+    "uuid_str",
 ]
 
 import hashlib
 import json
 import logging
+import re
 import uuid
 from base64 import standard_b64decode, standard_b64encode, urlsafe_b64decode, urlsafe_b64encode
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 from aibs_informatics_core.utils.json import JSON
+from aibs_informatics_core.utils.os_operations import find_all_paths
 
 logger = logging.getLogger(__name__)
 
@@ -103,3 +108,66 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
         str: an encoded base 64 string
     """
     return urlsafe_b64encode(decoded_str.encode()).decode()
+
+
+def generate_path_hash(
+    path: Union[str, Path],
+    includes: Optional[List[str]] = None,
+    excludes: Optional[List[str]] = None,
+) -> str:
+    """Generate a hash based on files found under a given path.
+
+    Args:
+        path (str): path to compute a hash
+        includes (List[str], optional): list of regex patterns to include. Defaults to None.
+        excludes (List[str], optional): list of regex patterns to exclude. Defaults to None.
+
+    Returns:
+        str: hash value
+    """
+    paths = find_all_paths(path, include_dirs=False)
+    include_patterns = [re.compile(include) for include in includes or [r".*"]]
+    exclude_patterns = [re.compile(exclude) for exclude in excludes or []]
+
+    paths_to_hash = []
+    for path in paths:
+        # First check exclude patterns
+        for exclude_pattern in exclude_patterns:
+            if exclude_pattern.fullmatch(path):
+                break
+        else:
+            # Now check include patterns
+            for include_pattern in include_patterns:
+                if include_pattern.fullmatch(path):
+                    paths_to_hash.append(path)
+                    break
+    asset_hash = hashlib.sha256()
+    for path in paths_to_hash:
+        asset_hash.update(generate_file_hash(path).encode("utf-8"))
+
+    return asset_hash.hexdigest()
+
+
+def generate_file_hash(filename: Union[str, Path], bufsize: int = 128 * 1024) -> str:
+    """
+
+    https://stackoverflow.com/a/70215084/4544508
+
+    Args:
+        filename (str|Path): filepath to hash
+        bufsize (int, optional): buffer size. Defaults to 128*1024.
+
+    Returns:
+        str: hash value of file
+    """
+    filename = str(filename)
+    h = hashlib.sha256()
+    buffer = bytearray(bufsize)
+    buffer_view = memoryview(buffer)
+    with open(filename, "rb", buffering=0) as f:
+        while True:
+            n = f.readinto(buffer_view)  # type: ignore
+            if not n:
+                break
+            h.update(buffer_view[:n])
+    return h.hexdigest()

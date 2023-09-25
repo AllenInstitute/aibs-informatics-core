@@ -1,5 +1,5 @@
 import re
-from test.base import does_not_raise
+from test.base import BaseTest, does_not_raise
 from typing import Optional, Pattern, Union
 
 from pytest import mark, param, raises
@@ -7,6 +7,7 @@ from pytest import mark, param, raises
 from aibs_informatics_core.utils.hashing import (
     b64_decoded_str,
     b64_encoded_str,
+    generate_path_hash,
     sha256_hexdigest,
     urlsafe_b64_decoded_str,
     urlsafe_b64_encoded_str,
@@ -116,3 +117,56 @@ def test__b64_and_urlsafe_b64_encoder_decoder_functions__generate_original_value
         urlsafe_b64_decoded_value = urlsafe_b64_decoded_str(urlsafe_b64_encoded_value)
 
         assert value == urlsafe_b64_decoded_value
+
+
+def test__b64_decoded_str__fails():
+    with raises(Exception):
+        b64_decoded_str("1234")
+
+
+class HashingTests(BaseTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.asset_path = self.tmp_path()
+        self.asset_path
+        (self.asset_path / "a.py").write_text('a = "hello"')
+        (self.asset_path / "b.py").write_text('b = "bye"')
+        (self.asset_path / "x.txt").write_text("I'm a simple txt file")
+        (self.asset_path / "dir1").mkdir(exist_ok=True)
+        (self.asset_path / "dir1" / "__init__.py").touch()
+        (self.asset_path / "dir1" / "a.py").write_text('a = "hello"')
+        (self.asset_path / "dir1" / "b.py").write_text('b = "bye"')
+        (self.asset_path / "dir1" / "c.py").write_text('c = ""')
+
+    def test__generate_path_hash__changes_when_file_added_and_no_filters_applied(self):
+        original_hash = generate_path_hash(self.asset_path)
+        (self.asset_path / "c.py").write_text("c = 'hallo'")
+        new_hash = generate_path_hash(str(self.asset_path))
+        assert original_hash != new_hash
+
+    def test__generate_path_hash__does_not_change_when_file_added_but_excluded(self):
+        excludes = [r".*\.txt"]
+        original_hash = generate_path_hash(str(self.asset_path), excludes=excludes)
+        (self.asset_path / "dir1" / "c.txt").write_text("c = 'hallo'")
+        new_hash = generate_path_hash(str(self.asset_path), excludes=excludes)
+        assert original_hash == new_hash
+
+    def test__generate_path_hash__does_not_change_when_file_added_but_not_included(
+        self,
+    ):
+        includes = [r".*\.txt"]
+        original_hash = generate_path_hash(str(self.asset_path), includes=includes)
+        (self.asset_path / "c.py").write_text("c = 'hallo'")
+        new_hash = generate_path_hash(str(self.asset_path), includes=includes)
+        assert original_hash == new_hash
+
+    def test__generate_path_hash__does_not_change_because_excludes_supersedes_includes(
+        self,
+    ):
+        excludes = [r".*\.txt"]
+        original_hash = generate_path_hash(
+            str(self.asset_path), includes=excludes, excludes=excludes
+        )
+        (self.asset_path / "dir1" / "c.txt").write_text("c = 'hallo'")
+        new_hash = generate_path_hash(str(self.asset_path), includes=excludes, excludes=excludes)
+        assert original_hash == new_hash
