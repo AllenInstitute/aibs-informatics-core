@@ -112,7 +112,7 @@ class DBIndex(StrEnum):
 
     @classmethod
     def table_name(cls) -> str:
-        raise NotImplementedError(
+        raise NotImplementedError(  # pragma: no cover
             f"Enum inheriting from DBIndex ({cls.__name__}) needs to implement "
             "the table_name classmethod!"
         )

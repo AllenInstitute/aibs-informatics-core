@@ -168,3 +168,21 @@ def test__DBIndexNameEnum__from_name_and_key__works():
         MockDBIndexName.from_name_and_key("mock_table", MockDBKey.KEY_A, MockDBSortKey.SORT_KEY_A)
         == "mock_table-key-a-sort-key-a-index"
     )
+
+
+def test__DBIndex__attributes__works():
+    class AnotherDBIndex(DBIndex):
+        MAIN_TABLE = ("key_a", MockDBKey.KEY_A, None, None)
+        GSI_X = (
+            "key_b",
+            MockDBKey.KEY_B,
+            MockDBSortKey.SORT_KEY_A,
+            MockDBIndexName.GSI_X,
+            ["key_a", "key_b"],
+        )
+
+        @classmethod
+        def table_name(cls) -> str:
+            return "mock_table"
+
+    assert AnotherDBIndex.GSI_X.non_key_attributes == ["key_a", "key_b"]

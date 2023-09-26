@@ -52,17 +52,17 @@ def find_all_paths(
 
 @overload
 def get_env_var(*keys: str) -> Optional[str]:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
 def get_env_var(*keys: str, default_value: Literal[None]) -> Optional[str]:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
 def get_env_var(*keys: str, default_value: str) -> str:
-    ...
+    ...  # pragma: no cover
 
 
 def get_env_var(*keys: str, default_value: Optional[str] = None) -> Optional[str]:
