@@ -293,21 +293,6 @@ class ApiRouteTests(BaseTest):
 
         GetterResourceRoute.generate_headers()
 
-    def test__validate_headers__fails_for_outdated_client_request(self):
-        self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
-        headers = {
-            CLIENT_VERSION_KEY: "0.0.0",
-        }
-        with self.assertRaises(ValueError):
-            GetterResourceRoute.validate_headers(headers)
-
-    def test__validate_headers__passes_for_valid_client_request(self):
-        self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
-        headers = {
-            CLIENT_VERSION_KEY: "1.0.0",
-        }
-        GetterResourceRoute.validate_headers(headers)
-
     def test__get_client_method_name__works(self):
         self.assertEqual(GetterResourceRoute.get_client_method_name(), "getter_resource")
 

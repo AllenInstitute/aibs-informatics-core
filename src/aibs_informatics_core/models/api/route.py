@@ -1,6 +1,8 @@
 # needed for python 3.11 to enable postponed evaluation of annotations
 from __future__ import annotations
 
+import aibs_informatics_core
+
 __all__ = [
     "ApiRoute",
     "ApiClientInterface",
@@ -70,10 +72,13 @@ AuthType = TypeVar("AuthType", bound=AuthBase)
 logger = logging.getLogger(__name__)
 
 
-API_SERVICE_LOG_LEVEL_ENV_VAR = "GCS_API_LOG_LEVEL"
-API_SERVICE_LOG_LEVEL_KEY = "gcs-api-log-level"
+API_SERVICE_LOG_LEVEL_ENV_VAR = "API_LOG_LEVEL"
+API_SERVICE_LOG_LEVEL_KEY = "x-log-level"
 
-CLIENT_VERSION_KEY = "api-client-version"
+CLIENT_VERSION_ENV_VAR = "API_CLIENT_VERSION"
+CLIENT_VERSION_KEY = "x-client-version"
+
+CLIENT_VERSION_PACKAGE_ENV_VAR = "API_CLIENT_VERSION_PACKAGE"
 
 DYNAMIC_ROUTE_PATTERN = re.compile(r"(<(\w+)>)")
 
@@ -107,12 +112,18 @@ class ApiRequestConfig(SchemaModel):
 
     @classmethod
     def build(cls, **kwargs) -> ApiRequestConfig:
-        client_version = VersionStr(get_version("aibs_informatics_core"))
+        client_version = VersionStr(get_version(cls.client_package_name()))
         service_log_level = get_env_var(API_SERVICE_LOG_LEVEL_ENV_VAR)
 
         return cls(
             client_version=client_version,
             service_log_level=service_log_level,
+        )
+
+    @classmethod
+    def client_package_name(cls) -> str:
+        return get_env_var(
+            CLIENT_VERSION_PACKAGE_ENV_VAR, default_value=aibs_informatics_core.__name__
         )
 
 
@@ -125,17 +136,6 @@ class ApiHeadersMixin:
             Dict[str, Any]: dictionary of header key-value pairs
         """
         return ApiRequestConfig.build().to_headers()
-
-    @classmethod
-    def validate_headers(cls, headers: Dict[str, str]) -> None:
-        config = ApiRequestConfig.from_headers(headers)
-
-        # validate client version
-        minimum_client_version = VersionStr(get_version("aibs_informatics_core"))
-        if config.client_version < minimum_client_version:
-            raise ValueError(
-                f"Client version {config.client_version} is too old. Must use client version {minimum_client_version} or newer"
-            )
 
     @classmethod
     def resolve_request_config(cls, headers: Dict[str, str]) -> ApiRequestConfig:
