@@ -36,6 +36,7 @@ from typing import (
     TypedDict,
     TypeVar,
     Union,
+    overload,
 )
 
 import marshmallow as mm
@@ -93,14 +94,53 @@ class S3PathStats:
 class S3BucketName(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(r"([A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])")
 
+    def __truediv__(self, __other: str) -> "S3URI":
+        """Creates a S3URI
 
-# https://stackoverflow.com/questions/58712045/regular-expression-for-amazon-s3-object-name
-class S3KeyPrefix(ValidatedStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(r"[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]*)*")
+        Examples:
+            >>> s3_uri = S3BucketName("my-bucket") / "my-key"
+            >>> assert s3_uri == "s3://my-bucket/my-key"
+
+            >>> another_s3_uri = S3BucketName("bucket1") / S3URI("s3://bucket2/key2")
+            >>> assert another_s3_uri == "s3://bucket1/key2"
+
+        Args:
+            __other (Union[str, S3URI]): The key or key of path to use for the S3URI
+
+        Returns:
+            S3URI: a new S3URI with the appended key using the `/` operator
+        """
+
+        if S3URI.is_valid(__other):
+            __other = S3URI(__other).key
+        return S3URI.build(bucket_name=self, key=__other)
 
 
 class S3Key(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(r"[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]+)*")
+
+    @property
+    def components(self) -> List[str]:
+        return self.split("/")
+
+    def __rtruediv__(self, __other: str) -> "S3Key":
+        """Creates a new S3 Key
+
+        Args:
+            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+
+        Returns:
+            S3URI: a new S3URI with a new key
+        """
+        if isinstance(__other, str):
+            prefix = __other.rstrip("/")
+            return S3Key((prefix + "/" if prefix else "") + self)
+        raise TypeError(f"{type(__other)} not supported for / operations with {type(self)}")
+
+
+# https://stackoverflow.com/questions/58712045/regular-expression-for-amazon-s3-object-name
+class S3KeyPrefix(S3Key):
+    regex_pattern: ClassVar[Pattern] = re.compile(r"[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]*)*")
 
 
 _DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
@@ -268,14 +308,34 @@ class S3URI(str):
             __other = __other.key
         return S3URI(f"{self}/{__other}", full_validate=self._full_validate)
 
-    def __floordiv__(self, __other: Union[str, "S3URI"]) -> "S3URI":
-        """Creates a new S3URI by constructing a str or S3URI key with this bucket
+    def __rtruediv__(self, __other: Union[str, S3BucketName]) -> "S3URI":
+        """Creates a new S3URI by constructing a str or S3URI key with this key
 
         Examples:
             >>> s3_uri = S3URI("s3://my-bucket/my-key") / "my-other-key"
             >>> assert s3_uri == "s3://my-bucket/my-other-key"
 
             >>> another_s3_uri = S3URI("s3://bucket1/key1") / S3URI("s3://bucket2/key2")
+            >>> assert another_s3_uri == "s3://bucket1/key2"
+
+        Args:
+            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+
+        Returns:
+            S3URI: a new S3URI with a new key
+        """
+        if S3URI.is_valid(__other):
+            __other = S3URI(__other).bucket_name
+        return S3URI.build(bucket_name=__other, key=self.key, full_validate=self._full_validate)
+
+    def __floordiv__(self, __other: Union[str, "S3URI"]) -> "S3URI":
+        """Creates a new S3URI by constructing a str or S3URI key with this bucket
+
+        Examples:
+            >>> s3_uri = S3URI("s3://my-bucket/my-key") // "my-other-key"
+            >>> assert s3_uri == "s3://my-bucket/my-other-key"
+
+            >>> another_s3_uri = S3URI("s3://bucket1/key1") // S3URI("s3://bucket2/key2")
             >>> assert another_s3_uri == "s3://bucket1/key2"
 
         Args:

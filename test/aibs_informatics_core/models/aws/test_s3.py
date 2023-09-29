@@ -8,8 +8,12 @@ from click import Path
 
 from aibs_informatics_core.models.aws.s3 import (
     S3URI,
+    S3BucketName,
     S3CopyRequest,
     S3CopyResponse,
+    S3Key,
+    S3KeyPrefix,
+    S3PathStats,
     S3RestoreStatus,
     S3RestoreStatusEnum,
     S3StorageClass,
@@ -20,6 +24,14 @@ from aibs_informatics_core.models.aws.s3 import (
 )
 from aibs_informatics_core.models.base import CustomStringField
 from aibs_informatics_core.models.base.custom_fields import EnumField
+
+
+def test__S3PathStats__getitem__works():
+
+    stats = S3PathStats(datetime(2021, 1, 1, tzinfo=timezone.utc), 123, 456)
+    assert stats["last_modified"] == stats.last_modified
+    assert stats["size_bytes"] == stats.size_bytes
+    assert stats["object_count"] == stats.object_count
 
 
 @pytest.mark.parametrize(
@@ -194,7 +206,7 @@ from aibs_informatics_core.models.base.custom_fields import EnumField
         ),
     ],
 )
-def test_s3uri_init(test_input, full_validate, expected, raise_expectation):
+def test__S3URI__init(test_input, full_validate, expected, raise_expectation):
     with raise_expectation:
         obt = S3URI(test_input, full_validate=full_validate)
 
@@ -226,7 +238,7 @@ def test_s3uri_init(test_input, full_validate, expected, raise_expectation):
         ),
     ],
 )
-def test_s3uri_build(input_bucket, input_key, expected):
+def test__S3URI__build(input_bucket, input_key, expected):
     obt = S3URI.build(bucket_name=input_bucket, key=input_key)
     assert expected == obt
 
@@ -254,10 +266,101 @@ def test_s3uri_build(input_bucket, input_key, expected):
         ),
     ],
 )
-def test_s3uri_as_hosted_s3_url(current_uri, aws_region, expected):
+def test__S3URI__as_hosted_s3_url(current_uri, aws_region, expected):
     s3_uri = S3URI(current_uri)
     obt = s3_uri.as_hosted_s3_url(aws_region=aws_region)
     assert expected == obt
+
+
+@pytest.mark.parametrize(
+    "this, other, expected, raise_expectation",
+    [
+        pytest.param(
+            S3BucketName("my-bucket"),
+            "my-key",
+            S3URI("s3://my-bucket/my-key"),
+            does_not_raise(),
+            id="handles simple",
+        ),
+        pytest.param(
+            S3BucketName("my-bucket"),
+            "s3://another-bucket/another-key",
+            S3URI("s3://my-bucket/another-key"),
+            does_not_raise(),
+            id="handles uri",
+        ),
+    ],
+)
+def test__S3BucketName__truediv__works(this: S3BucketName, other, expected, raise_expectation):
+    with raise_expectation:
+        actual = this / other
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "this, expected",
+    [
+        pytest.param(
+            S3Key("my-key"),
+            ["my-key"],
+            id="simple",
+        ),
+        pytest.param(
+            S3Key("my/key"),
+            ["my", "key"],
+            id="handles empty",
+        ),
+        pytest.param(
+            S3KeyPrefix("my/key/"),
+            ["my", "key", ""],
+            id="handles key prefix with trailing slash",
+        ),
+    ],
+)
+def test__S3Key__components(this: S3Key, expected):
+    assert this.components == expected
+
+
+@pytest.mark.parametrize(
+    "this, other, expected, raise_expectation",
+    [
+        pytest.param(
+            S3Key("my-key"),
+            "another-key",
+            S3Key("another-key/my-key"),
+            does_not_raise(),
+            id="handles simple",
+        ),
+        pytest.param(
+            S3Key("my-key"),
+            "",
+            S3Key("my-key"),
+            does_not_raise(),
+            id="handles empty",
+        ),
+        pytest.param(
+            S3Key("my-key"),
+            "another-key/",
+            S3Key("another-key/my-key"),
+            does_not_raise(),
+            id="handles key with slash",
+        ),
+        pytest.param(
+            S3Key("my-key"),
+            object(),
+            None,
+            pytest.raises(TypeError),
+            id="raises for invalid type",
+        ),
+    ],
+)
+def test__S3Key__rtruediv__works(this: S3Key, other, expected, raise_expectation):
+    with raise_expectation:
+        actual = other / this
+
+    if expected:
+        assert actual == expected
 
 
 @pytest.mark.parametrize(
@@ -312,6 +415,33 @@ def test__S3URI__add__works(this: S3URI, other: Union[str, S3URI], expected: S3U
 )
 def test__S3URI__truediv__works(this: S3URI, other: Union[str, S3URI], expected: S3URI):
     assert this / other == expected
+
+
+@pytest.mark.parametrize(
+    "this, other, expected",
+    [
+        pytest.param(
+            S3URI("s3://my-bucket/my-key"),
+            "another-bucket",
+            S3URI("s3://another-bucket/my-key"),
+            id="str / SELF",
+        ),
+        pytest.param(
+            S3URI("s3://my-bucket/my-key"),
+            "s3://another-bucket/another-key",
+            S3URI("s3://another-bucket/my-key"),
+            id="s3 uri str / SELF",
+        ),
+        pytest.param(
+            S3URI("s3://my-bucket/my-key"),
+            S3BucketName("another-bucket"),
+            S3URI("s3://another-bucket/my-key"),
+            id="s3 bucket name / SELF",
+        ),
+    ],
+)
+def test__S3URI__rtruediv__works(this: S3URI, other: Union[str, S3URI], expected: S3URI):
+    assert other / this == expected
 
 
 @pytest.mark.parametrize(
