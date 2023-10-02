@@ -46,7 +46,7 @@ from aibs_informatics_core.models.base import (
 from aibs_informatics_core.models.version import VersionStr
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.os_operations import get_env_var
-from aibs_informatics_core.utils.tools.string_helpers import removesuffix
+from aibs_informatics_core.utils.tools.strtools import removesuffix
 from aibs_informatics_core.utils.version import get_version
 
 if sys.version_info >= (3, 10):

@@ -1,4 +1,4 @@
-from aibs_informatics_core.utils.tools.string_helpers import (
+from aibs_informatics_core.utils.tools.strtools import (
     is_prefixed,
     is_suffixed,
     removeprefix,

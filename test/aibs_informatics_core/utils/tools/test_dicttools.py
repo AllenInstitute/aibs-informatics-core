@@ -1,6 +1,6 @@
 import unittest
 
-from aibs_informatics_core.utils.tools.dict_helpers import (
+from aibs_informatics_core.utils.tools.dicttools import (
     convert_key_case,
     flatten_dict,
     nested_dict,

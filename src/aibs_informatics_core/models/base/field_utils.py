@@ -16,7 +16,7 @@ from dataclasses_json import config, global_config
 from typing_inspect import is_optional_type as _is_optional_type
 
 from aibs_informatics_core.utils.json import JSON
-from aibs_informatics_core.utils.tools.dict_helpers import remove_null_values
+from aibs_informatics_core.utils.tools.dicttools import remove_null_values
 
 T = TypeVar("T")
 S = TypeVar("S", bound=str)
