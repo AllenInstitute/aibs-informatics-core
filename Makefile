@@ -70,20 +70,49 @@ $(PYTHON):
 	python3 -m venv $(VENV) --prompt $(shell basename $(PACKAGE_DIR))
 	$(PYTHON) -m pip install --upgrade pip
 
-
 install: $(INSTALL_STAMP) ## Installs package dependencies
 $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
-	@source $(VENV_BIN)/activate;				\
-	if [ -f requirements-dev.txt ]; then		\
-		$(PIP) install -r requirements-dev.txt --config-settings editable_mode=strict; \
-	elif [ -f requirements.txt ]; then			\
-		$(PIP) install -r requirements.txt --config-settings editable_mode=strict;		\
-	else										\
-		$(PIP) install -e . --config-settings editable_mode=strict;					\
+	@make unlink-packages
+	@source $(VENV_BIN)/activate;\
+	if [ -f requirements-dev.txt ]; then\
+		$(PIP) install -r requirements-dev.txt --config-settings editable_mode=strict;\
+	elif [ -f requirements.txt ]; then\
+		$(PIP) install -r requirements.txt --config-settings editable_mode=strict;\
+	else\
+		$(PIP) install -e . --config-settings editable_mode=strict;	\
 	fi
 	@touch $(INSTALL_STAMP)
 
-.PHONY: create-venv install
+link-packages: ## Link local packages to virtualenv  
+	@parent_dir=$$(dirname $$(pwd)); \
+	orig_dir=$(VENV)/src/.original; \
+	for package_dir in $(VENV)/src/*; do \
+		package_name=$$(basename $$package_dir); \
+		if [ -d "$$parent_dir/$$package_name" ]; then \
+			if [ ! -L $$package_dir ]; then \
+				echo "Linking $$package_name to local override"; \
+				mkdir -p $$orig_dir; \
+				mv $$package_dir $$orig_dir/$$package_name; \
+			fi; \
+			ln -s $$parent_dir/$$package_name $$package_dir; \
+		else \
+			echo "No corresponding directory found for $$package_name at the parent level"; \
+		fi	\
+	done
+
+unlink-packages: ## Unlink local packages from virtualenv
+	@parent_dir=$$(dirname $$(pwd)/$(VENV)); \
+	orig_dir=$(VENV)/src/.original; \
+	for package_dir in $(VENV)/src/*; do \
+		package_name=$$(basename $$package_dir); \
+		if [ -L $$package_dir ] && [ -d "$$orig_dir/$$package_name" ]; then \
+			rm $$package_dir; \
+			mv $$orig_dir/$$package_name $(VENV)/src/; \
+		fi \
+	done;\
+	rm -rf $$orig_dir
+
+.PHONY: create-venv install link-packages unlink-packages
 
 #######################
 ##@ Formatting Commands
