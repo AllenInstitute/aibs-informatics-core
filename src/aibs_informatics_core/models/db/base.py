@@ -213,6 +213,9 @@ class DBIndex(StrEnum):
                 )
         return db_key
 
+    def get_table_name(self, env_base: EnvBase) -> str:
+        return env_base.get_resource_name(self.table_name())
+
     def get_index_name(self, env_base: EnvBase) -> Optional[str]:
         index_name = self.index_name
         return index_name if index_name is None else env_base.prefixed(index_name)
