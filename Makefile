@@ -74,21 +74,29 @@ install: $(INSTALL_STAMP) ## Installs package dependencies
 $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
 	@make unlink-packages
 	@source $(VENV_BIN)/activate;\
-	$(PIP) install -e .[dev] --config-settings editable_mode=strict;
+	if [ -f requirements-dev.txt ]; then\
+		$(PIP) install -r requirements-dev.txt --config-settings editable_mode=strict;\
+	elif [ -f requirements.txt ]; then\
+		$(PIP) install -r requirements.txt --config-settings editable_mode=strict;\
+	else\
+		$(PIP) install -e .[dev] --config-settings editable_mode=strict;	\
+	fi
 	@touch $(INSTALL_STAMP)
 
 link-packages: ## Link local packages to virtualenv  
 	@parent_dir=$$(dirname $$(pwd)); \
 	orig_dir=$(VENV)/src/.original; \
+	mkdir -p $$orig_dir; \
 	for package_dir in $(VENV)/src/*; do \
 		package_name=$$(basename $$package_dir); \
 		if [ -d "$$parent_dir/$$package_name" ]; then \
-			if [ ! -L $$package_dir ]; then \
-				echo "Linking $$package_name to local override"; \
-				mkdir -p $$orig_dir; \
+			echo "Linking $$package_name dependency to local override"; \
+			if [ ! -e $$orig_dir/$$package_name ]; then \
 				mv $$package_dir $$orig_dir/$$package_name; \
+				ln -s $$parent_dir/$$package_name $$package_dir; \
+			else \
+				echo "	Dependency already linked"; \
 			fi; \
-			ln -s $$parent_dir/$$package_name $$package_dir; \
 		else \
 			echo "No corresponding directory found for $$package_name at the parent level"; \
 		fi	\

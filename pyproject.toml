@@ -7,11 +7,6 @@
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# [build-system]
-# requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2", "wheel"]
-# build-backend = "setuptools.build_meta"
-
-# [tool.setuptools_scm]
 
 # -----------------------------------------------------------------------------
 [project]
@@ -34,7 +29,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main",
+    "aibs-informatics-test-resources",
+    # "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
 ]
 
 [tool.setuptools.packages.find]
