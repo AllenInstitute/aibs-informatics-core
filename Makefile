@@ -69,18 +69,13 @@ create-venv: $(PYTHON)  ## Creates virtualenv
 $(PYTHON):
 	python3 -m venv $(VENV) --prompt $(shell basename $(PACKAGE_DIR))
 	$(PYTHON) -m pip install --upgrade pip
+	$(PYTHON) -m pip install --upgrade poetry
 
 install: $(INSTALL_STAMP) ## Installs package dependencies
 $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
-	@make unlink-packages
+	# @make unlink-packages
 	@source $(VENV_BIN)/activate;\
-	if [ -f requirements-dev.txt ]; then\
-		$(PIP) install -r requirements-dev.txt --config-settings editable_mode=strict;\
-	elif [ -f requirements.txt ]; then\
-		$(PIP) install -r requirements.txt --config-settings editable_mode=strict;\
-	else\
-		$(PIP) install -e .[dev] --config-settings editable_mode=strict;	\
-	fi
+	poetry install
 	@touch $(INSTALL_STAMP)
 
 link-packages: ## Link local packages to virtualenv  

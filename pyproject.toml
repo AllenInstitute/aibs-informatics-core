@@ -3,41 +3,79 @@
 #   https://setuptools.pypa.io/en/latest/setuptools.html#building-and-distributing-packages-with-setuptools
 # -----------------------------------------------------------------------------
 
+# [build-system]
+# requires = ["setuptools>=61", "wheel"]
+# build-backend = "setuptools.build_meta"
+
+
+# # -----------------------------------------------------------------------------
+# [project]
+# name = "aibs-informatics-core"
+# version = "0.0.1"
+# description = "Core package for informatics projects at the Allen Institute for Brain Science"
+# readme = "README.md"
+# # dynamic = [ "version"]
+# requires-python = ">=3.9"
+
+# dependencies = [
+#     "marshmallow==3.14.1",
+#     "dataclasses-json==0.5.7",
+#     "python-dateutil",
+#     "pytz",
+#     "pyyaml==6.0",
+#     "requests",
+#     "typing_inspect",
+# ]
+
+# [project.optional-dependencies]
+# dev = [
+#     "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
+# ]
+
+# [tool.setuptools.packages.find]
+# where = ["src"]
+
+# [tool.setuptools.package-data]
+# "*" = ['py.typed']
+
+
 [build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-
-# -----------------------------------------------------------------------------
-[project]
+[tool.poetry]
 name = "aibs-informatics-core"
 version = "0.0.1"
 description = "Core package for informatics projects at the Allen Institute for Brain Science"
+authors = ["Marmot Dev <marmotdev@alleninstitute.org>"]
 readme = "README.md"
-# dynamic = [ "version"]
-requires-python = ">=3.9"
 
-dependencies = [
-    "marshmallow==3.14.1",
-    "dataclasses-json==0.5.7",
-    "python-dateutil",
-    "pytz",
-    "pyyaml==6.0",
-    "requests",
-    "typing_inspect",
+[tool.poetry.dependencies]
+python = "^3.9"
+marshmallow = "3.14.1"
+dataclasses-json = "0.5.7"
+python-dateutil = "*"
+pytz = "*"
+pyyaml = "6.0"
+requests = "*"
+typing_inspect = "*"
+
+[tool.poetry.group.dev.dependencies]
+aibs-informatics-test-resources = [
+    # { path = "../aibs-informatics-test-resources", develop = true },
+    { git = "git@github.com:AllenInstitute/aibs-informatics-test-resources.git", branch = "main" },
 ]
 
-[project.optional-dependencies]
-dev = [
-    "aibs-informatics-test-resources",
-    # "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
-]
+[[tool.poetry.source]]
+name = "local"
+url = "../"
+priority = "supplemental"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[[tool.poetry.source]]
+name = "aibs"
+url = "git@github.com:AllenInstitute"
+priority = "supplemental"
 
-[tool.setuptools.package-data]
-"*" = ['py.typed']
 
 # -----------------------------------------------------------------------------
 ##  Pyright Configurations
