@@ -8,7 +8,7 @@ RUN apt-get update -y && apt-get install -y \
 COPY . /opt/python/aibs-informatics-core/
 
 WORKDIR /opt/python/aibs-informatics-core
-RUN pip3 install --no-cache-dir -r requirements-docker.txt
+RUN pip3 install --no-cache-dir .
 WORKDIR /
 
 CMD ["python3"]

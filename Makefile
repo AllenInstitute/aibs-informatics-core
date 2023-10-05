@@ -74,13 +74,7 @@ install: $(INSTALL_STAMP) ## Installs package dependencies
 $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
 	@make unlink-packages
 	@source $(VENV_BIN)/activate;\
-	if [ -f requirements-dev.txt ]; then\
-		$(PIP) install -r requirements-dev.txt --config-settings editable_mode=strict;\
-	elif [ -f requirements.txt ]; then\
-		$(PIP) install -r requirements.txt --config-settings editable_mode=strict;\
-	else\
-		$(PIP) install -e . --config-settings editable_mode=strict;	\
-	fi
+	$(PIP) install -e .[dev] --config-settings editable_mode=strict;
 	@touch $(INSTALL_STAMP)
 
 link-packages: ## Link local packages to virtualenv  

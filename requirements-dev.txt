@@ -1,3 +1,0 @@
--r requirements.txt
--e git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources
--e .[dev]
