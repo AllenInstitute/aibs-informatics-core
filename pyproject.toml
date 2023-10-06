@@ -4,8 +4,12 @@
 # -----------------------------------------------------------------------------
 
 [build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# [build-system]
+# requires = ["setuptools>=61", "wheel"]
+# build-backend = "setuptools.build_meta"
 
 
 # -----------------------------------------------------------------------------
@@ -18,13 +22,14 @@ readme = "README.md"
 requires-python = ">=3.9"
 
 dependencies = [
-    "marshmallow==3.14.1",
-    "dataclasses-json==0.5.7",
-    "python-dateutil",
-    "pytz",
-    "pyyaml==6.0",
-    "requests",
-    "typing_inspect",
+    # "marshmallow==3.14.1",
+    # "dataclasses-json==0.5.7",
+    # "python-dateutil",
+    # "pytz",
+    # "pyyaml==6.0",
+    # "requests",
+    # "typing_inspect",
+    # "aibs-informatics-test-resources"
 ]
 
 [project.optional-dependencies]
@@ -38,6 +43,36 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ['py.typed']
+
+[tool.hatch.envs.default]
+dependencies = [
+    "marshmallow==3.14.1",
+    "dataclasses-json==0.5.7",
+    "python-dateutil",
+    "pytz",
+    "pyyaml==6.0",
+    "requests",
+    "typing_inspect",
+]
+extra-dependencies = [
+    # "aibs-informatics-test-resources",
+    "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
+]
+[tool.hatch.envs.local]
+extra-dependencies = [
+    # "aibs-informatics-test-resources",
+    "aibs-informatics-test-resources @ {root:uri}/../aibs-informatics-test-resources",
+]
+
+pre-install-commands = [
+    # "pip install -e git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
+    # "pip install -r requirements.txt",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+allow-ambiguous-features = true
+
 
 # -----------------------------------------------------------------------------
 ##  Pyright Configurations
