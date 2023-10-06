@@ -7,44 +7,14 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# [build-system]
-# requires = ["setuptools>=61", "wheel"]
-# build-backend = "setuptools.build_meta"
-
-
 # -----------------------------------------------------------------------------
 [project]
 name = "aibs-informatics-core"
 version = "0.0.1"
 description = "Core package for informatics projects at the Allen Institute for Brain Science"
 readme = "README.md"
-# dynamic = [ "version"]
 requires-python = ">=3.9"
 
-dependencies = [
-    # "marshmallow==3.14.1",
-    # "dataclasses-json==0.5.7",
-    # "python-dateutil",
-    # "pytz",
-    # "pyyaml==6.0",
-    # "requests",
-    # "typing_inspect",
-    # "aibs-informatics-test-resources"
-]
-
-[project.optional-dependencies]
-dev = [
-    "aibs-informatics-test-resources",
-    # "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
-]
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-"*" = ['py.typed']
-
-[tool.hatch.envs.default]
 dependencies = [
     "marshmallow==3.14.1",
     "dataclasses-json==0.5.7",
@@ -54,19 +24,54 @@ dependencies = [
     "requests",
     "typing_inspect",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main",
+]
+
+[tool.hatch.build]
+include = ['src']
+directory = "build/"
+dev-mode-dirs = ["."]
+
+[tool.hatch.envs.default]
+path = ".venv"
+dependencies = [
+    "marshmallow==3.14.1",
+    "dataclasses-json==0.5.7",
+    "python-dateutil",
+    "pytz",
+    "pyyaml==6.0",
+    "requests",
+    "typing_inspect",
+]
+
+[tool.hatch.envs.scripts]
+test = "pytest -vv --durations=10"
+
+lint-black = "black ./ --check"
+lint-isort = "isort ./ --check"
+lint-mypy = "mypy ./"
+lint = [
+    "hatch lint-black",
+    "hatch lint-isort",
+    "hatch lint-mypy",
+]
+
+format-black = "black ./"
+format-isort = "isort ./"
+format = [
+    "hatch format-black",
+    "hatch format-isort",
+]
+
 extra-dependencies = [
-    # "aibs-informatics-test-resources",
     "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
 ]
 [tool.hatch.envs.local]
 extra-dependencies = [
-    # "aibs-informatics-test-resources",
     "aibs-informatics-test-resources @ {root:uri}/../aibs-informatics-test-resources",
-]
-
-pre-install-commands = [
-    # "pip install -e git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
-    # "pip install -r requirements.txt",
 ]
 
 [tool.hatch.metadata]
@@ -105,6 +110,14 @@ omit = [
     "test/*"
 ]
 skip_empty = true
+exclude_lines = [
+    'pragma: no cover',
+    'raise NotImplementedError',
+    'raise NotImplemented',
+    'if TYPE_CHECKING:',
+    'if MYPY:',
+    '@overload',
+]
 
 [tool.coverage.html]
 directory = "build/documentation/coverage"
