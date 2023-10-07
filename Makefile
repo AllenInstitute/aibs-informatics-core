@@ -86,7 +86,7 @@ link-packages: ## Link local packages to virtualenv
 		for dependency in $$dependencies; do \
 			if [ $$local_package == $$dependency ]; then \
 				echo "Reinstalling $$local_package dependency to local override"; \
-				$(PIP) install -e $$parent_dir/$$local_package; \
+				$(PIP) install -e $$parent_dir/$$local_package --no-deps; \
 			fi \
 		done; \
 	done
@@ -108,7 +108,6 @@ unlink-packages: ## Unlink local packages from virtualenv
 		echo "Found dependencies installed locally, reinstalling..."; \
 		make clean-install-stamp install; \
 	fi
-
 
 .PHONY: create-venv install install-force link-packages unlink-packages
 
