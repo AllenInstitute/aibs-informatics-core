@@ -29,8 +29,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "aibs-informatics-test-resources",
-    # "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
+    "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
 ]
 
 [tool.setuptools.packages.find]

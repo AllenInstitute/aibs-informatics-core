@@ -72,49 +72,45 @@ $(PYTHON):
 
 install: $(INSTALL_STAMP) ## Installs package dependencies
 $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
-	@make unlink-packages
 	@source $(VENV_BIN)/activate;\
-	if [ -f requirements-dev.txt ]; then\
-		$(PIP) install -r requirements-dev.txt --config-settings editable_mode=strict;\
-	elif [ -f requirements.txt ]; then\
-		$(PIP) install -r requirements.txt --config-settings editable_mode=strict;\
-	else\
-		$(PIP) install -e .[dev] --config-settings editable_mode=strict;	\
-	fi
+	pip install -e .[dev]; 
 	@touch $(INSTALL_STAMP)
+
+install-force: clean-install-stamp install ## Force install package dependencies
 
 link-packages: ## Link local packages to virtualenv  
 	@parent_dir=$$(dirname $$(pwd)); \
-	orig_dir=$(VENV)/src/.original; \
-	mkdir -p $$orig_dir; \
-	for package_dir in $(VENV)/src/*; do \
-		package_name=$$(basename $$package_dir); \
-		if [ -d "$$parent_dir/$$package_name" ]; then \
-			echo "Linking $$package_name dependency to local override"; \
-			if [ ! -e $$orig_dir/$$package_name ]; then \
-				mv $$package_dir $$orig_dir/$$package_name; \
-				ln -s $$parent_dir/$$package_name $$package_dir; \
-			else \
-				echo "	Dependency already linked"; \
-			fi; \
-		else \
-			echo "No corresponding directory found for $$package_name at the parent level"; \
-		fi	\
+	local_packages=$$(ls $$parent_dir); \
+	dependencies=$$($(PIP) list --format freeze --exclude-editable | awk -F '==' '{print $$1}');\
+	for local_package in $$local_packages; do \
+		for dependency in $$dependencies; do \
+			if [ $$local_package == $$dependency ]; then \
+				echo "Reinstalling $$local_package dependency to local override"; \
+				$(PIP) install -e $$parent_dir/$$local_package; \
+			fi \
+		done; \
 	done
 
 unlink-packages: ## Unlink local packages from virtualenv
-	@parent_dir=$$(dirname $$(pwd)/$(VENV)); \
-	orig_dir=$(VENV)/src/.original; \
-	for package_dir in $(VENV)/src/*; do \
-		package_name=$$(basename $$package_dir); \
-		if [ -L $$package_dir ] && [ -d "$$orig_dir/$$package_name" ]; then \
-			rm $$package_dir; \
-			mv $$orig_dir/$$package_name $(VENV)/src/; \
-		fi \
-	done;\
-	rm -rf $$orig_dir
+	@parent_dir=$$(dirname $$(pwd)); \
+	this_package=$$(basename $$(pwd)); \
+	local_packages=$$(ls $$parent_dir); \
+	dependencies=$$($(PIP) list --format freeze --editable | awk -F '==' '{print $$1}');\
+	is_found=0; \
+	for local_package in $$local_packages; do \
+		for dependency in $$dependencies; do \
+			if [ $$local_package == $$dependency ] && [ $$local_package != $$this_package ]; then \
+				is_found=1; \
+			fi; \
+		done \
+	done; \
+	if [ $$is_found == 1 ]; then \
+		echo "Found dependencies installed locally, reinstalling..."; \
+		make clean-install-stamp install; \
+	fi
 
-.PHONY: create-venv install link-packages unlink-packages
+
+.PHONY: create-venv install install-force link-packages unlink-packages
 
 #######################
 ##@ Formatting Commands
