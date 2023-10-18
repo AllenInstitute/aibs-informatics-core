@@ -9,7 +9,7 @@ import inspect
 import logging
 import pkgutil
 from types import ModuleType
-from typing import Any, Dict, List, Type, TypeVar, Union
+from typing import Any, Dict, List, Literal, Optional, Type, TypeVar, Union, overload
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,43 @@ T = TypeVar("T")
 
 def as_module_type(package: Union[str, ModuleType]) -> ModuleType:
     return package if isinstance(package, ModuleType) else importlib.import_module(package)
+
+
+@overload
+def load_type_from_qualified_name(qualified_name: str, expected_type: Type[T]) -> T:
+    ...
+
+
+@overload
+def load_type_from_qualified_name(qualified_name: str, expected_type: Literal[None] = None) -> Any:
+    ...
+
+
+def load_type_from_qualified_name(
+    qualified_name: str, expected_type: Optional[Type[T]] = None
+) -> Union[Any, T]:
+    """Load a type from its fully qualified name
+
+    Args:
+        qualified_name (str): fully qualified name of type
+
+    Returns:
+        (type): type object
+    """
+    if "." not in qualified_name:
+        module_name = "builtins"
+        type_name = qualified_name
+    else:
+        module_name, type_name = qualified_name.rsplit(".", 1)
+    module = as_module_type(module_name)
+    if not hasattr(module, type_name):
+        raise ValueError(f"Unable to find type {type_name} in module {module_name}")
+    loaded_type = getattr(module, type_name)
+    if expected_type is not None and not issubclass(loaded_type, expected_type):
+        raise ValueError(
+            f"Loaded type {loaded_type} is not a subclass of expected type {expected_type}"
+        )
+    return loaded_type
 
 
 def get_all_subclasses(cls: Type[T], ignore_abstract: bool = False) -> List[Type[T]]:

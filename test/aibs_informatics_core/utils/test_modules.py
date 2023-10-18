@@ -2,12 +2,14 @@ import os
 import unittest
 from test.base import does_not_raise
 
-from pytest import mark, param
+from pytest import mark, param, raises
 
+import aibs_informatics_core.utils.modules
 from aibs_informatics_core.utils.modules import (
     get_all_subclasses,
     get_qualified_name,
     load_all_modules_from_pkg,
+    load_type_from_qualified_name,
 )
 
 
@@ -74,6 +76,10 @@ class DummyClass:
     pass
 
 
+class DummyChildClass(DummyClass):
+    pass
+
+
 @mark.parametrize(
     "value,expected,raise_expectation",
     [
@@ -104,6 +110,69 @@ class DummyClass:
 def test__get_qualified_name(value, expected, raise_expectation):
     with raise_expectation:
         actual = get_qualified_name(value)
+
+    if expected:
+        assert actual == expected
+
+
+@mark.parametrize(
+    "name, expected_type, expected, raise_expectation",
+    [
+        param("ValueError", Exception, ValueError, does_not_raise(), id="builtin Class"),
+        param(
+            "aibs_informatics_core.utils.modules",
+            None,
+            aibs_informatics_core.utils.modules,
+            does_not_raise(),
+            id="loads custom module",
+        ),
+        param(
+            "aibs_informatics_core.utils.modules.get_qualified_name",
+            None,
+            get_qualified_name,
+            does_not_raise(),
+            id="loads custom function",
+        ),
+        param(
+            "test.aibs_informatics_core.utils.test_modules.DummyClass",
+            None,
+            DummyClass,
+            does_not_raise(),
+            id="custom type (no expected type)",
+        ),
+        param(
+            "test.aibs_informatics_core.utils.test_modules.DummyClass",
+            None,
+            DummyClass,
+            does_not_raise(),
+            id="loads custom type (no type check)",
+        ),
+        param(
+            "test.aibs_informatics_core.utils.test_modules.DummyChildClass",
+            DummyClass,
+            DummyChildClass,
+            does_not_raise(),
+            id="loads custom type (expected type)",
+        ),
+        param(
+            "test.aibs_informatics_core.utils.test_modules.DummyClass",
+            DummyChildClass,
+            None,
+            raises(ValueError),
+            id="FAILs expected type check",
+        ),
+        param(
+            "test.aibs_informatics_core.utils.test_modules.DummyClass2",
+            DummyChildClass,
+            None,
+            raises(ValueError),
+            id="FAILs finding type in module",
+        ),
+    ],
+)
+def test__load_type_from_qualified_name(name, expected_type, expected, raise_expectation):
+    with raise_expectation:
+        actual = load_type_from_qualified_name(name, expected_type=expected_type)
 
     if expected:
         assert actual == expected

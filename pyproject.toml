@@ -32,6 +32,9 @@ dev = [
     "aibs-informatics-test-resources @ git+ssh://git@github.com/AllenInstitute/aibs-informatics-test-resources.git@main#egg=aibs_informatics_test_resources",
 ]
 
+[project.scripts]
+run_cli_executor = "aibs_informatics_core.executors:run_cli_executor"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -69,6 +72,17 @@ omit = [
     "test/*"
 ]
 skip_empty = true
+exclude_lines = [
+    'pragma: no cover',
+    'raise NotImplementedError',
+    'if TYPE_CHECKING:',
+    'if typing.TYPE_CHECKING:',
+    '@overload',
+    '@typing.overload',
+    '\(Protocol\):$',
+    'typing.assert_never',
+    'assert_never',
+]
 
 [tool.coverage.html]
 directory = "build/documentation/coverage"

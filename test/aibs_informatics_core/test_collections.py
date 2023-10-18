@@ -25,6 +25,15 @@ class DeepChainMapTests(unittest.TestCase):
         self.assertDictEqual(dcm.to_dict(), merged)
         self.assertEqual(dcm["a"], 1)
 
+    def test__getitem__works(self):
+        d1 = {"a": {1: {"1": [1]}, "2": ["a"]}}
+        d2 = {"a": {0: False, 1: {"1": {1: 1}}}}
+
+        dcm = DeepChainMap(d2, d1)
+        with self.assertRaises(KeyError):
+            dcm["z"]
+        self.assertEqual(dcm["a"][1]["1"][1], 1)
+
 
 class AlphaNumericStr(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = r"^([\w]*)$"  # type: ignore
