@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import List, Literal, Sequence, Tuple, Union
 from unittest.mock import MagicMock, patch
 
-from aibs_informatics_test_resources import BaseTest
-from pytest import mark, param
+from aibs_informatics_test_resources import BaseTest, does_not_raise
+from pytest import mark, param, raises
 
 from aibs_informatics_core.utils.file_operations import (
     ArchiveType,
@@ -405,12 +405,17 @@ def test__get_path_with_root(path: Union[Path, str], root: Union[Path, str], exp
 
 
 @mark.parametrize(
-    "path, root, expected",
+    "path, root, expected, expectation",
     [
-        param(Path("file"), Path("/path/to/"), "file", id="simple file [P/P]"),
-        param("file", Path("/path/to/"), "file", id="simple file [P/P]"),
+        param("/A/a", None, "A/a", does_not_raise(), id="strips path using default root"),
+        param(Path("a"), Path("/A/a"), "a", does_not_raise(), id="no-op for relative path"),
+        param("a", Path("/A/a"), "a", does_not_raise(), id="no-op for relative str path"),
+        param("/A/a", Path("/A"), "a", does_not_raise(), id="strips path"),
+        param("/A/a", Path("/B"), None, raises(ValueError), id="raises error for invalid root"),
     ],
 )
-def test__strip_path_root__works(path, root, expected):
-    actual = strip_path_root(path, root)
-    assert actual == expected
+def test__strip_path_root__works(path, root, expected, expectation):
+    with expectation:
+        actual = strip_path_root(path, root)
+    if expected is not None:
+        assert actual == expected

@@ -331,6 +331,16 @@ def get_path_with_root(path: Union[str, Path], root: Union[str, Path]) -> str:
 
 
 def strip_path_root(path: Union[str, Path], root: Optional[Union[str, Path]] = None) -> str:
+    """Strip the root from the path if path is absolute
+
+    Args:
+        path (Union[str, Path]): path to strip root from
+        root (Optional[Union[str, Path]], optional): optionally specify root.
+            If no root specified, uses "/".
+
+    Returns:
+        str: a relative path
+    """
     root = Path(root) if root is not None else Path("/")
     path = Path(path)
     rel_path = path.relative_to(root) if path.is_absolute() else path
