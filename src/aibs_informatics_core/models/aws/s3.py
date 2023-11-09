@@ -1,5 +1,6 @@
 __all__ = [
     "S3PathStats",
+    "S3Path",
     "S3URI",
     "S3BucketName",
     "S3KeyPrefix",
@@ -94,26 +95,26 @@ class S3PathStats:
 class S3BucketName(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(r"([A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])")
 
-    def __truediv__(self, __other: str) -> "S3URI":
-        """Creates a S3URI
+    def __truediv__(self, __other: str) -> "S3Path":
+        """Creates a S3Path
 
         Examples:
             >>> s3_uri = S3BucketName("my-bucket") / "my-key"
             >>> assert s3_uri == "s3://my-bucket/my-key"
 
-            >>> another_s3_uri = S3BucketName("bucket1") / S3URI("s3://bucket2/key2")
+            >>> another_s3_uri = S3BucketName("bucket1") / S3Path("s3://bucket2/key2")
             >>> assert another_s3_uri == "s3://bucket1/key2"
 
         Args:
-            __other (Union[str, S3URI]): The key or key of path to use for the S3URI
+            __other (Union[str, S3Path]): The key or key of path to use for the S3Path
 
         Returns:
-            S3URI: a new S3URI with the appended key using the `/` operator
+            S3Path: a new S3Path with the appended key using the `/` operator
         """
 
-        if S3URI.is_valid(__other):
-            __other = S3URI(__other).key
-        return S3URI.build(bucket_name=self, key=__other)
+        if S3Path.is_valid(__other):
+            __other = S3Path(__other).key
+        return S3Path.build(bucket_name=self, key=__other)
 
 
 class S3Key(ValidatedStr):
@@ -127,10 +128,10 @@ class S3Key(ValidatedStr):
         """Creates a new S3 Key
 
         Args:
-            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3URI: a new S3URI with a new key
+            S3Path: a new S3Path with a new key
         """
         if isinstance(__other, str):
             prefix = __other.rstrip("/")
@@ -147,7 +148,7 @@ _DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
 _S3URI_PATTERN = re.compile(r"^s3:\/\/([^\/]+)\/?(.*)")
 
 
-class S3URI(str):
+class S3Path(str):
     """An augmented `str` class intended to represent an aws internal `s3://` style URI.
     Has useful properties to get bucket, key, and a method to generate an S3 virtual-hosted-style
     URL if provided a region.
@@ -190,8 +191,8 @@ class S3URI(str):
     def validate(cls, value: str, full_validate: bool):
         if not value.startswith("s3://"):
             raise mm.ValidationError(
-                f"S3URI should start with 's3://' (case sensitive). "
-                f"The provided tentative S3URI ({value}) does not!"
+                f"S3Path should start with 's3://' (case sensitive). "
+                f"The provided tentative S3Path ({value}) does not!"
             )
 
         if full_validate:
@@ -214,7 +215,7 @@ class S3URI(str):
         return True
 
     @classmethod
-    def build(cls, bucket_name: str, key: str = "", full_validate: bool = True) -> "S3URI":
+    def build(cls, bucket_name: str, key: str = "", full_validate: bool = True) -> "S3Path":
         """Build an `s3://` style URI given a bucket_name and key.
 
         There may be cases where the bucket_name or key is a placeholder
@@ -245,17 +246,20 @@ class S3URI(str):
         return Path(self.key).name if self.key else ""
 
     @property
-    def parent(self) -> "S3URI":
+    def parent(self) -> "S3Path":
         parent_key = "/".join(self.key.split("/")[:-1]).rstrip("/") + "/"
-        return S3URI.build(bucket_name=self.bucket_name, key=parent_key)
+        return S3Path.build(bucket_name=self.bucket_name, key=parent_key)
 
     @property
-    def with_folder_suffix(self) -> "S3URI":
-        return S3URI.build(
+    def with_folder_suffix(self) -> "S3Path":
+        return S3Path.build(
             bucket_name=self.bucket_name,
             key=self.key_with_folder_suffix,
             full_validate=self._full_validate,
         )
+
+    def has_folder_suffix(self) -> bool:
+        return self.key.endswith("/")
 
     def as_dict(self) -> BucketAndKey:
         return BucketAndKey(Bucket=self.bucket, Key=self.key)
@@ -266,91 +270,95 @@ class S3URI(str):
 
     @classmethod
     def as_mm_field(cls) -> mm.fields.Field:
-        return CustomStringField(S3URI)
+        return CustomStringField(S3Path)
 
-    def __add__(self, __other: Union[str, "S3URI"]) -> "S3URI":
-        """Appends a string or S3URI key to the end of this S3URI
+    def __add__(self, __other: Union[str, "S3Path"]) -> "S3Path":
+        """Appends a string or S3Path key to the end of this S3Path
 
         Examples:
-            >>> s3_uri = S3URI("s3://my-bucket/my-key") + "-my-other-key"
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") + "-my-other-key"
             >>> assert s3_uri == "s3://my-bucket/my-key-my-other-key"
 
-            >>> another_s3_uri = S3URI("s3://bucket1/key1") + S3URI("s3://bucket2/key2")
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") + S3Path("s3://bucket2/key2")
             >>> assert another_s3_uri == "s3://bucket1/key1key2"
 
         Args:
-            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3URI: a new S3URI with the appended key
+            S3Path: a new S3Path with the appended key
         """
-        if isinstance(__other, S3URI):
+        if isinstance(__other, S3Path):
             __other = __other.key
-        return S3URI(f"{self}{__other}", full_validate=self._full_validate)
+        return S3Path(f"{self}{__other}", full_validate=self._full_validate)
 
-    def __truediv__(self, __other: Union[str, "S3URI"]) -> "S3URI":
-        """Appends a string or S3URI key to the end of this S3URI using the `/` operator
+    def __truediv__(self, __other: Union[str, "S3Path"]) -> "S3Path":
+        """Appends a string or S3Path key to the end of this S3Path using the `/` operator
 
         Examples:
-            >>> s3_uri = S3URI("s3://my-bucket/my-key") / "my-other-key"
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") / "my-other-key"
             >>> assert s3_uri == "s3://my-bucket/my-key/my-other-key"
 
-            >>> another_s3_uri = S3URI("s3://bucket1/key1") / S3URI("s3://bucket2/key2")
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") / S3Path("s3://bucket2/key2")
             >>> assert another_s3_uri == "s3://bucket1/key1/key2"
 
         Args:
-            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3URI: a new S3URI with the appended key using the `/` operator
+            S3Path: a new S3Path with the appended key using the `/` operator
         """
-        if isinstance(__other, S3URI):
+        if isinstance(__other, S3Path):
             __other = __other.key
-        return S3URI(f"{self}/{__other}", full_validate=self._full_validate)
+        return S3Path(f"{self}/{__other}", full_validate=self._full_validate)
 
-    def __rtruediv__(self, __other: Union[str, S3BucketName]) -> "S3URI":
-        """Creates a new S3URI by constructing a str or S3URI key with this key
+    def __rtruediv__(self, __other: Union[str, S3BucketName]) -> "S3Path":
+        """Creates a new S3Path by constructing a str or S3Path key with this key
 
         Examples:
-            >>> s3_uri = S3URI("s3://my-bucket/my-key") / "my-other-key"
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") / "my-other-key"
             >>> assert s3_uri == "s3://my-bucket/my-other-key"
 
-            >>> another_s3_uri = S3URI("s3://bucket1/key1") / S3URI("s3://bucket2/key2")
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") / S3Path("s3://bucket2/key2")
             >>> assert another_s3_uri == "s3://bucket1/key2"
 
         Args:
-            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3URI: a new S3URI with a new key
+            S3Path: a new S3Path with a new key
         """
-        if S3URI.is_valid(__other):
-            __other = S3URI(__other).bucket_name
-        return S3URI.build(bucket_name=__other, key=self.key, full_validate=self._full_validate)
+        if S3Path.is_valid(__other):
+            __other = S3Path(__other).bucket_name
+        return S3Path.build(bucket_name=__other, key=self.key, full_validate=self._full_validate)
 
-    def __floordiv__(self, __other: Union[str, "S3URI"]) -> "S3URI":
-        """Creates a new S3URI by constructing a str or S3URI key with this bucket
+    def __floordiv__(self, __other: Union[str, "S3Path"]) -> "S3Path":
+        """Creates a new S3Path by constructing a str or S3Path key with this bucket
 
         Examples:
-            >>> s3_uri = S3URI("s3://my-bucket/my-key") // "my-other-key"
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") // "my-other-key"
             >>> assert s3_uri == "s3://my-bucket/my-other-key"
 
-            >>> another_s3_uri = S3URI("s3://bucket1/key1") // S3URI("s3://bucket2/key2")
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") // S3Path("s3://bucket2/key2")
             >>> assert another_s3_uri == "s3://bucket1/key2"
 
         Args:
-            __other (Union[str, S3URI]): The key to append to the end of this S3URI
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3URI: a new S3URI with a new key
+            S3Path: a new S3Path with a new key
         """
-        if isinstance(__other, S3URI):
+        if isinstance(__other, S3Path):
             __other = __other.key
-        return S3URI.build(bucket_name=self.bucket, key=__other, full_validate=self._full_validate)
+        return S3Path.build(
+            bucket_name=self.bucket, key=__other, full_validate=self._full_validate
+        )
 
 
-T = TypeVar("T", S3URI, Path)
-U = TypeVar("U", S3URI, Path)
+S3URI = S3Path
+
+T = TypeVar("T", S3Path, Path)
+U = TypeVar("U", S3Path, Path)
 
 
 @dataclass
@@ -362,7 +370,7 @@ class S3TransferRequest(Generic[T, U]):
 
 @dataclass
 # class S3CopyRequest:
-class S3CopyRequest(S3TransferRequest[S3URI, S3URI]):
+class S3CopyRequest(S3TransferRequest[S3Path, S3Path]):
     extra_args: Optional[Dict[str, Any]] = None
 
 
@@ -389,12 +397,12 @@ class S3CopyResponse:
 
 
 @dataclass
-class S3UploadRequest(S3TransferRequest[Path, S3URI]):
+class S3UploadRequest(S3TransferRequest[Path, S3Path]):
     extra_args: Optional[Dict[str, Any]] = None
 
 
 @dataclass
-class S3DownloadRequest(S3TransferRequest[S3URI, Path]):
+class S3DownloadRequest(S3TransferRequest[S3Path, Path]):
     pass
 
 

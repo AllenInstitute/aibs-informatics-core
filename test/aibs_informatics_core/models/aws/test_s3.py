@@ -7,12 +7,12 @@ import pytest
 from click import Path
 
 from aibs_informatics_core.models.aws.s3 import (
-    S3URI,
     S3BucketName,
     S3CopyRequest,
     S3CopyResponse,
     S3Key,
     S3KeyPrefix,
+    S3Path,
     S3PathStats,
     S3RestoreStatus,
     S3RestoreStatusEnum,
@@ -201,14 +201,14 @@ def test__S3PathStats__getitem__works():
             # expected
             None,
             # raise_expectation
-            pytest.raises(mm.ValidationError, match="S3URI should start with 's3://'"),
+            pytest.raises(mm.ValidationError, match="S3Path should start with 's3://'"),
             id="Incorrectly capitalized S3 URI scheme",
         ),
     ],
 )
 def test__S3URI__init(test_input, full_validate, expected, raise_expectation):
     with raise_expectation:
-        obt = S3URI(test_input, full_validate=full_validate)
+        obt = S3Path(test_input, full_validate=full_validate)
 
     if expected:
         for k, v in expected.items():
@@ -225,7 +225,7 @@ def test__S3URI__init(test_input, full_validate, expected, raise_expectation):
             "key-mckeyface",
             # expected
             "s3://bucket-mcbucketface/key-mckeyface",
-            id="Basic build S3URI test case",
+            id="Basic build S3Path test case",
         ),
         pytest.param(
             # input_bucket
@@ -239,7 +239,7 @@ def test__S3URI__init(test_input, full_validate, expected, raise_expectation):
     ],
 )
 def test__S3URI__build(input_bucket, input_key, expected):
-    obt = S3URI.build(bucket_name=input_bucket, key=input_key)
+    obt = S3Path.build(bucket_name=input_bucket, key=input_key)
     assert expected == obt
 
 
@@ -253,7 +253,7 @@ def test__S3URI__build(input_bucket, input_key, expected):
             "us-west-2",
             # expected
             "https://my-bucket.s3.us-west-2.amazonaws.com/my-key",
-            id="Test S3URI.as_hosted_s3_url basic case",
+            id="Test S3Path.as_hosted_s3_url basic case",
         ),
         pytest.param(
             # current_uri
@@ -267,7 +267,7 @@ def test__S3URI__build(input_bucket, input_key, expected):
     ],
 )
 def test__S3URI__as_hosted_s3_url(current_uri, aws_region, expected):
-    s3_uri = S3URI(current_uri)
+    s3_uri = S3Path(current_uri)
     obt = s3_uri.as_hosted_s3_url(aws_region=aws_region)
     assert expected == obt
 
@@ -278,14 +278,14 @@ def test__S3URI__as_hosted_s3_url(current_uri, aws_region, expected):
         pytest.param(
             S3BucketName("my-bucket"),
             "my-key",
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             does_not_raise(),
             id="handles simple",
         ),
         pytest.param(
             S3BucketName("my-bucket"),
             "s3://another-bucket/another-key",
-            S3URI("s3://my-bucket/another-key"),
+            S3Path("s3://my-bucket/another-key"),
             does_not_raise(),
             id="handles uri",
         ),
@@ -367,26 +367,26 @@ def test__S3Key__rtruediv__works(this: S3Key, other, expected, raise_expectation
     "this, other, expected",
     [
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             "another-key",
-            S3URI("s3://my-bucket/my-keyanother-key"),
+            S3Path("s3://my-bucket/my-keyanother-key"),
             id="adds str",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
-            S3URI("s3://another-bucket/another-key"),
-            S3URI("s3://my-bucket/my-keyanother-key"),
+            S3Path("s3://my-bucket/my-key"),
+            S3Path("s3://another-bucket/another-key"),
+            S3Path("s3://my-bucket/my-keyanother-key"),
             id="adds s3 uri",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key/"),
-            S3URI("s3://another-bucket/another-key"),
-            S3URI("s3://my-bucket/my-key/another-key"),
+            S3Path("s3://my-bucket/my-key/"),
+            S3Path("s3://another-bucket/another-key"),
+            S3Path("s3://my-bucket/my-key/another-key"),
             id="adds s3 uri with trailing slash",
         ),
     ],
 )
-def test__S3URI__add__works(this: S3URI, other: Union[str, S3URI], expected: S3URI):
+def test__S3URI__add__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
     assert this + other == expected
 
 
@@ -394,26 +394,26 @@ def test__S3URI__add__works(this: S3URI, other: Union[str, S3URI], expected: S3U
     "this, other, expected",
     [
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             "another-key",
-            S3URI("s3://my-bucket/my-key/another-key"),
+            S3Path("s3://my-bucket/my-key/another-key"),
             id="this / str",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
-            S3URI("s3://another-bucket/another-key"),
-            S3URI("s3://my-bucket/my-key/another-key"),
+            S3Path("s3://my-bucket/my-key"),
+            S3Path("s3://another-bucket/another-key"),
+            S3Path("s3://my-bucket/my-key/another-key"),
             id="this / s3 uri",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key/"),
-            S3URI("s3://another-bucket/another-key"),
-            S3URI("s3://my-bucket/my-key/another-key"),
+            S3Path("s3://my-bucket/my-key/"),
+            S3Path("s3://another-bucket/another-key"),
+            S3Path("s3://my-bucket/my-key/another-key"),
             id="this / s3 uri with trailing slash",
         ),
     ],
 )
-def test__S3URI__truediv__works(this: S3URI, other: Union[str, S3URI], expected: S3URI):
+def test__S3URI__truediv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
     assert this / other == expected
 
 
@@ -421,26 +421,26 @@ def test__S3URI__truediv__works(this: S3URI, other: Union[str, S3URI], expected:
     "this, other, expected",
     [
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             "another-bucket",
-            S3URI("s3://another-bucket/my-key"),
+            S3Path("s3://another-bucket/my-key"),
             id="str / SELF",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             "s3://another-bucket/another-key",
-            S3URI("s3://another-bucket/my-key"),
+            S3Path("s3://another-bucket/my-key"),
             id="s3 uri str / SELF",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             S3BucketName("another-bucket"),
-            S3URI("s3://another-bucket/my-key"),
+            S3Path("s3://another-bucket/my-key"),
             id="s3 bucket name / SELF",
         ),
     ],
 )
-def test__S3URI__rtruediv__works(this: S3URI, other: Union[str, S3URI], expected: S3URI):
+def test__S3URI__rtruediv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
     assert other / this == expected
 
 
@@ -448,40 +448,40 @@ def test__S3URI__rtruediv__works(this: S3URI, other: Union[str, S3URI], expected
     "this, other, expected",
     [
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
+            S3Path("s3://my-bucket/my-key"),
             "another-key",
-            S3URI("s3://my-bucket/another-key"),
+            S3Path("s3://my-bucket/another-key"),
             id="this // str",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key"),
-            S3URI("s3://another-bucket/another-key"),
-            S3URI("s3://my-bucket/another-key"),
+            S3Path("s3://my-bucket/my-key"),
+            S3Path("s3://another-bucket/another-key"),
+            S3Path("s3://my-bucket/another-key"),
             id="this // s3 uri",
         ),
         pytest.param(
-            S3URI("s3://my-bucket/my-key/"),
-            S3URI("s3://another-bucket/another-key"),
-            S3URI("s3://my-bucket/another-key"),
+            S3Path("s3://my-bucket/my-key/"),
+            S3Path("s3://another-bucket/another-key"),
+            S3Path("s3://my-bucket/another-key"),
             id="this // s3 uri with trailing slash",
         ),
     ],
 )
-def test__S3URI__floordiv__works(this: S3URI, other: Union[str, S3URI], expected: S3URI):
+def test__S3URI__floordiv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
     assert this // other == expected
 
 
 def test__S3URI__as_dict__works():
-    assert S3URI("s3://my-bucket/my-key").as_dict() == {"Bucket": "my-bucket", "Key": "my-key"}
+    assert S3Path("s3://my-bucket/my-key").as_dict() == {"Bucket": "my-bucket", "Key": "my-key"}
 
 
 def test__S3URI__as_mm_field__works():
-    assert isinstance(S3URI("s3://my-bucket/my-key").as_mm_field(), CustomStringField)
+    assert isinstance(S3Path("s3://my-bucket/my-key").as_mm_field(), CustomStringField)
 
 
 def test__S3URI__with_folder_suffix__works():
-    this = S3URI("s3://my-bucket/my-key")
-    expected = S3URI("s3://my-bucket/my-key/")
+    this = S3Path("s3://my-bucket/my-key")
+    expected = S3Path("s3://my-bucket/my-key/")
     assert this.with_folder_suffix == expected
 
 
@@ -596,7 +596,7 @@ def test__S3UploadResponse__fails_if_no_reason():
         S3UploadResponse(
             request=S3UploadRequest(
                 source_path=Path("/tmp/my-file"),
-                destination_path=S3URI("s3://my-bucket/my-key"),
+                destination_path=S3Path("s3://my-bucket/my-key"),
             ),
             failed=True,
             reason=None,
@@ -607,8 +607,8 @@ def test__S3CopyResponse__fails_if_no_reason():
     with pytest.raises(ValueError):
         S3CopyResponse(
             request=S3CopyRequest(
-                source_path=S3URI("s3://my-bucket/my-key"),
-                destination_path=S3URI("s3://tmp/my-file"),
+                source_path=S3Path("s3://my-bucket/my-key"),
+                destination_path=S3Path("s3://tmp/my-file"),
             ),
             failed=True,
             reason=None,
@@ -619,7 +619,7 @@ def test__S3TransferResponse__fails_if_no_reason():
     with pytest.raises(ValueError):
         S3TransferResponse(
             request=S3TransferRequest(
-                source_path=S3URI("s3://my-bucket/my-key"),
+                source_path=S3Path("s3://my-bucket/my-key"),
                 destination_path=Path("/tmp/my-file"),
             ),
             failed=True,

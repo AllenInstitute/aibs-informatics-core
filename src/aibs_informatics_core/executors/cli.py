@@ -9,7 +9,7 @@ from typing import Any, Generic, Optional, Type, TypeVar, Union
 from aibs_informatics_core.collections import PostInitMixin
 from aibs_informatics_core.env import EnvBaseMixins
 from aibs_informatics_core.executors.base import BaseExecutor
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import ModelProtocol
 from aibs_informatics_core.utils.json import JSON, JSONObject, is_json_str, load_json_object
 from aibs_informatics_core.utils.modules import load_type_from_qualified_name

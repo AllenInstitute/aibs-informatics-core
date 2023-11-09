@@ -10,7 +10,7 @@ from typing import Any, Generic, Optional, Type, TypeVar, Union
 
 from aibs_informatics_core.collections import PostInitMixin
 from aibs_informatics_core.env import EnvBaseMixins
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import ModelProtocol
 from aibs_informatics_core.utils.json import JSON, JSONObject, is_json_str, load_json_object
 
@@ -56,14 +56,14 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         """Deserialize a raw request
 
         Supported request types:
-        Union[JSONObject, S3URI, str, Path, REQUEST]
+        Union[JSONObject, S3Path, str, Path, REQUEST]
             1. dict object
             2. S3 Path object (must implement s3 deserialization method)
             3. stringified object
             4. path to file of json object
 
         Args:
-            request (Union[JSONObject, S3URI, str, Path]): raw request
+            request (Union[JSONObject, S3Path, str, Path]): raw request
 
         Returns:
             REQUEST: Deserialized request
@@ -113,19 +113,19 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             return input
         elif isinstance(input, str) and is_json_str(input):
             return load_json_object(input)
-        elif isinstance(input, S3URI) or (isinstance(input, str) and S3URI.is_valid(input)):
-            return cls.load_input__remote(S3URI(input))
+        elif isinstance(input, S3Path) or (isinstance(input, str) and S3Path.is_valid(input)):
+            return cls.load_input__remote(S3Path(input))
         elif isinstance(input, (str, Path)):
             return cls.load_input__file(Path(input))
         else:
             raise ValueError(f"Cannot read input: {input}, type: {type(input)}")
 
     @classmethod
-    def load_input__remote(cls, remote_path: S3URI) -> JSON:
+    def load_input__remote(cls, remote_path: S3Path) -> JSON:
         """Reads input from S3 location
 
         Args:
-            s3_path (S3URI): S3 location to read input from
+            s3_path (S3Path): S3 location to read input from
 
         Returns:
             JSON: JSON data read from S3
@@ -159,19 +159,19 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             path (Path | str): location to write output to. Can be S3 or local file
         """
 
-        if isinstance(path, S3URI) or (isinstance(path, str) and S3URI.is_valid(path)):
-            return cls.write_output__remote(output, S3URI(path))
+        if isinstance(path, S3Path) or (isinstance(path, str) and S3Path.is_valid(path)):
+            return cls.write_output__remote(output, S3Path(path))
         else:
             # Here we assume that it could be string or path to file
             return cls.write_output__file(output, Path(path))
 
     @classmethod
-    def write_output__remote(cls, output: JSON, remote_path: S3URI) -> None:
+    def write_output__remote(cls, output: JSON, remote_path: S3Path) -> None:
         """Writes output to Remote location
 
         Args:
             output (RESPONSE): output object
-            remote_path (S3URI): S3 location to write response to
+            remote_path (S3Path): S3 location to write response to
         """
         raise NotImplementedError(
             f"{cls.__name__} has not provided an implementation for this form of serialization"
@@ -183,7 +183,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
 
         Args:
             output (JSON): serialized output json
-            local_path (S3URI): Local path to write response to
+            local_path (S3Path): Local path to write response to
         """
 
         if local_path.is_dir() or (

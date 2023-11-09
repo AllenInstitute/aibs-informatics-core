@@ -7,7 +7,7 @@ from pytest import mark, param, raises
 
 from aibs_informatics_core.env import EnvBase
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.data_sync import (
     BatchDataSyncRequest,
     BatchDataSyncResponse,
@@ -25,7 +25,7 @@ from aibs_informatics_core.models.data_sync import (
     PutJSONToFileResponse,
 )
 
-S3_URI = S3URI.build(bucket_name="bucket", key="key")
+S3_URI = S3Path.build(bucket_name="bucket", key="key")
 LOCAL_PATH = Path("/tmp/foo")
 
 

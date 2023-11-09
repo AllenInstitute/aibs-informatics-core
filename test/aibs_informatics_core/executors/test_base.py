@@ -4,7 +4,7 @@ from test.base import BaseTest
 from typing import Optional
 
 from aibs_informatics_core.executors import BaseExecutor, run_cli_executor
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import SchemaModel
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.modules import get_qualified_name
@@ -24,11 +24,11 @@ class NoOpExecutor(BaseExecutor[NoOpRequest, NoOpRequest]):
         return None
 
     @classmethod
-    def load_input__remote(cls, remote_path: S3URI) -> JSON:
+    def load_input__remote(cls, remote_path: S3Path) -> JSON:
         return {"any_string": "any_string", "any_int": 123, "include_response": True}
 
     @classmethod
-    def write_output__remote(cls, output: JSON, remote_path: S3URI) -> None:
+    def write_output__remote(cls, output: JSON, remote_path: S3Path) -> None:
         return None
 
 
@@ -102,7 +102,7 @@ class BaseExecutorTests(BaseTest):
         assert local_path.read_text() == "{}"
 
     def test__write_output__writes_to_s3(self):
-        s3_path = S3URI("s3://bucket/key")
+        s3_path = S3Path("s3://bucket/key")
         NoOpExecutor.write_output({}, s3_path)
 
     def test__serialize_response__works(self):
