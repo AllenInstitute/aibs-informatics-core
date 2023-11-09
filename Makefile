@@ -73,7 +73,7 @@ $(PYTHON):
 install: $(INSTALL_STAMP) ## Installs package dependencies
 $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
 	@. $(VENV_BIN)/activate;\
-	@(PIP) install -e .[dev]; 
+	$(PIP) install -e .[dev]; 
 	@touch $(INSTALL_STAMP)
 
 install-force: clean-install-stamp install ## Force install package dependencies
