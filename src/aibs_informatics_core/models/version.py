@@ -27,7 +27,6 @@ class Version:
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, Version):
-
             return (self.major_version, self.minor_version or -1, self.revision or -1) < (
                 other.major_version,
                 other.minor_version or -1,

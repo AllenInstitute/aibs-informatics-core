@@ -182,7 +182,6 @@ class ValidatedBaseModel(ModelBase):
 
 
 class SchemaModel(DataClassModel, ValidatedBaseModel):
-
     _schema_config: ClassVar[Dict[str, Any]] = {}
 
     def __init_subclass__(cls: Type[SM], **kwargs) -> None:
@@ -298,7 +297,7 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
             T: An instance of the model
         """
         if partial:
-            class_fields = fields(cls)
+            class_fields = fields(cls)  # type: ignore[arg-type]
             for class_field in class_fields:
                 if class_field.name not in data:
                     field_props = FieldProps(class_field)
@@ -412,7 +411,6 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
     def model_schema_with_hooks(
         cls: Type[SM], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> mm.Schema:
-
         schema = model_schema_method(cls, partial=partial, **kwargs)
 
         if remove_post_load_hooks:

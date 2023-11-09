@@ -39,7 +39,6 @@ from aibs_informatics_core.models.aws.sfn import ExecutionArn, StateMachineArn
 def test_StateMachineArn_validation(arn: str, expected: Tuple[str, ...], raises_error):
     region, account, state_machine_name = expected
     with raises_error:
-
         sm_arn = StateMachineArn(arn)
 
         assert sm_arn.region == region

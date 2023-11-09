@@ -229,7 +229,6 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
 
     @classmethod
     def get_http_parameters_from_request(cls, request: API_REQUEST) -> HTTPParameters:
-
         request_body = cast(Dict[str, JSON], request.to_dict())
 
         # Initialize the two parameter types

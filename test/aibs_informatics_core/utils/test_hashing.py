@@ -64,7 +64,6 @@ from aibs_informatics_core.utils.json import JSON
     ],
 )
 def test__sha256_hexdigest(value: Optional[JSON], expected: Union[str, Pattern], raises_error):
-
     with raises_error:
         actual = sha256_hexdigest(value)
         actual_again = sha256_hexdigest(value)
@@ -106,7 +105,6 @@ def test__uuid_str__is_deterministic_only_with_same_input():
 def test__b64_and_urlsafe_b64_encoder_decoder_functions__generate_original_value(
     value: str, raises_error
 ):
-
     with raises_error:
         b64_encoded_value = b64_encoded_str(value)
         b64_decoded_value = b64_decoded_str(b64_encoded_value)

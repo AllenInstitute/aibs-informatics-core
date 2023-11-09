@@ -85,7 +85,6 @@ VT = TypeVar("VT")
 
 
 class ValidatedStr(str):
-
     regex_pattern: ClassVar[Pattern]
     min_len: ClassVar[Optional[int]] = None
     max_len: ClassVar[Optional[int]] = None

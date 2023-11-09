@@ -46,7 +46,6 @@ class UserId(ValidatedStr):
 
     @cached_property
     def principal_type(self) -> PrincipalType:
-
         if self.account_id and not self.caller_specified_name:
             return PrincipalType.Account
         elif self.unique_id and not self.caller_specified_name:

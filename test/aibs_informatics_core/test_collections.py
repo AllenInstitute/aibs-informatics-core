@@ -169,7 +169,6 @@ class PostInitMixinTests(unittest.TestCase):
         self.assertTrue(hasattr(simple, "__post_init__"))
 
     def test__simple_subclass__post_init__add_hook_enabled__succeeds(self):
-
         actual_call_list = []
 
         class SimpleOverride(PostInitMixin, add_hook=True):
@@ -254,7 +253,6 @@ class PostInitMixinTests(unittest.TestCase):
         self.assertEqual(simple.a, 2)
 
     def test__multi_subclass__handles_properly(self):
-
         actual_call_list = []
 
         @dataclass
@@ -277,7 +275,6 @@ class PostInitMixinTests(unittest.TestCase):
         self.assertListEqual(actual_call_list, [Parent, Child, Parent, Child2])
 
     def test__nested_subclass__handles_properly(self):
-
         actual_call_list = []
 
         @dataclass

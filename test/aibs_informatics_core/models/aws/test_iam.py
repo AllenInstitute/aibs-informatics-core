@@ -61,7 +61,6 @@ def test__UserId__validates(
     expected_principal_type: Optional[PrincipalType],
     raise_expectation,
 ):
-
     with raise_expectation:
         actual = UserId(value)
 

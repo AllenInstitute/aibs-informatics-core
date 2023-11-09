@@ -23,7 +23,6 @@ from aibs_informatics_core.env import (
 
 
 class EnvBaseTests(BaseTest):
-
     reset_environ = True
 
     def setUp(self) -> None:

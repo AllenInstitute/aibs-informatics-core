@@ -48,7 +48,6 @@ SupportedDelim = Literal["-", "_", ":", "/"]
 
 
 class EnvBase(ValidatedStr):
-
     ENV_BASE_KEY = ENV_BASE_KEY
     ENV_LABEL_KEY = ENV_LABEL_KEY
     ENV_TYPE_KEY = ENV_TYPE_KEY

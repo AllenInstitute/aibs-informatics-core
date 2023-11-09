@@ -51,7 +51,6 @@ def test__JSONReference__from_dict__s3():
 
 
 def test__JSONReference__from_dict__local():
-
     model_dict = {"path": str(LOCAL_PATH)}
     expected = JSONReference(path=LOCAL_PATH)
     actual = JSONReference.from_dict(model_dict)

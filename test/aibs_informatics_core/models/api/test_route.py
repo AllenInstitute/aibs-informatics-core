@@ -223,7 +223,6 @@ DEFAULT_BASE_URL = "https://fake-api.com"
     ],
 )
 def test__get_http_request__works(route: ApiRoute, input, expected):
-
     actual = route.get_http_request(request=input, base_url=DEFAULT_BASE_URL)
     assert actual.method == expected.method
     assert actual.url == expected.url
@@ -234,7 +233,6 @@ def test__get_http_request__works(route: ApiRoute, input, expected):
 
 class ApiRequestConfigTests(BaseTest):
     def test__build__creates_from_nothing(self):
-
         expected_client_version = VersionStr("0.0.1")
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
         config1 = ApiRequestConfig.build()

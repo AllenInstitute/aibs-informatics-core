@@ -60,7 +60,6 @@ DecoderType = Callable[[JSON], T]
 
 
 class EnumField(mm.fields.Field, Generic[E]):
-
     default_error_messages = {
         "invalid_value": "'{input}' is not a valid value of {obj_type}.",
         "not_enum": "'{input}' (type: {input_type}) is not an Enum type.",
@@ -107,7 +106,6 @@ class FrozenSetField(mm.fields.List):
 
 
 class CustomStringField(mm.fields.String, Generic[S]):
-
     default_error_messages = {
         "invalid_type": "'{input}' (type: {input_type}) is not a {expected_type} type!"
     }

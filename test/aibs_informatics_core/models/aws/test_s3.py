@@ -27,7 +27,6 @@ from aibs_informatics_core.models.base.custom_fields import EnumField
 
 
 def test__S3PathStats__getitem__works():
-
     stats = S3PathStats(datetime(2021, 1, 1, tzinfo=timezone.utc), 123, 456)
     assert stats["last_modified"] == stats.last_modified
     assert stats["size_bytes"] == stats.size_bytes
@@ -576,7 +575,6 @@ def test__S3StorageClass__as_mm_field__works():
 
 
 def test__S3RestoreStatus__works():
-
     assert S3RestoreStatus.from_raw_s3_restore_status(None) == S3RestoreStatus(
         S3RestoreStatusEnum.NOT_STARTED
     )

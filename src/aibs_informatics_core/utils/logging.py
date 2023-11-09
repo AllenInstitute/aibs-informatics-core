@@ -39,7 +39,6 @@ def get_formatter(format: StrOrFormatter = DEFAULT_LOGGING_FORMAT) -> logging.Fo
 def get_stdout_handler(
     format: StrOrFormatter = DEFAULT_LOGGING_FORMAT, level: LogLevel = "INFO"
 ) -> logging.StreamHandler:
-
     formatter = get_formatter(format)
 
     handler = logging.StreamHandler(sys.stdout)

@@ -56,7 +56,6 @@ def remove_matching_values(
 
     for k, v in list(filtered_dict.items()):
         if isinstance(v, dict) and recursive:
-
             filtered_dict[k] = cast(VT, remove_null_values(v, in_place=True, recursive=recursive))
         elif v == target_value:
             filtered_dict.pop(k)

@@ -43,7 +43,6 @@ class ModuleUtilsTests(unittest.TestCase):
 
 
 class ModuleLoadUtils(unittest.TestCase):
-
     mod_prefix = "test.aibs_informatics_core.utils.module_utils"
 
     def test_load_all_modules_from_pkg_recursively_succeeds(self):
