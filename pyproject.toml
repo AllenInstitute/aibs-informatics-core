@@ -18,8 +18,8 @@ readme = "README.md"
 requires-python = ">=3.9"
 
 dependencies = [
-    "marshmallow==3.14.1",
-    "dataclasses-json==0.5.7",
+    "marshmallow~=3.18.0",
+    "dataclasses-json~=0.6.0",
     "python-dateutil",
     "pytz",
     "pyyaml==6.0",

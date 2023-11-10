@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from test.base import BaseTest
 from typing import Optional
 
+from marshmallow import ValidationError
+
 from aibs_informatics_core.executors import BaseExecutor, run_cli_executor
 from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import SchemaModel
@@ -73,7 +75,7 @@ class BaseExecutorTests(BaseTest):
         self.assertEqual(request, actual_request)
 
     def test__deserialize_request__does_not_handle_invalid_dict(self):
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             NoOpExecutor.deserialize_request("{}")
 
     def test__deserialize_request__does_not_handle_list(self):
