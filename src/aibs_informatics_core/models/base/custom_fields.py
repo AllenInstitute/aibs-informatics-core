@@ -41,6 +41,7 @@ from typing import (
 
 import marshmallow as mm
 
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.base.field_utils import FieldMetadataBuilder
 from aibs_informatics_core.utils.json import JSON
 
@@ -195,6 +196,7 @@ UnionFieldsType = Tuple[
 class UnionField(mm.fields.Field):
     default_error_messages = {
         "invalid_type": "'{input}' (type: {input_type}) is not one of {expected_types} type!",
+        "unexpected_error": "Unexpected error occurred: {error}",
         "unsupported_serialize": (
             "'{input}' (type: {input_type}) was not serializable "
             "by any of the {expected_types} fields!: {error_messages}"
@@ -270,7 +272,9 @@ class UnionField(mm.fields.Field):
                         return class_field._deserialize(
                             value=value, attr=attr, data=data, **kwargs
                         )
-                    except mm.ValidationError as e:
+                    except (mm.ValidationError, ValidationError) as e:
+                        if not isinstance(e, mm.ValidationError):
+                            e = self.make_error(key="unexpected_error", error=e)
                         errors[class_type].append(e)
             else:
                 raise self.make_error(
