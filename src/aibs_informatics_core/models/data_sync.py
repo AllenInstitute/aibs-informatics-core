@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import marshmallow as mm
 
+from aibs_informatics_core.models.aws.efs import EFSPath
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
 from aibs_informatics_core.models.base import (
     BooleanField,
@@ -71,11 +72,23 @@ class GetJSONFromFileResponse(JSONContent):
 
 @dataclass
 class DataSyncTask(SchemaModel):
-    source_path: Union[S3Path, Path] = custom_field(
-        mm_field=UnionField([(S3Path, S3Path.as_mm_field()), ((Path, str), PathField())])
+    source_path: Union[S3Path, EFSPath, Path] = custom_field(
+        mm_field=UnionField(
+            [
+                (S3Path, S3Path.as_mm_field()),
+                (EFSPath, EFSPath.as_mm_field()),
+                ((Path, str), PathField()),
+            ]
+        )
     )
-    destination_path: Union[S3Path, Path] = custom_field(
-        mm_field=UnionField([(S3Path, S3Path.as_mm_field()), ((Path, str), PathField())])
+    destination_path: Union[S3Path, EFSPath, Path] = custom_field(
+        mm_field=UnionField(
+            [
+                (S3Path, S3Path.as_mm_field()),
+                (EFSPath, EFSPath.as_mm_field()),
+                ((Path, str), PathField()),
+            ]
+        )
     )
     source_path_prefix: Optional[S3KeyPrefix] = custom_field(
         default=None, mm_field=CustomStringField(S3KeyPrefix)
