@@ -159,19 +159,27 @@ class ValidatedStr(str):
 
     @classmethod
     def is_prefixed(cls, string: str) -> bool:
+        return cls.find_prefix(string) is not None
+
+    @classmethod
+    def find_prefix(cls: Type[S], string: str) -> Optional[S]:
         cls.validate_regex_pattern()
-        match = regex_search(cls.regex_pattern, string)
-        if match:
-            return match.span()[0] == 0
-        return False
+        for match in regex_finditer(cls.regex_pattern, string):
+            if match.span()[0] == 0:
+                return cls(match.group(0))
+        return None
 
     @classmethod
     def is_suffixed(cls, string: str) -> bool:
+        return cls.find_suffix(string) is not None
+
+    @classmethod
+    def find_suffix(cls: Type[S], string: str) -> Optional[S]:
         cls.validate_regex_pattern()
         for match in regex_finditer(cls.regex_pattern, string):
             if match.span()[1] == len(string):
-                return True
-        return False
+                return cls(match.group(0))
+        return None
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
