@@ -6,7 +6,7 @@ from dataclasses import MISSING as MISSING_
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, ClassVar, Dict, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 import marshmallow as mm
 import pytest
@@ -670,6 +670,11 @@ class SimpleNested(SchemaModel):
 
 
 @dataclass
+class SimpleCollection(SchemaModel):
+    simples: List[Simple]
+
+
+@dataclass
 class Complex(SchemaModel):
     uuid_value: uuid.UUID = field(metadata=field_metadata(mm_field=UUIDField()))
     dt_value: dt.datetime = field(
@@ -758,6 +763,17 @@ def test__SchemaModel__auto():
             id=f"{SimpleNested.__name__}",
         ),
         pytest.param(
+            SimpleCollection([Simple("str1", 1), Simple("str2", 2)]),
+            {
+                "simples": [
+                    {"str_value": "str1", "int_value": 1},
+                    {"str_value": "str2", "int_value": 2},
+                ],
+            },
+            does_not_raise(),
+            id=f"{SimpleCollection.__name__}",
+        ),
+        pytest.param(
             ComplexNested(
                 Complex(
                     uuid.UUID("dfe7b672-91e0-4c2d-ac06-30dd1ac2eb96"),
@@ -832,6 +848,18 @@ def test__SchemaModel__to_dict(model, expected_json, raise_exception):
             SimpleNested(Empty(), Simple("str", 1)),
             does_not_raise(),
             id=f"{SimpleNested.__name__}",
+        ),
+        pytest.param(
+            SimpleCollection,
+            {
+                "simples": [
+                    {"str_value": "str1", "int_value": 1},
+                    {"str_value": "str2", "int_value": 2},
+                ],
+            },
+            SimpleCollection([Simple("str1", 1), Simple("str2", 2)]),
+            does_not_raise(),
+            id=f"{SimpleCollection.__name__}",
         ),
         pytest.param(
             ComplexNested,

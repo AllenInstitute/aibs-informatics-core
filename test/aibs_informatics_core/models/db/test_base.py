@@ -45,7 +45,7 @@ def test_dbindex():
     """Test properties of the DBIndex"""
 
     assert MockDBIndex.table_name() == "mock_table"
-    assert EnvType.values() == ["dev", "infra", "prod", "test"]
+    assert EnvType.values() == ["dev", "test", "prod"]
     assert MockDBIndex.values() == ["key_a", "key_b", "key_c"]
 
     assert MockDBIndex.MAIN_TABLE.key_name == "key_a"

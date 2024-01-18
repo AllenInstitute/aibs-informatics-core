@@ -153,7 +153,7 @@ class ValidatedStr(str):
             str: string with replacements
         """
         if not cls.has_regex_pattern():
-            logger.warn(f"{cls.__name__} has no regex pattern. No substitutions can be made.")
+            logger.warning(f"{cls.__name__} has no regex pattern. No substitutions can be made.")
             return string
         return regex_sub(cls.regex_pattern, repl, string)
 

@@ -39,9 +39,8 @@ LABEL_KEY_ALIAS = LABEL_KEY.upper()
 
 class EnvType(StrEnum):
     DEV = "dev"
-    INFRA = "infra"
-    PROD = "prod"
     TEST = "test"
+    PROD = "prod"
 
 
 SupportedDelim = Literal["-", "_", ":", "/"]
