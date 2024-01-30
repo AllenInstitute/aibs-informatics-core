@@ -149,7 +149,7 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
         """The rule for the given API route
 
         Returns:
-            str: a rule (e.g. /prefix/route/<demand_id>)
+            str: a rule (e.g. /prefix/route/<execution_id>)
         """
         raise NotImplementedError("Specify a rule for the given API route")  # pragma: no cover
 
