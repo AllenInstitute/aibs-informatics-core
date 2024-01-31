@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union, cast
 
 import marshmallow as mm
 
@@ -234,7 +234,7 @@ class DemandExecutionParameters(SchemaModel):
         param_set_pairs: List[ParamSetPair] = []
         param_pairs: List[ParamPair] = []
         if self.param_pair_overrides:
-            seen_outputs = set()
+            seen_outputs: Set[str] = set()
             for pair in self.param_pair_overrides:
                 if isinstance(pair, ParamSetPair):
                     seen_outputs.update(pair.outputs)
@@ -262,8 +262,8 @@ class DemandExecutionParameters(SchemaModel):
     def job_param_pairs(self) -> List[JobParamPair]:
         set_pairs: List[JobParamPair] = []
         for pair in self.param_pairs:
-            inp_job_param = self.get_job_param(pair.input) if pair.input else None
-            out_job_param = self.get_job_param(pair.output) if pair.output else None
+            inp_job_param = self.get_input_job_param(pair.input) if pair.input else None
+            out_job_param = self.get_output_job_param(pair.output) if pair.output else None
             set_pairs.append(JobParamPair(inp_job_param, out_job_param))
         return set_pairs
 
