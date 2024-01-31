@@ -38,7 +38,7 @@ class OSOperationsTests(BaseTest):
         expected = [str(p) for p in expected]
 
         actual = find_all_paths(root, include_dirs=True, include_files=True)
-        self.assertListEqual(actual, expected)
+        self.assertListEqual(sorted(actual), sorted(expected))
 
     def test__find_all_paths__returns_folders_or_files(self):
         root = self.tmp_path()
@@ -59,8 +59,8 @@ class OSOperationsTests(BaseTest):
         ]
         actual_dirs = find_all_paths(root, include_dirs=True, include_files=False)
         actual_files = find_all_paths(root, include_dirs=False, include_files=True)
-        self.assertListEqual(actual_dirs, [str(p) for p in expected_dirs])
-        self.assertListEqual(actual_files, [str(p) for p in expected_files])
+        self.assertListEqual(sorted(actual_dirs), sorted([str(p) for p in expected_dirs]))
+        self.assertListEqual(sorted(actual_files), sorted([str(p) for p in expected_files]))
 
     def test__expandvars__expands_env_vars_without_brackets(self):
         self.set_env_vars(("V1", "signal"), ("V2", "the"))
