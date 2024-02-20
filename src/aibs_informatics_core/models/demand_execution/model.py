@@ -4,6 +4,7 @@ from typing import Any, List, cast
 from aibs_informatics_core.models.base import SchemaModel, StringField, custom_field
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
+from aibs_informatics_core.models.demand_execution.platform import ExecutionPlatform
 from aibs_informatics_core.models.demand_execution.resource_requirements import (
     DemandResourceRequirements,
 )
@@ -25,7 +26,10 @@ class DemandExecution(SchemaModel):
         mm_field=DemandExecutionMetadata.as_mm_field(),
         default_factory=DemandExecutionMetadata,
     )
-    execution_resource_requirements: DemandResourceRequirements = custom_field(
+    execution_platform: ExecutionPlatform = custom_field(
+        mm_field=ExecutionPlatform.as_mm_field(), default_factory=ExecutionPlatform
+    )
+    resource_requirements: DemandResourceRequirements = custom_field(
         mm_field=DemandResourceRequirements.as_mm_field(),
         default_factory=DemandResourceRequirements,
     )

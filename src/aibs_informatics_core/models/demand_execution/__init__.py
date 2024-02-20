@@ -3,6 +3,7 @@ __all__ = [
     "DemandExecutionMetadata",
     "DemandExecutionParameters",
     "DemandResourceRequirements",
+    "ExecutionPlatform",
     "JobParam",
     "JobParamRef",
     "ResolvableJobParam",
@@ -28,6 +29,7 @@ from aibs_informatics_core.models.demand_execution.param_pair import (
     ResolvedParamSetPair,
 )
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
+from aibs_informatics_core.models.demand_execution.platform import ExecutionPlatform
 from aibs_informatics_core.models.demand_execution.resource_requirements import (
     DemandResourceRequirements,
 )
