@@ -14,13 +14,13 @@ on:
   workflow_dispatch:
     inputs:
       bump_type:
-        description: 'version bump type'
+        description: 'Version Bump Type'
         type: choice
         options: ['major', 'minor', 'patch', 'none']
         required: false
         default: 'patch'
       dry_run:
-        description: 'Determine the next version without tagging the branch.'
+        description: 'Dry Run'
         type: boolean
         required: false
         default: false
@@ -60,10 +60,10 @@ jobs:
         uses: anothrNick/github-tag-action@1.64.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: ${{ github.event.inputs.bump_type || 'patch' }}
+          DEFAULT_BUMP: ${{ inputs.bump_type || 'patch' }}
           WITH_V: "true"
           RELEASE_BRANCHES: main
-          DRY_RUN: ${{ github.event.inputs.dry_run || false }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
 
   
     
