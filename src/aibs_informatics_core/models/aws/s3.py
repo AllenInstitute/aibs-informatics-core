@@ -41,7 +41,8 @@ from typing import (
 )
 
 import marshmallow as mm
-from dateutil import parser as date_parser
+from dateutil import parser as date_parser  # type: ignore[import-untyped]
+from marshmallow import validate as mm_validate
 
 from aibs_informatics_core.collections import OrderedStrEnum, ValidatedStr
 from aibs_informatics_core.models.base import CustomStringField, EnumField
@@ -72,7 +73,7 @@ def validate_url(
         error_msg (str, optional): Error message for if validation fails.
             Defaults to: "`{input}` is not a valid URL!"
     """
-    validate = mm.validate.URL(schemes=valid_url_schemes, error=error_msg, require_tld=require_tld)
+    validate = mm_validate.URL(schemes=valid_url_schemes, error=error_msg, require_tld=require_tld)
     validate(candidate_url)  # raises marshmallow.ValidationError if invalid
 
 

@@ -32,8 +32,8 @@ from typing import (
     overload,
 )
 
-import requests
-from requests.auth import AuthBase
+import requests  # type: ignore[import-untyped]
+from requests.auth import AuthBase  # type: ignore[import-untyped]
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.api.http_parameters import HTTPParameters

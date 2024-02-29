@@ -163,6 +163,14 @@ coverage-server: $(INSTALL_STAMP) ## Run coverage server
 
 
 #####################
+##@ Packaging Commands
+#####################
+
+package: $(INSTALL_STAMP)  ## Build package distribution
+	$(PIP) install -U build
+	$(PYTHON) -m build
+
+#####################
 ##@ Release Commands
 #####################
 

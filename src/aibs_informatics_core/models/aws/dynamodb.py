@@ -110,7 +110,9 @@ class ConditionBaseExpressionString(ValidatedStr):
         value = resolve(value, self.condition_operator == "IN")
         if value is not None:
             condition_values.append(value)
-        return condition_values
+        return cast(
+            List[Union[ConditionBaseExpression, AttributeBaseExpression, Any]], condition_values
+        )
 
     def get_condition_expression(self, is_key: bool) -> ConditionBaseExpression:
         condition_format = self.condition_format

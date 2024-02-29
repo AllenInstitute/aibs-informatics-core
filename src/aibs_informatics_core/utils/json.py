@@ -23,10 +23,12 @@ JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
 if TYPE_CHECKING:  # pragma: no cover
 
     class JSONArray(list[JSON], Protocol):  # type: ignore
-        __class__: Type[list[JSON]]  # type: ignore[assignment]
+        # __class__: Type[list[JSON]]  # type: ignore[assignment]
+        pass
 
     class JSONObject(dict[str, JSON], Protocol):  # type: ignore
-        __class__: Type[dict[str, JSON]]  # type: ignore[assignment]
+        # __class__: Type[dict[str, JSON]]  # type: ignore[assignment]
+        pass
 
 else:
     JSONArray, JSONObject = List[Any], Dict[str, Any]

@@ -127,13 +127,19 @@ class ResolvableBase(SchemaModel, Generic[T]):
 
     @classmethod
     def from_any(
-        cls: Type[RESOLVABLE], value: Any, default_local: str = None, default_remote: T = None
+        cls: Type[RESOLVABLE],
+        value: Any,
+        default_local: Optional[str] = None,
+        default_remote: Optional[T] = None,
     ) -> RESOLVABLE:
         if isinstance(value, cls):
             return value
         elif isinstance(value, dict):
             obj = cls.from_dict(value, partial=True)
-            obj.local = obj.local or default_local
+            if obj.local is None:
+                if default_local is None:
+                    raise ValueError(f"Local is None for {value}. No default provided")
+                obj.local = default_local
             obj.remote = obj.remote or default_remote
             obj.to_dict(validate=True)
             return obj
@@ -144,7 +150,10 @@ class ResolvableBase(SchemaModel, Generic[T]):
 
     @classmethod
     def from_str(
-        cls: Type[RESOLVABLE], value: str, default_local: str = None, default_remote: T = None
+        cls: Type[RESOLVABLE],
+        value: str,
+        default_local: Optional[str] = None,
+        default_remote: Optional[T] = None,
     ) -> RESOLVABLE:
         str_resolvable_cls = (
             StringifiedUploadable
@@ -155,11 +164,11 @@ class ResolvableBase(SchemaModel, Generic[T]):
         stringified_resolvable = str_resolvable_cls(value)
 
         local = stringified_resolvable.local or default_local
+        assert local is not None, f"Local is None for {value}"
         if stringified_resolvable.remote:
             remote = cls.get_resolvable_type()(stringified_resolvable.remote)
         else:
             remote = default_remote
-
         return cls(local=local, remote=remote)
 
     def to_str(self) -> Union[StringifiedDownloadable, StringifiedUploadable]:
@@ -215,7 +224,7 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[Type[R]])
             f"Value {value} is not a dict or str. Cannot create any of these: {resolvable_classes}"
         )
 
-    errors: Dict[str, mm.ValidationError] = {}
+    errors: Dict[str, Exception] = {}
     for resolvable_class in resolvable_classes:
         try:
             return resolvable_class.from_any(value)
@@ -223,7 +232,7 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[Type[R]])
             errors[resolvable_class.__name__] = e
     else:
         raise mm.ValidationError(
-            {**{"ALL": f"Could not create any {resolvable_classes} from {value}"}, **errors}, None
+            {**{"ALL": f"Could not create any {resolvable_classes} from {value}"}, **errors}, "n/a"
         )
 
 

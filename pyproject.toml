@@ -11,10 +11,9 @@ build-backend = "setuptools.build_meta"
 # -----------------------------------------------------------------------------
 [project]
 name = "aibs-informatics-core"
-version = "0.0.1"
 description = "Core package for informatics projects at the Allen Institute for Brain Science"
 readme = "README.md"
-# dynamic = [ "version"]
+dynamic = [ "version"]
 requires-python = ">=3.9"
 
 dependencies = [
@@ -41,6 +40,9 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "*" = ['py.typed']
+
+[tool.setuptools.dynamic]
+version = {attr = "aibs_informatics_core._version.__version__"}
 
 # -----------------------------------------------------------------------------
 ##  Pyright Configurations
@@ -140,7 +142,7 @@ incremental = false
 # https://mypy.readthedocs.io/en/stable/config_file.html#import-discovery
 ignore_missing_imports = true
 follow_imports = "silent"
-no_site_packages = true
+no_site_packages = false
 
 # Untyped definitions and calls
 # https://mypy.readthedocs.io/en/stable/config_file.html#untyped-definitions-and-calls

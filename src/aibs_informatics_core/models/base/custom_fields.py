@@ -40,6 +40,7 @@ from typing import (
 )
 
 import marshmallow as mm
+from marshmallow import utils as mm_utils
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.base.field_utils import FieldMetadataBuilder
@@ -174,7 +175,7 @@ class CustomAwareDateTime(mm.fields.AwareDateTime):
 
     def _deserialize(self, value, attr, data, **kwargs):
         if isinstance(value, dt.datetime):
-            if not mm.utils.is_aware(value):
+            if not mm_utils.is_aware(value):
                 if self.default_timezone is None:
                     raise self.make_error(
                         "invalid_awareness",
@@ -209,7 +210,7 @@ class UnionField(mm.fields.Field):
 
     def __init__(self, union_fields: Sequence[UnionFieldsType], *args, **kwargs):
         self._raw_union_fields: Sequence[UnionFieldsType] = union_fields
-        self._union_fields: Dict[Type[Any], List[mm.fields.Field]] = None
+        self._union_fields: Dict[Type[Any], List[mm.fields.Field]] = None  # type: ignore
         super().__init__(*args, **kwargs)
 
     @property
@@ -265,7 +266,7 @@ class UnionField(mm.fields.Field):
         if value is None:
             return None
         else:
-            errors: Dict[Type[Any], mm.ValidationError] = defaultdict(list)
+            errors: Dict[Type[Any], List[mm.ValidationError]] = defaultdict(list)
             for class_type, class_fields in self.union_fields.items():
                 for class_field in class_fields:
                     try:

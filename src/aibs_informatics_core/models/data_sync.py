@@ -103,7 +103,7 @@ class DataSyncConfig(SchemaModel):
 
 
 @dataclass
-class DataSyncRequest(DataSyncConfig, DataSyncTask):
+class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
     @property
     def config(self) -> DataSyncConfig:
         return self

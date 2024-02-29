@@ -6,7 +6,7 @@ __all__ = [
     "MISSING",
     "NONE",
     "SchemaModel",
-    "ValidatedBaseModel",
+    "WithValidation",
     "post_dump",
     "pre_dump",
     "pre_load",
@@ -24,7 +24,7 @@ from types import MethodType
 from typing import Any, ClassVar, Dict, Protocol, Tuple, Type, TypeVar, Union, cast
 
 import marshmallow as mm
-import yaml
+import yaml  # type: ignore[import-untyped]
 from dataclasses_json import DataClassJsonMixin, Undefined, config
 from dataclasses_json.core import _ExtendedEncoder
 from marshmallow import post_dump, pre_dump, pre_load, validates_schema
@@ -43,7 +43,6 @@ DEFAULT_PARTIAL = False
 DEFAULT_VALIDATE = True
 
 M = TypeVar("M", bound="ModelBase")
-VM = TypeVar("VM", bound="ValidatedBaseModel")
 DCM = TypeVar("DCM", bound="DataClassModel")
 SM = TypeVar("SM", bound="SchemaModel")
 
@@ -127,22 +126,22 @@ class ModelBase(ModelProtocol):
 
 
 class DataClassModel(DataClassJsonMixin, ModelBase):
-    dataclass_json_config: ClassVar[dict] = config(
+    dataclass_json_config: ClassVar[dict] = config(  # type: ignore[misc]
         undefined=Undefined.EXCLUDE,  # default behavior for handling undefined fields
         exclude=lambda f: f is None,  # excludes values if None by default
     )["dataclasses_json"]
 
     @classmethod
-    def from_dict(
+    def from_dict(  # type: ignore[override]
         cls: Type[DCM], data: JSONObject, partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> DCM:
         return super().from_dict(data, infer_missing=partial)
 
-    def to_dict(self, partial: bool = DEFAULT_PARTIAL, **kwargs) -> JSONObject:
+    def to_dict(self, partial: bool = DEFAULT_PARTIAL, **kwargs) -> JSONObject:  # type: ignore[override]
         return super().to_dict(encode_json=kwargs.get("encode_json", True))
 
     @classmethod
-    def from_json(cls: Type[DCM], data: str, **kwargs) -> DCM:
+    def from_json(cls: Type[DCM], data: str, **kwargs) -> DCM:  # type: ignore[override]
         return cls.from_dict(json.loads(data), **kwargs)
 
     def to_json(self, **kwargs) -> str:
@@ -152,7 +151,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
     @classmethod
     @cache
     def get_model_fields(cls) -> Tuple[Field, ...]:
-        return fields(cls)
+        return fields(cls)  # type: ignore[arg-type]
 
     @classmethod
     def is_missing(cls, value: Any) -> bool:
@@ -167,7 +166,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
 MISSING = mm.missing
 
 
-class ValidatedBaseModel(ModelBase):
+class WithValidation:
     """Provides Validations for model for (/de-)serialization"""
 
     @classmethod
@@ -181,7 +180,7 @@ class ValidatedBaseModel(ModelBase):
 # --------------------------------------------------------------
 
 
-class SchemaModel(DataClassModel, ValidatedBaseModel):
+class SchemaModel(DataClassModel):
     _schema_config: ClassVar[Dict[str, Any]] = {}
 
     def __init_subclass__(cls: Type[SM], **kwargs) -> None:
@@ -190,7 +189,7 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
             attach_schema_hooks(cls, cls._schema_config.get("remove_post_load_hooks", True))
 
     @classmethod
-    def from_dict(
+    def from_dict(  # type: ignore[override]
         cls: Type[SM], data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> SM:
         """deserialize JSON data (and validate)
@@ -203,12 +202,15 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
         Returns:
             SM: _description_
         """
-        return cls.model_schema(partial=partial, **kwargs).load(data=data, partial=partial)
+        # return super().from_dict(data, partial=partial, **kwargs)
+        return cast(
+            SM, cls.model_schema(partial=partial, **kwargs).load(data=data, partial=partial)
+        )
 
-    def to_dict(
+    def to_dict(  # type: ignore[override]
         self, partial: bool = DEFAULT_PARTIAL, validate: bool = DEFAULT_VALIDATE, **kwargs
     ) -> JSONObject:
-        model_dict = self.model_schema(partial=partial).dump(self, **kwargs)
+        model_dict = cast(JSONObject, self.model_schema(partial=partial).dump(self, **kwargs))
         if validate:
             self.validate(model_dict, partial=partial, **kwargs)
         return model_dict
@@ -219,7 +221,7 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
         existing_data.update(data)
         updated_self = self.from_dict(existing_data, partial=True)
 
-        for field in fields(self):
+        for field in self.get_model_fields():
             new_value = getattr(updated_self, field.name)
 
             if FieldProps(field).requires_init():
@@ -238,7 +240,7 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
         try:
             if isinstance(data, cls):
                 data = data.to_dict(partial=partial)
-            cls.from_dict(data, partial=partial)
+            cls.from_dict(cast(JSONObject, data), partial=partial)
         except Exception as e:
             raise mm.ValidationError(f"Validation failed for {cls.__name__}: {e}")
 
@@ -320,7 +322,7 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
             data (dict): self as dict
         """
 
-        class_fields = fields(cls)
+        class_fields = cls.get_model_fields()
         for class_field in class_fields:
             if class_field.name in data:
                 field_props = FieldProps(class_field)
@@ -337,7 +339,7 @@ class SchemaModel(DataClassModel, ValidatedBaseModel):
 
     def is_partial(self) -> bool:
         """Verifies if object is partially defined"""
-        for class_field in fields(self):
+        for class_field in self.get_model_fields():
             field_props = FieldProps(class_field)
             if not field_props.is_optional_type() and getattr(self, class_field.name) is MISSING:
                 return True

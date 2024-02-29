@@ -49,8 +49,10 @@ class FieldMetadataBuilder:
 
         if mm_field is None:
             mm_field_cls = self.create_mm_field_class(encoder=encoder, decoder=decoder)
-
-            mm_field = mm_field_cls(**remove_null_values(dict(required=required)))
+            mm_field_kwargs: dict[str, Any] = {}
+            if required is not None:
+                mm_field_kwargs["required"] = required
+            mm_field = mm_field_cls(**mm_field_kwargs)
             if allow_none is not None:
                 mm_field.allow_none = allow_none
 
@@ -78,11 +80,11 @@ class FieldMetadataBuilder:
         dataclass_json_config = self.build(required=required, **kwargs)["dataclasses_json"]
 
         if "mm_field" in dataclass_json_config and not skip_mm_field:
-            global_config.mm_fields[clazz] = dataclass_json_config.get("mm_field")
+            global_config.mm_fields[clazz] = dataclass_json_config["mm_field"]
         if "encoder" in dataclass_json_config and not skip_encoder:
-            global_config.encoders[clazz] = dataclass_json_config.get("encoder")
+            global_config.encoders[clazz] = dataclass_json_config["encoder"]
         if "decoder" in dataclass_json_config and not skip_decoder:
-            global_config.decoders[clazz] = dataclass_json_config.get("decoder")
+            global_config.decoders[clazz] = dataclass_json_config["decoder"]
 
     @classmethod
     def create_mm_field_class(
