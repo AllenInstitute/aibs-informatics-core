@@ -19,6 +19,11 @@ on:
         options: ['major', 'minor', 'patch', 'none']
         required: false
         default: 'patch'
+      dry_run:
+        description: 'Determine the next version without tagging the branch.'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   # build:
@@ -58,7 +63,7 @@ jobs:
           DEFAULT_BUMP: ${{ github.event.inputs.bump_type || 'patch' }}
           WITH_V: "true"
           RELEASE_BRANCHES: main
-          DRY_RUN: true
+          DRY_RUN: ${{ github.event.inputs.dry_run || false }}
 
   
     
