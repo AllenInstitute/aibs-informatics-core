@@ -90,10 +90,10 @@ runs:
       uses: PaulHatch/semantic-version@v5.4.0
       id: bump-version-tag-alt
       with:
-        major_pattern: "/\((MAJOR|major|BREAKING|breaking)\)/"
-        minor_pattern: "/\((MINOR|minor|FEATURE|feature)\)/"
+        major_pattern: "/\\((MAJOR|major|BREAKING|breaking)\\)/"
+        minor_pattern: "/\\((MINOR|minor|FEATURE|feature)\\)/"
         bump_each_commit: true
-        bump_each_commit_patch_pattern: "/\((PATCH|patch|BUG|bug|BUGFIX|bugfix|BUMP|bump)\)/"
+        bump_each_commit_patch_pattern: "/\\((PATCH|patch|BUG|bug|BUGFIX|bugfix|BUMP|bump)\\)/"
     - name: Set Outputs Alt
       id: set-outputs-alt
       shell: bash
