@@ -61,9 +61,6 @@ jobs:
       version_type: ${{ steps.set-outputs.outputs.version_type }}
       previous_version: ${{ steps.set-outputs.outputs.previous_version }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Bump patch version and tag
         id: bump-version-tag
         uses: anothrNick/github-tag-action@1.64.0

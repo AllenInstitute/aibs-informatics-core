@@ -40,6 +40,9 @@ jobs:
       version_type: ${{ steps.version-tag.outputs.type }}
       previous_version: ${{ steps.version-tag.outputs.previous_version }}
     steps:
+      - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
       - uses: ./.github/actions/get-version-tag
         id: version-tag
         with:
