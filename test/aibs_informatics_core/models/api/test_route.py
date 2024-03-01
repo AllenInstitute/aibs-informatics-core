@@ -233,7 +233,7 @@ def test__get_http_request__works(route: ApiRoute, input, expected):
 
 class ApiRequestConfigTests(BaseTest):
     def test__build__creates_from_nothing(self):
-        expected_client_version = VersionStr("0.0.*")
+        expected_client_version = VersionStr("0.*")
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
         config1 = ApiRequestConfig.build()
 
@@ -241,9 +241,9 @@ class ApiRequestConfigTests(BaseTest):
         config2 = ApiRequestConfig.build()
 
         # TODO: This is failing for unknown reasons in github actions
-        # self.assertEqual(config1.client_version, expected_client_version)
+        assert config1.client_version == expected_client_version
+        assert config2.client_version == expected_client_version
         self.assertIsNone(config1.service_log_level)
-        self.assertEqual(config2.client_version, expected_client_version)
         self.assertEqual(config2.service_log_level, "INFO")
 
     def test__to_headers__works(self):
