@@ -1,0 +1,134 @@
+name: Bump Version and Tag Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      bump_type:
+        description: 'Version Bump Type'
+        type: choice
+        options: ['major', 'minor', 'patch', 'none']
+        required: false
+        default: 'none'
+      dry_run:
+        description: 'Dry Run'
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      GITHUB_TOKEN:
+        description: 'Token for AllenInstitute GitHub'
+        required: true
+      GIT_SSH_PRIVATE_KEY:
+        description: 'SSH private key for AllenInstitute GitHub'
+        required: true
+    outputs:
+      major:
+        description: 'The major version number'
+        value: ${{ jobs.tag.outputs.major }}
+      minor:
+        description: 'The minor version number'
+        value: ${{ jobs.tag.outputs.minor }}
+      patch:
+        description: 'The patch version number'
+        value: ${{ jobs.tag.outputs.patch }}
+      increment:
+        description: 'The increment. This is the number of commits since the last tag.'
+        value: ${{ jobs.tag.outputs.increment }}
+      version:
+        description: 'The version number (e.g. 1.2.3)'
+        value: ${{ jobs.tag.outputs.version }}
+      version_tag:
+        description: 'The version tag (e.g. v1.2.3)'
+        value: ${{ jobs.tag.outputs.version_tag }}
+      version_type:
+        description: 'The version type (e.g. major, minor, patch, none)'
+        value: ${{ jobs.tag.outputs.version_type }}
+      previous_version:
+        description: 'The previous version number (e.g. 1.2.2)'
+        value: ${{ jobs.tag.outputs.previous_version }}
+      
+jobs:
+  tag:
+    name: Get New Tag
+    runs-on: ubuntu-latest
+    outputs:
+      major: ${{ steps.set-outputs.outputs.major }}
+      minor: ${{ steps.set-outputs.outputs.minor }}
+      patch: ${{ steps.set-outputs.outputs.patch }}
+      increment: ${{ steps.set-outputs.outputs.increment }}
+      version: ${{ steps.set-outputs.outputs.new_version }}
+      version_tag: ${{ steps.set-outputs.outputs.new_tag }}
+      version_type: ${{ steps.set-outputs.outputs.version_type }}
+      previous_version: ${{ steps.set-outputs.outputs.previous_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Bump patch version and tag
+        id: bump-version-tag
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: ${{ inputs.bump_type }}
+          MAJOR_STRING_TOKEN: '(MAJOR)'
+          MINOR_STRING_TOKEN: '(MINOR)'
+          PATCH_STRING_TOKEN: '(PATCH)'
+          NONE_STRING_TOKEN: '(NONE)'
+          WITH_V: "true"
+          RELEASE_BRANCHES: main
+          # We don't want to actually push the tag, just get the new tag here. 
+          # We'll push the tag in the next step.
+          DRY_RUN: true
+      - name: Set Outputs
+        id: set-outputs
+        run: |
+          new_tag=${{ steps.bump-version-tag.outputs.new_tag }}
+          new_version=$(echo $new_tag | sed 's/^v//')
+          major=$(echo $new_version | cut -d. -f1)
+          minor=$(echo $new_version | cut -d. -f2)
+          patch=$(echo $new_version | cut -d. -f3)
+          increment=0
+          version_type=${{ steps.bump-version-tag.outputs.part }}
+          previous_version=$(git describe --tags --abbrev=0)
+
+          echo "::set-output name=major::${major}"
+          echo "::set-output name=minor::${minor}"
+          echo "::set-output name=patch::${patch}"
+          echo "::set-output name=increment::${increment}"
+          echo "::set-output name=version::${new_version}"
+          echo "::set-output name=version_tag::${new_tag}"
+          echo "::set-output name=version_type::${{ steps.bump-version-tag.outputs.part }}"
+          echo "::set-output name=previous_version::${previous_version}"
+          
+      # Currently not using this Version bumping tool, but considering it for the future.
+      # The main limitation is being able to override the default bump type even 
+      # if there are no commits.
+      - name: Bump Version Alternate
+        uses: PaulHatch/semantic-version@v5.4.0
+        id: bump-version-tag-alt
+        with:
+          major_pattern: "/\((MAJOR|major|BREAKING|breaking)\)/"
+          minor_pattern: "/\((MINOR|minor|FEATURE|feature)\)/"
+          bump_each_commit: true
+          bump_each_commit_patch_pattern: "/\((PATCH|patch|BUG|bug|BUGFIX|bugfix|BUMP|bump)\)/"
+      - name: Set Outputs Alt
+        id: set-outputs-alt
+        run: |
+          echo 'changed:          ${{ steps.bump-version-tag-alt.outputs.changed }}'
+          echo 'major:            ${{ steps.bump-version-tag-alt.outputs.major }}'
+          echo 'minor:            ${{ steps.bump-version-tag-alt.outputs.minor }}'
+          echo 'patch:            ${{ steps.bump-version-tag-alt.outputs.patch }}'
+          echo 'increment:        ${{ steps.bump-version-tag-alt.outputs.increment }}'
+          echo 'version:          ${{ steps.bump-version-tag-alt.outputs.version }}'
+          echo 'version_tag:      ${{ steps.bump-version-tag-alt.outputs.version_tag }}'
+          echo 'version_type:     ${{ steps.bump-version-tag-alt.outputs.version_type }}'
+          echo 'previous_version: ${{ steps.bump-version-tag-alt.outputs.previous_version }}'
+
+          # echo "::set-output name=major::${{ steps.bump-version-tag-alt.outputs.major }}"
+          # echo "::set-output name=minor::${{ steps.bump-version-tag-alt.outputs.minor }}"
+          # echo "::set-output name=patch::${{ steps.bump-version-tag-alt.outputs.patch }}"
+          # echo "::set-output name=increment::${{ steps.bump-version-tag-alt.outputs.increment }}"
+          # echo "::set-output name=version::${{ steps.bump-version-tag-alt.outputs.version }}"
+          # echo "::set-output name=version_tag::${{ steps.bump-version-tag-alt.outputs.version_tag }}"
+          # echo "::set-output name=version_type::${{ steps.bump-version-tag-alt.outputs.version_type }}"
+          # echo "::set-output name=previous_version::${{ steps.bump-version-tag-alt.outputs.previous_version }}"

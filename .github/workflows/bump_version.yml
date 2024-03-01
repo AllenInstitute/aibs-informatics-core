@@ -26,50 +26,32 @@ on:
         default: false
 
 jobs:
-  tag:
-    name: Get New Tag
+  version-tag:
+    name: Get New Version Tag
     runs-on: ubuntu-latest
     if: github.actor != 'github-actions[bot]'
     outputs:
-      new_tag: ${{ steps.bump-version-tag.outputs.new_tag }}
-      tag: ${{ steps.bump-version-tag.outputs.tag }}
-      part: ${{ steps.bump-version-tag.outputs.part }}
+      major: ${{ steps.version-tag.outputs.major }}
+      minor: ${{ steps.version-tag.outputs.minor }}
+      patch: ${{ steps.version-tag.outputs.patch }}
+      increment: ${{ steps.version-tag.outputs.increment }}
+      version: ${{ steps.version-tag.outputs.version }}
+      version_tag: ${{ steps.version-tag.outputs.tag }}
+      version_type: ${{ steps.version-tag.outputs.type }}
+      previous_version: ${{ steps.version-tag.outputs.previous_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: ./.github/actions/get-version-tag
+        id: version-tag
         with:
-          fetch-depth: 0
-      - name: Bump patch version and tag
-        id: bump-version-tag
-        uses: anothrNick/github-tag-action@1.64.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEFAULT_BUMP: ${{ inputs.bump_type || 'none' }}
-          WITH_V: "true"
-          RELEASE_BRANCHES: main
-          DRY_RUN: true
-      - name: Bump Version Alternate
-        uses: PaulHatch/semantic-version@v5.4.0
-        id: bump-version-tag-alt
-        with:
-          major_pattern: "/#(major|breaking)/"
-          minor_pattern: "/#(minor|feature)/"
-          bump_each_commit: true
-          bump_each_commit_patch_pattern: "/#(patch|bug|bugfix)/"
-      - name: Print Version Info
-        run: |
-          echo 'changed:        ${{ steps.bump-version-tag-alt.outputs.changed }}'
-          echo 'increment:      ${{ steps.bump-version-tag-alt.outputs.increment }}'
-          echo 'major:          ${{ steps.bump-version-tag-alt.outputs.major }}'
-          echo 'minor:          ${{ steps.bump-version-tag-alt.outputs.minor }}'
-          echo 'patch:          ${{ steps.bump-version-tag-alt.outputs.patch }}'
-          echo 'version:        ${{ steps.bump-version-tag-alt.outputs.version }}'
-          echo 'version_tag:    ${{ steps.bump-version-tag-alt.outputs.version_tag }}'
-
+          bump_type: ${{ github.event.inputs.bump_type }}
   update-version-and-tag:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
-    needs: tag
-    if: github.actor != 'github-actions[bot]' && !inputs.dry_run && needs.tag.outputs.part != 'none'
+    needs: version-tag
+    if: |
+      github.actor != 'github-actions[bot]' && 
+      ${{ !inputs.dry_run }} && 
+      needs.version-tag.outputs.version_type != 'none'
     steps:
       - uses: actions/checkout@v4
       # This sets up the git user for the GitHub bot
@@ -85,12 +67,11 @@ jobs:
           ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
       - name: Update Version
         env:
-          VERSION_TAG: ${{ needs.tag.outputs.tag }}
+          VERSION: ${{ needs.version-tag.outputs.version }}
+          VERSION_TAG: ${{ needs.version-tag.outputs.version_tag }}
         run: |
-          echo "Updating version to ${{ env.VERSION_TAG }}"
-          new_version=$(echo $VERSION_TAG | sed 's/^v//')
-          echo "Release version: $new_version"
-          find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"$new_version\"/" {} \;
+          echo "Updating version to ${{ env.VERSION }} (${{ env.VERSION_TAG }})"
+          find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"${{ env.VERSION }}\"/" {} \;
           git add src/**/_version.py
           git commit -m "Bump version to ${{ env.VERSION_TAG }}"
           git tag -a ${{ env.VERSION_TAG }} -m "Release ${{ env.VERSION_TAG }}"

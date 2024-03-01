@@ -1,9 +1,9 @@
-name: Release
+name: Create Release
 
 on:
-  # push:
-  #   tags:
-  #     - 'v*'
+  push:
+    tags:
+      - 'v*'
       
   workflow_dispatch:
     inputs:
@@ -18,27 +18,21 @@ on:
         default: false
 
 jobs:
-  package:
-      name: Package and Release
-      runs-on: ubuntu-latest
-      timeout-minutes: 5
-      strategy:
-        fail-fast: true
-        matrix:
-          python-version: ["3.9", "3.10", "3.11"]
-      steps:
-        - uses: actions/checkout@v4
-        - name: Set up Python ${{ matrix.python-version }}
-          uses: actions/setup-python@v4        
-          with:
-            python-version: ${{ matrix.python-version }}
-            cache: 'pip'
-        - name: Set up AllenInstitute Repo Authorization
-          uses: ./.github/actions/setup-ai-github-urls
-          with:
-            token: ${{ secrets.AI_PACKAGES_TOKEN }}
-            ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
-        - name: Run Packaging
-          run: |
-            make package
-          shell: bash
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: Create Release with Changelog
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: changelog.md  # Assumes you have a changelog.md file in your repository
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
