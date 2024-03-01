@@ -2,36 +2,28 @@ name: Release
 
 on:
   # push:
-  #   branches: [ main ]
-  #   paths:
-  #     - 'src/**.py'
-  #     - 'test/**.py'
-  #     - 'Makefile'
-  #     - 'pyproject.toml'
-  #   paths-ignore:
-  #     - '**/__version__.py'
+  #   tags:
+  #     - 'v*'
       
   workflow_dispatch:
     inputs:
-      bump_type:
-        description: 'Version Bump Type'
-        type: choice
-        options: ['major', 'minor', 'patch', 'none']
-        required: false
-        default: 'patch'
-      dry_run:
-        description: 'Dry Run'
+      tag:
+        description: 'Target Tag for Release'
+        type: string
+        required: true
+      force:
+        description: 'Force Release?'
         type: boolean
         required: false
         default: false
 
 jobs:
-  build:
-      name: Package
+  package:
+      name: Package and Release
       runs-on: ubuntu-latest
       timeout-minutes: 5
       strategy:
-        fail-fast: false
+        fail-fast: true
         matrix:
           python-version: ["3.9", "3.10", "3.11"]
       steps:
