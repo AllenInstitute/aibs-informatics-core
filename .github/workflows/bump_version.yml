@@ -1,0 +1,98 @@
+name: Bump Version and Tag
+
+on:
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'src/**.py'
+  #     - 'test/**.py'
+  #     - 'Makefile'
+  #     - 'pyproject.toml'
+  #   paths-ignore:
+  #     - '**/_version.py'
+
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version Bump Type'
+        type: choice
+        options: ['major', 'minor', 'patch', 'none']
+        required: false
+        default: 'none'
+      dry_run:
+        description: 'Dry Run'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  tag:
+    name: Get New Tag
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    outputs:
+      new_tag: ${{ steps.bump-version-tag.outputs.new_tag }}
+      tag: ${{ steps.bump-version-tag.outputs.tag }}
+      part: ${{ steps.bump-version-tag.outputs.part }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Bump patch version and tag
+        id: bump-version-tag
+        uses: anothrNick/github-tag-action@1.64.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: ${{ inputs.bump_type || 'none' }}
+          WITH_V: "true"
+          RELEASE_BRANCHES: main
+          DRY_RUN: true
+      - name: Bump Version Alternate
+        uses: PaulHatch/semantic-version@v5.4.0
+        id: bump-version-tag-alt
+        with:
+          major_pattern: "#major"
+          minor_pattern: "#minor"
+          bump_each_commit: true
+          bump_each_commit_patch_pattern: "#patch"
+      - name: Print outputs
+        run: |
+          echo 'changed:        ${{ steps.bump-version-tag-alt.outputs.changed }}'
+          echo 'increment:      ${{ steps.bump-version-tag-alt.outputs.increment }}'
+          echo 'major:          ${{ steps.bump-version-tag-alt.outputs.major }}'
+          echo 'minor:          ${{ steps.bump-version-tag-alt.outputs.minor }}'
+          echo 'patch:          ${{ steps.bump-version-tag-alt.outputs.patch }}'
+          echo 'version:        ${{ steps.bump-version-tag-alt.outputs.version }}'
+          echo 'version_tag:    ${{ steps.bump-version-tag-alt.outputs.version_tag }}'
+
+  update-version-and-tag:
+    name: Update Repo Tag and Version
+    runs-on: ubuntu-latest
+    needs: tag
+    if: github.actor != 'github-actions[bot]' && !inputs.dry_run && needs.tag.outputs.part != 'none'
+    steps:
+      - uses: actions/checkout@v4
+      # This sets up the git user for the GitHub bot
+      - name: Configure Git User
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      # This sets up ssh keys for the AllenInstitute GitHub
+      - name: Configure AllenInstitute Repo Authorization
+        uses: ./.github/actions/setup-ai-github-urls
+        with:
+          token: ${{ secrets.AI_PACKAGES_TOKEN }}
+          ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
+      - name: Update Version
+        env:
+          VERSION_TAG: ${{ needs.tag.outputs.tag }}
+        run: |
+          echo "Updating version to ${{ env.VERSION_TAG }}"
+          new_version=$(echo $VERSION_TAG | sed 's/^v//')
+          echo "Release version: $new_version"
+          find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"$new_version\"/" {} \;
+          git add src/**/_version.py
+          git commit -m "Bump version to ${{ env.VERSION_TAG }}"
+          git tag -a ${{ env.VERSION_TAG }} -m "Release ${{ env.VERSION_TAG }}"
+          git push
+          git push --tags
