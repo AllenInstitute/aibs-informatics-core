@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  # push:
+  #   branches: [ main ]
+  #   paths:
+  #     - 'src/**.py'
+  #     - 'test/**.py'
+  #     - 'Makefile'
+  #     - 'pyproject.toml'
+  #   paths-ignore:
+  #     - '**/__version__.py'
+      
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version Bump Type'
+        type: choice
+        options: ['major', 'minor', 'patch', 'none']
+        required: false
+        default: 'patch'
+      dry_run:
+        description: 'Dry Run'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build:
+      name: Package
+      runs-on: ubuntu-latest
+      timeout-minutes: 5
+      strategy:
+        fail-fast: false
+        matrix:
+          python-version: ["3.9", "3.10", "3.11"]
+      steps:
+        - uses: actions/checkout@v4
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v4        
+          with:
+            python-version: ${{ matrix.python-version }}
+            cache: 'pip'
+        - name: Set up AllenInstitute Repo Authorization
+          uses: ./.github/actions/setup-ai-github-urls
+          with:
+            token: ${{ secrets.AI_PACKAGES_TOKEN }}
+            ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
+        - name: Run Packaging
+          run: |
+            make package
+          shell: bash
