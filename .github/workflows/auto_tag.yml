@@ -49,7 +49,7 @@ jobs:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
     needs: tag
-    if: github.actor != 'github-actions[bot]' && needs.tag.outputs.part != 'none'
+    if: github.actor != 'github-actions[bot]' && !inputs.dry_run && needs.tag.outputs.part != 'none'
     steps:
       - uses: actions/checkout@v4
       # This sets up the git user for the GitHub bot
@@ -74,6 +74,5 @@ jobs:
           git add src/**/_version.py
           git commit -m "Bump version to ${{ env.VERSION_TAG }}"
           git tag -a ${{ env.VERSION_TAG }} -m "Release ${{ env.VERSION_TAG }}"
-          git push origin main
-    
-    
+          git push
+          git push --tags
