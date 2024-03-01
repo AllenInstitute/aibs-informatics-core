@@ -68,7 +68,7 @@ jobs:
           VERSION_TAG: ${{ needs.tag.outputs.tag }}
         run: |
           echo "Updating version to ${{ env.VERSION_TAG }}"
-          new_version=$(echo $VERSION_TAG | sed 's/^v//') >>
+          new_version=$(echo $VERSION_TAG | sed 's/^v//')
           echo "Release version: $new_version"
           find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"$new_version\"/" {} \;
           git add src/**/_version.py
