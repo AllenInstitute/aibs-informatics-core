@@ -15,12 +15,8 @@ inputs:
     type: boolean
     required: false
     default: false
-secrets:
   GITHUB_TOKEN:
     description: 'Token for AllenInstitute GitHub'
-    required: true
-  GIT_SSH_PRIVATE_KEY:
-    description: 'SSH private key for AllenInstitute GitHub'
     required: true
 outputs:
   major:
@@ -58,6 +54,7 @@ runs:
         DRY_RUN: true
     - name: Set Outputs
       id: set-outputs
+      shell: bash
       run: |
         new_tag=${{ steps.bump-version-tag.outputs.new_tag }}
         new_version=$(echo $new_tag | sed 's/^v//')
@@ -99,6 +96,7 @@ runs:
         bump_each_commit_patch_pattern: "/\((PATCH|patch|BUG|bug|BUGFIX|bugfix|BUMP|bump)\)/"
     - name: Set Outputs Alt
       id: set-outputs-alt
+      shell: bash
       run: |
         echo 'changed:          ${{ steps.bump-version-tag-alt.outputs.changed }}'
         echo 'major:            ${{ steps.bump-version-tag-alt.outputs.major }}'

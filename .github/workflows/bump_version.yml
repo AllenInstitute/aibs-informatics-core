@@ -47,6 +47,7 @@ jobs:
         id: version-tag
         with:
           bump_type: ${{ github.event.inputs.bump_type }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   update-version-and-tag:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
