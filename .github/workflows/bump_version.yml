@@ -1,15 +1,15 @@
 name: Bump Version and Tag
 
 on:
-  # push:
-  #   branches: [ main ]
+  push:
+    branches: [ main ]
   #   paths:
   #     - 'src/**.py'
   #     - 'test/**.py'
   #     - 'Makefile'
   #     - 'pyproject.toml'
-  #   paths-ignore:
-  #     - '**/_version.py'
+    paths-ignore:
+      - '**/_version.py'
 
   workflow_dispatch:
     inputs:
@@ -51,11 +51,11 @@ jobs:
         uses: PaulHatch/semantic-version@v5.4.0
         id: bump-version-tag-alt
         with:
-          major_pattern: "#major"
-          minor_pattern: "#minor"
+          major_pattern: "/#(major|breaking)/"
+          minor_pattern: "/#(minor|feature)/"
           bump_each_commit: true
-          bump_each_commit_patch_pattern: "#patch"
-      - name: Print outputs
+          bump_each_commit_patch_pattern: "/#(patch|bug|bugfix)/"
+      - name: Print Version Info
         run: |
           echo 'changed:        ${{ steps.bump-version-tag-alt.outputs.changed }}'
           echo 'increment:      ${{ steps.bump-version-tag-alt.outputs.increment }}'
