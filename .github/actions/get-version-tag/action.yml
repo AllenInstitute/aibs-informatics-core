@@ -43,7 +43,7 @@ runs:
       id: bump-version-tag
       uses: anothrNick/github-tag-action@1.64.0
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         DEFAULT_BUMP: ${{ inputs.bump_type }}
         MAJOR_STRING_TOKEN: '(MAJOR)'
         MINOR_STRING_TOKEN: '(MINOR)'
