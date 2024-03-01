@@ -241,7 +241,8 @@ class ApiRequestConfigTests(BaseTest):
         config2 = ApiRequestConfig.build()
 
         # TODO: This is failing for unknown reasons in github actions
-        assert config1.client_version == expected_client_version
+        assert isinstance(config1.client_version, VersionStr)
+        assert expected_client_version == config1.client_version
         assert config2.client_version == expected_client_version
         self.assertIsNone(config1.service_log_level)
         self.assertEqual(config2.service_log_level, "INFO")
