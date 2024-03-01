@@ -86,15 +86,24 @@ jobs:
           version_type=${{ steps.bump-version-tag.outputs.part }}
           previous_version=$(git describe --tags --abbrev=0)
 
-          echo "::set-output name=major::${major}"
-          echo "::set-output name=minor::${minor}"
-          echo "::set-output name=patch::${patch}"
-          echo "::set-output name=increment::${increment}"
-          echo "::set-output name=version::${new_version}"
-          echo "::set-output name=version_tag::${new_tag}"
-          echo "::set-output name=version_type::${version_type}"
-          echo "::set-output name=previous_version::${previous_version}"
+          # echo "::set-output name=major::${major}"
+          # echo "::set-output name=minor::${minor}"
+          # echo "::set-output name=patch::${patch}"
+          # echo "::set-output name=increment::${increment}"
+          # echo "::set-output name=version::${new_version}"
+          # echo "::set-output name=version_tag::${new_tag}"
+          # echo "::set-output name=version_type::${version_type}"
+          # echo "::set-output name=previous_version::${previous_version}"
 
+          echo "major=$major" >> $GITHUB_OUTPUT
+          echo "minor=$minor" >> $GITHUB_OUTPUT
+          echo "patch=$patch" >> $GITHUB_OUTPUT
+          echo "increment=$increment" >> $GITHUB_OUTPUT
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+          echo "version_tag=$new_tag" >> $GITHUB_OUTPUT
+          echo "version_type=$version_type" >> $GITHUB_OUTPUT
+          echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
+          
       # Currently not using this Version bumping tool, but considering it for the future.
       # The main limitation is being able to override the default bump type even 
       # if there are no commits.
