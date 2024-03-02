@@ -1,0 +1,37 @@
+# 
+name: Get Version from Source Code
+
+description: |
+  Get the version from the source code and output the version and tag.
+
+inputs:
+  version_file:
+    description: 'The file containing the version number'
+    default: '_version.py'
+    required: false
+  version_regex:
+    description: 'The regex to extract the version number'
+    default: "__version__ = (?:\"|')([0-9]+\.[0-9]+\.[0-9]+)(?:\"|')"
+    required: false
+  version_tag_prefix:
+    description: 'The prefix for the version tag'
+    required: true
+    default: 'v'
+outputs:
+  version:
+    description: 'The version number (e.g. 1.2.3)'
+  version_tag:
+    description: 'The version tag (e.g. v1.2.3)'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get Version
+      id: get-version
+      run: |
+        version=$(find . -name ${{ inputs.version_file }} -exec cat {} \; | grep -oP -m 1 "${{ inputs.version_regex }}")
+        echo "Version: $version"
+        echo "version=$version" >> $GITHUB_OUTPUT
+        echo "version_tag=${{ inputs.version_tag_prefix }}$version" >> $GITHUB_OUTPUT
+      shell: bash
+```
