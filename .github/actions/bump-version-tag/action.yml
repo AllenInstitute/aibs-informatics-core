@@ -54,7 +54,6 @@ runs:
         DRY_RUN: true
     - name: Set Outputs
       id: set-outputs
-      shell: bash
       run: |
         new_tag=${{ steps.bump-version-tag.outputs.new_tag }}
         new_version=$(echo $new_tag | sed 's/^v//')
@@ -83,10 +82,11 @@ runs:
         echo "version_type=$version_type" >> $GITHUB_OUTPUT
         echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
         cat $GITHUB_OUTPUT
+      shell: bash
     - name : Debug
       run: |
         cat $GITHUB_OUTPUT
-        echo "major=${{ steps.bump-version-tag.outputs.major }}"
+        echo "major=${{ steps.set-outputs.outputs.major }}"
       shell: bash
 
     # Currently not using this Version bumping tool, but considering it for the future.
