@@ -49,6 +49,17 @@ jobs:
         with:
           bump_type: ${{ github.event.inputs.bump_type }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Print Version Info
+        run: |
+          echo "Major: ${{ steps.version-tag.outputs.major }}"
+          echo "Minor: ${{ steps.version-tag.outputs.minor }}"
+          echo "Patch: ${{ steps.version-tag.outputs.patch }}"
+          echo "Increment: ${{ steps.version-tag.outputs.increment }}"
+          echo "Version: ${{ steps.version-tag.outputs.version }}"
+          echo "Version Tag: ${{ steps.version-tag.outputs.tag }}"
+          echo "Version Type: ${{ steps.version-tag.outputs.type }}"
+          echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
+
   update-version-and-tag:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
