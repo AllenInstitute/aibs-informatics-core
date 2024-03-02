@@ -40,8 +40,8 @@ jobs:
       patch: ${{ steps.version-tag.outputs.patch }}
       increment: ${{ steps.version-tag.outputs.increment }}
       version: ${{ steps.version-tag.outputs.version }}
-      version_tag: ${{ steps.version-tag.outputs.tag }}
-      version_type: ${{ steps.version-tag.outputs.type }}
+      version_tag: ${{ steps.version-tag.outputs.version_tag }}
+      version_type: ${{ steps.version-tag.outputs.version_type }}
       previous_version: ${{ steps.version-tag.outputs.previous_version }}
     steps:
       - uses: actions/checkout@v4
@@ -60,8 +60,8 @@ jobs:
           echo "Patch: ${{ steps.version-tag.outputs.patch }}"
           echo "Increment: ${{ steps.version-tag.outputs.increment }}"
           echo "Version: ${{ steps.version-tag.outputs.version }}"
-          echo "Version Tag: ${{ steps.version-tag.outputs.tag }}"
-          echo "Version Type: ${{ steps.version-tag.outputs.type }}"
+          echo "Version Tag: ${{ steps.version-tag.outputs.version_tag }}"
+          echo "Version Type: ${{ steps.version-tag.outputs.version_type }}"
           echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
 
   update-version-and-tag:
