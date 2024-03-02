@@ -44,7 +44,7 @@ runs:
       uses: anothrNick/github-tag-action@1.64.0
       env:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
-        DEFAULT_BUMP: ${{ inputs.bump_type }}
+        DEFAULT_BUMP: ${{ inputs.bump_type || 'none' }}
         MAJOR_STRING_TOKEN: '(MAJOR)'
         MINOR_STRING_TOKEN: '(MINOR)'
         PATCH_STRING_TOKEN: '(PATCH)'
@@ -63,7 +63,7 @@ runs:
         patch=$(echo $new_version | cut -d. -f3)
         increment=0
         version_type=${{ steps.bump-version-tag.outputs.part }}
-        previous_version=$(git describe --tags --abbrev=0)
+        previous_version=$(git describe --tags --abbrev=0 | sed 's/^v//') 
 
         echo "major:            $major"
         echo "minor:            $minor"
@@ -82,7 +82,13 @@ runs:
         echo "version_tag=$new_tag" >> $GITHUB_OUTPUT
         echo "version_type=$version_type" >> $GITHUB_OUTPUT
         echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
-        
+        cat $GITHUB_OUTPUT
+    - name : Debug
+      run: |
+        cat $GITHUB_OUTPUT
+        echo "major=${{ steps.bump-version-tag.outputs.major }}"
+      shell: bash
+
     # Currently not using this Version bumping tool, but considering it for the future.
     # The main limitation is being able to override the default bump type even 
     # if there are no commits.

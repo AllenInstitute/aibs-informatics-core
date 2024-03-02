@@ -13,6 +13,10 @@ on:
 
   workflow_dispatch:
     inputs:
+      target_version:
+        description: 'Target Version (e.g. 1.2.3). This is the version to bump to.'
+        required: false
+        default: 'N/A'
       bump_type:
         description: 'Version Bump Type'
         type: choice
