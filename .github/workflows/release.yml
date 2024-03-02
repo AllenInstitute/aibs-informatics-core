@@ -1,9 +1,9 @@
 name: Create Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # push:
+  #   tags:
+  #     - 'v*'
       
   workflow_dispatch:
     inputs:
@@ -31,7 +31,6 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: Release ${{ github.event.inputs.tag || github.ref_name }}
-          body_path: changelog.md  # Assumes you have a changelog.md file in your repository
           draft: false
           prerelease: false
         env:

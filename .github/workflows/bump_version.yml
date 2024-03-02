@@ -43,7 +43,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/get-version-tag
+      - name: Get Bumped Version Tag
+        uses: ./.github/actions/bump-version-tag
         id: version-tag
         with:
           bump_type: ${{ github.event.inputs.bump_type }}
