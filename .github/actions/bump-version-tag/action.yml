@@ -65,14 +65,14 @@ runs:
         version_type=${{ steps.bump-version-tag.outputs.part }}
         previous_version=$(git describe --tags --abbrev=0)
 
-        echo "major=$major"
-        echo "minor=$minor"
-        echo "patch=$patch"
-        echo "increment=$increment"
-        echo "version=$new_version"
-        echo "version_tag=$new_tag"
-        echo "version_type=$version_type"
-        echo "previous_version=$previous_version"
+        echo "major:            $major"
+        echo "minor:            $minor"
+        echo "patch:            $patch"
+        echo "increment:        $increment"
+        echo "version:          $new_version"
+        echo "version_tag:      $new_tag"
+        echo "version_type:     $version_type"
+        echo "previous_version: $previous_version"
 
         echo "major=$major" >> $GITHUB_OUTPUT
         echo "minor=$minor" >> $GITHUB_OUTPUT
@@ -108,11 +108,11 @@ runs:
         echo 'version_type:     ${{ steps.bump-version-tag-alt.outputs.version_type }}'
         echo 'previous_version: ${{ steps.bump-version-tag-alt.outputs.previous_version }}'
 
-        # echo "::set-output name=major::${{ steps.bump-version-tag-alt.outputs.major }}"
-        # echo "::set-output name=minor::${{ steps.bump-version-tag-alt.outputs.minor }}"
-        # echo "::set-output name=patch::${{ steps.bump-version-tag-alt.outputs.patch }}"
-        # echo "::set-output name=increment::${{ steps.bump-version-tag-alt.outputs.increment }}"
-        # echo "::set-output name=version::${{ steps.bump-version-tag-alt.outputs.version }}"
-        # echo "::set-output name=version_tag::${{ steps.bump-version-tag-alt.outputs.version_tag }}"
-        # echo "::set-output name=version_type::${{ steps.bump-version-tag-alt.outputs.version_type }}"
-        # echo "::set-output name=previous_version::${{ steps.bump-version-tag-alt.outputs.previous_version }}"
+        # echo "major=${{ steps.bump-version-tag-alt.outputs.major }}" >> $GITHUB_OUTPUT
+        # echo "minor=${{ steps.bump-version-tag-alt.outputs.minor }}" >> $GITHUB_OUTPUT
+        # echo "patch=${{ steps.bump-version-tag-alt.outputs.patch }}" >> $GITHUB_OUTPUT
+        # echo "increment=${{ steps.bump-version-tag-alt.outputs.increment }}" >> $GITHUB_OUTPUT
+        # echo "version=${{ steps.bump-version-tag-alt.outputs.version }}" >> $GITHUB_OUTPUT
+        # echo "version_tag=${{ steps.bump-version-tag-alt.outputs.version_tag }}" >> $GITHUB_OUTPUT
+        # echo "version_type=${{ steps.bump-version-tag-alt.outputs.version_type }}" >> $GITHUB_OUTPUT
+        # echo "previous_version=${{ steps.bump-version-tag-alt.outputs.previous_version }}" >> $GITHUB_OUTPUT

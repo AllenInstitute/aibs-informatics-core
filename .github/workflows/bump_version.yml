@@ -26,7 +26,7 @@ on:
         default: false
 
 jobs:
-  version-tag:
+  get-version-tag:
     name: Get New Version Tag
     runs-on: ubuntu-latest
     if: github.actor != 'github-actions[bot]'
@@ -52,11 +52,11 @@ jobs:
   update-version-and-tag:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
-    needs: version-tag
+    needs: get-version-tag
     if: |
       github.actor != 'github-actions[bot]' && 
       ${{ !inputs.dry_run }} && 
-      needs.version-tag.outputs.version_type != 'none'
+      needs.get-version-tag.outputs.version_type != 'none'
     steps:
       - uses: actions/checkout@v4
       # This sets up the git user for the GitHub bot
@@ -72,9 +72,10 @@ jobs:
           ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
       - name: Update Version
         env:
-          VERSION: ${{ needs.version-tag.outputs.version }}
-          VERSION_TAG: ${{ needs.version-tag.outputs.version_tag }}
+          VERSION: ${{ needs.get-version-tag.outputs.version }}
+          VERSION_TAG: ${{ needs.get-version-tag.outputs.version_tag }}
         run: |
+          echo "${{ needs.get-version-tag.outputs.version }} (${{ needs.get-version-tag.outputs.version_tag }})"
           echo "Updating version to ${{ env.VERSION }} (${{ env.VERSION_TAG }})"
           find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"${{ env.VERSION }}\"/" {} \;
           git add src/**/_version.py
