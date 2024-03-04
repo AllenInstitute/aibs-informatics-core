@@ -81,7 +81,17 @@ runs:
         echo "version_tag=$new_tag" >> $GITHUB_OUTPUT
         echo "version_type=$version_type" >> $GITHUB_OUTPUT
         echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
-        cat $GITHUB_OUTPUT
+      shell: bash
+    - name: Print
+      run: |
+        echo "major=${{ steps.set-outputs.outputs.major }}"
+        echo "minor=${{ steps.set-outputs.outputs.minor }}"
+        echo "patch=${{ steps.set-outputs.outputs.patch }}"
+        echo "increment=${{ steps.set-outputs.outputs.increment }}"
+        echo "version=${{ steps.set-outputs.outputs.version }}"
+        echo "version_tag=${{ steps.set-outputs.outputs.version_tag }}"
+        echo "version_type=${{ steps.set-outputs.outputs.version_type }}"
+        echo "previous_version=${{ steps.set-outputs.outputs.previous_version }}"
       shell: bash
 
     # # Currently not using this Version bumping tool, but considering it for the future.
