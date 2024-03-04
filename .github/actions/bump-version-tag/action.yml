@@ -73,7 +73,7 @@ runs:
         echo "version_type:     $version_type"
         echo "previous_version: $previous_version"
 
-        echo "major=$major" >> $GITHUB_OUTPUT
+        echo "major=$major"
         echo "minor=$minor" >> $GITHUB_OUTPUT
         echo "patch=$patch" >> $GITHUB_OUTPUT
         echo "increment=$increment" >> $GITHUB_OUTPUT
