@@ -72,15 +72,6 @@ runs:
         version_type=${{ steps.bump-version-tag.outputs.part }}
         previous_version=$(git describe --tags --abbrev=0 | sed 's/^v//') 
 
-        echo "major:            $major"
-        echo "minor:            $minor"
-        echo "patch:            $patch"
-        echo "increment:        $increment"
-        echo "version:          $new_version"
-        echo "version_tag:      $new_tag"
-        echo "version_type:     $version_type"
-        echo "previous_version: $previous_version"
-
         echo "major=$major" >> $GITHUB_OUTPUT
         echo "minor=$minor" >> $GITHUB_OUTPUT
         echo "patch=$patch" >> $GITHUB_OUTPUT

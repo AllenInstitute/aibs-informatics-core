@@ -55,13 +55,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Print Version Info
         run: |
-          echo "Major: ${{ steps.version-tag.outputs.major }}"
-          echo "Minor: ${{ steps.version-tag.outputs.minor }}"
-          echo "Patch: ${{ steps.version-tag.outputs.patch }}"
-          echo "Increment: ${{ steps.version-tag.outputs.increment }}"
-          echo "Version: ${{ steps.version-tag.outputs.version }}"
-          echo "Version Tag: ${{ steps.version-tag.outputs.version_tag }}"
-          echo "Version Type: ${{ steps.version-tag.outputs.version_type }}"
+          echo "Major:            ${{ steps.version-tag.outputs.major }}"
+          echo "Minor:            ${{ steps.version-tag.outputs.minor }}"
+          echo "Patch:            ${{ steps.version-tag.outputs.patch }}"
+          echo "Increment:        ${{ steps.version-tag.outputs.increment }}"
+          echo "Version:          ${{ steps.version-tag.outputs.version }}"
+          echo "Version Tag:      ${{ steps.version-tag.outputs.version_tag }}"
+          echo "Version Type:     ${{ steps.version-tag.outputs.version_type }}"
           echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
 
   update-version-and-tag:
@@ -85,6 +85,16 @@ jobs:
         with:
           token: ${{ secrets.AI_PACKAGES_TOKEN }}
           ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
+      - name: Print Version Info
+        run: |
+          echo "Major:            ${{ needs.get-version-tag.outputs.major }}"
+          echo "Minor:            ${{ needs.get-version-tag.outputs.minor }}"
+          echo "Patch:            ${{ needs.get-version-tag.outputs.patch }}"
+          echo "Increment:        ${{ needs.get-version-tag.outputs.increment }}"
+          echo "Version:          ${{ needs.get-version-tag.outputs.version }}"
+          echo "Version Tag:      ${{ needs.get-version-tag.outputs.version_tag }}"
+          echo "Version Type:     ${{ needs.get-version-tag.outputs.version_type }}"
+          echo "Previous Version: ${{ needs.get-version-tag.outputs.previous_version }}"
       - name: Update Version
         env:
           VERSION: ${{ needs.get-version-tag.outputs.version }}
@@ -93,8 +103,13 @@ jobs:
           echo "${{ needs.get-version-tag.outputs.version }} (${{ needs.get-version-tag.outputs.version_tag }})"
           echo "Updating version to ${{ env.VERSION }} (${{ env.VERSION_TAG }})"
           find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"${{ env.VERSION }}\"/" {} \;
-          git add src/**/_version.py
-          git commit -m "Bump version to ${{ env.VERSION_TAG }}"
-          git tag -a ${{ env.VERSION_TAG }} -m "Release ${{ env.VERSION_TAG }}"
-          git push
-          git push --tags
+          if git diff-index --quiet HEAD --; then
+              echo "No changes detected. Version already ${{ env.VERSION }}. Skipping commit and tag."  
+          else
+              echo "Changes detected."
+              git add src/**/_version.py
+              git commit -m "Bump version to ${{ env.VERSION_TAG }}"
+              git tag -a ${{ env.VERSION_TAG }} -m "Release ${{ env.VERSION_TAG }}"
+              git push
+              git push --tags
+          fi
