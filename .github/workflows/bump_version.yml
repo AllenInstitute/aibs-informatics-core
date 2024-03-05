@@ -71,7 +71,9 @@ jobs:
     if: |
       github.actor != 'github-actions[bot]' && 
       ${{ !inputs.dry_run }} && 
-      needs.get-version-tag.outputs.version_type != "none"
+      needs.get-version-tag.outputs.version_type != 'none' &&
+      needs.get-version-tag.outputs.version != needs.get-version-tag.outputs.previous_version
+
     steps:
       - uses: actions/checkout@v4
       # This sets up the git user for the GitHub bot
@@ -103,7 +105,7 @@ jobs:
           echo "${{ needs.get-version-tag.outputs.version }} (${{ needs.get-version-tag.outputs.version_tag }})"
           echo "Updating version to ${{ env.VERSION }} (${{ env.VERSION_TAG }})"
           find src -name '_version.py' -exec sed -i "s/__version__ = .*/__version__ = \"${{ env.VERSION }}\"/" {} \;
-          if git diff --name-only -- src/**/_version.py | grep -q '_version.py'; then
+          if ! git diff --name-only -- src/**/_version.py | grep -q '_version.py'; then
               echo "No changes detected. Version already ${{ env.VERSION }}."
               echo "Skipping commit and tag."  
           else
