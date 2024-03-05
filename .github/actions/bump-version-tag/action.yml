@@ -21,20 +21,28 @@ inputs:
 outputs:
   major:
     description: 'The major version number'
+    value: ${{ steps.set-outputs.outputs.major }}
   minor:
     description: 'The minor version number'
+    value: ${{ steps.set-outputs.outputs.minor }}
   patch:
     description: 'The patch version number'
+    value: ${{ steps.set-outputs.outputs.patch }}
   increment:
     description: 'The increment. This is the number of commits since the last tag.'
+    value: ${{ steps.set-outputs.outputs.increment }}
   version:
     description: 'The version number (e.g. 1.2.3)'
+    value: ${{ steps.set-outputs.outputs.version }}
   version_tag:
     description: 'The version tag (e.g. v1.2.3)'
+    value: ${{ steps.set-outputs.outputs.version_tag }}
   version_type:
     description: 'The version type (e.g. major, minor, patch, none)'
+    value: ${{ steps.set-outputs.outputs.version_type }}
   previous_version:
     description: 'The previous version number (e.g. 1.2.2)'
+    value: ${{ steps.set-outputs.outputs.previous_version }}
 
 runs:
   using: "composite"
@@ -73,7 +81,7 @@ runs:
         echo "version_type:     $version_type"
         echo "previous_version: $previous_version"
 
-        echo "major=$major"
+        echo "major=$major" >> $GITHUB_OUTPUT
         echo "minor=$minor" >> $GITHUB_OUTPUT
         echo "patch=$patch" >> $GITHUB_OUTPUT
         echo "increment=$increment" >> $GITHUB_OUTPUT
@@ -81,17 +89,6 @@ runs:
         echo "version_tag=$new_tag" >> $GITHUB_OUTPUT
         echo "version_type=$version_type" >> $GITHUB_OUTPUT
         echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
-      shell: bash
-    - name: Print
-      run: |
-        echo "major=${{ steps.set-outputs.outputs.major }}"
-        echo "minor=${{ steps.set-outputs.outputs.minor }}"
-        echo "patch=${{ steps.set-outputs.outputs.patch }}"
-        echo "increment=${{ steps.set-outputs.outputs.increment }}"
-        echo "version=${{ steps.set-outputs.outputs.version }}"
-        echo "version_tag=${{ steps.set-outputs.outputs.version_tag }}"
-        echo "version_type=${{ steps.set-outputs.outputs.version_type }}"
-        echo "previous_version=${{ steps.set-outputs.outputs.previous_version }}"
       shell: bash
 
     # # Currently not using this Version bumping tool, but considering it for the future.
