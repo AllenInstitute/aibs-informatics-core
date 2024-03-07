@@ -3,11 +3,6 @@ name: Bump Version and Tag
 on:
   push:
     branches: [ main ]
-  #   paths:
-  #     - 'src/**.py'
-  #     - 'test/**.py'
-  #     - 'Makefile'
-  #     - 'pyproject.toml'
     paths-ignore:
       - '**/_version.py'
 
@@ -35,14 +30,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor != 'github-actions[bot]'
     outputs:
-      major: ${{ steps.version-tag.outputs.major }}
-      minor: ${{ steps.version-tag.outputs.minor }}
-      patch: ${{ steps.version-tag.outputs.patch }}
-      increment: ${{ steps.version-tag.outputs.increment }}
-      version: ${{ steps.version-tag.outputs.version }}
-      version_tag: ${{ steps.version-tag.outputs.version_tag }}
-      version_type: ${{ steps.version-tag.outputs.version_type }}
-      previous_version: ${{ steps.version-tag.outputs.previous_version }}
+      version: ${{ steps.set-target-version.outputs.version || steps.version-tag.outputs.version }}
+      version_tag: ${{ steps.set-target-version.outputs.version_tag || steps.version-tag.outputs.version_tag }}
+      version_type: ${{ steps.set-target-version.outputs.version_type || steps.version-tag.outputs.version_type }}
+      previous_version: ${{ steps.get-current-version.outputs.previous_version || steps.version-tag.outputs.previous_version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,25 +45,32 @@ jobs:
           bump_type: ${{ github.event.inputs.bump_type }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Print Version Info
+        if: github.event.inputs.target_version == 'N/A'
         run: |
-          echo "Major:            ${{ steps.version-tag.outputs.major }}"
-          echo "Minor:            ${{ steps.version-tag.outputs.minor }}"
-          echo "Patch:            ${{ steps.version-tag.outputs.patch }}"
-          echo "Increment:        ${{ steps.version-tag.outputs.increment }}"
           echo "Version:          ${{ steps.version-tag.outputs.version }}"
           echo "Version Tag:      ${{ steps.version-tag.outputs.version_tag }}"
           echo "Version Type:     ${{ steps.version-tag.outputs.version_type }}"
           echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
-
+      - name: Set Target Version
+        id: set-target-version
+        if: github.event.inputs.target_version == 'N/A'
+        run: |
+          echo "Setting target version to ${{ github.event.inputs.target_version }}"
+          echo "version=${{ github.event.inputs.target_version }}" >> $GITHUB_OUTPUT
+          echo "version_tag=v${{ github.event.inputs.target_version }}" >> $GITHUB_OUTPUT
+      - name: Get Current Version
+        id: get-current-version
+        if: github.event.inputs.target_version != 'N/A'
+        run: |
+          echo "Getting current version"
+          version=$(grep -oP '(?<=__version__ = \").*(?=\")' src/**/_version.py | head -n 1)
+          echo "previous_version=$version" >> $GITHUB_OUTPUT
+      
   update-version-and-tag:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
     needs: get-version-tag
-    if: |
-      github.actor != 'github-actions[bot]' && 
-      ${{ !inputs.dry_run }} && 
-      needs.get-version-tag.outputs.version_type != 'none' &&
-      needs.get-version-tag.outputs.version != needs.get-version-tag.outputs.previous_version
+    if: github.actor != 'github-actions[bot]' && ${{ !inputs.dry_run }} && needs.get-version-tag.outputs.version != needs.get-version-tag.outputs.previous_version
 
     steps:
       - uses: actions/checkout@v4
@@ -87,16 +85,6 @@ jobs:
         with:
           token: ${{ secrets.AI_PACKAGES_TOKEN }}
           ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
-      - name: Print Version Info
-        run: |
-          echo "Major:            ${{ needs.get-version-tag.outputs.major }}"
-          echo "Minor:            ${{ needs.get-version-tag.outputs.minor }}"
-          echo "Patch:            ${{ needs.get-version-tag.outputs.patch }}"
-          echo "Increment:        ${{ needs.get-version-tag.outputs.increment }}"
-          echo "Version:          ${{ needs.get-version-tag.outputs.version }}"
-          echo "Version Tag:      ${{ needs.get-version-tag.outputs.version_tag }}"
-          echo "Version Type:     ${{ needs.get-version-tag.outputs.version_type }}"
-          echo "Previous Version: ${{ needs.get-version-tag.outputs.previous_version }}"
       - name: Update Version
         env:
           VERSION: ${{ needs.get-version-tag.outputs.version }}

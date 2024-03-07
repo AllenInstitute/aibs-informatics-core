@@ -82,36 +82,36 @@ runs:
         echo "previous_version=$previous_version" >> $GITHUB_OUTPUT
       shell: bash
 
-    # # Currently not using this Version bumping tool, but considering it for the future.
-    # # The main limitation is being able to override the default bump type even 
-    # # if there are no commits.
-    # - name: Bump Version Alternate
-    #   uses: PaulHatch/semantic-version@v5.4.0
-    #   id: bump-version-tag-alt
-    #   with:
-    #     major_pattern: "/\\((MAJOR|major|BREAKING|breaking)\\)/"
-    #     minor_pattern: "/\\((MINOR|minor|FEATURE|feature)\\)/"
-    #     bump_each_commit: true
-    #     bump_each_commit_patch_pattern: "/\\((PATCH|patch|BUG|bug|BUGFIX|bugfix|BUMP|bump)\\)/"
-    # - name: Set Outputs Alt
-    #   id: set-outputs-alt
-    #   shell: bash
-    #   run: |
-    #     echo 'changed:          ${{ steps.bump-version-tag-alt.outputs.changed }}'
-    #     echo 'major:            ${{ steps.bump-version-tag-alt.outputs.major }}'
-    #     echo 'minor:            ${{ steps.bump-version-tag-alt.outputs.minor }}'
-    #     echo 'patch:            ${{ steps.bump-version-tag-alt.outputs.patch }}'
-    #     echo 'increment:        ${{ steps.bump-version-tag-alt.outputs.increment }}'
-    #     echo 'version:          ${{ steps.bump-version-tag-alt.outputs.version }}'
-    #     echo 'version_tag:      ${{ steps.bump-version-tag-alt.outputs.version_tag }}'
-    #     echo 'version_type:     ${{ steps.bump-version-tag-alt.outputs.version_type }}'
-    #     echo 'previous_version: ${{ steps.bump-version-tag-alt.outputs.previous_version }}'
+    # Currently not using this Version bumping tool, but considering it for the future.
+    # The main limitation is being able to override the default bump type even 
+    # if there are no commits.
+    - name: Bump Version Alternate
+      uses: PaulHatch/semantic-version@v5.4.0
+      id: bump-version-tag-alt
+      with:
+        major_pattern: "/\\((MAJOR|BREAKING)\\)/"
+        minor_pattern: "/\\((MINOR|FEATURE)\\)/"
+        bump_each_commit: true
+        bump_each_commit_patch_pattern: "/\\((PATCH|BUG)\\)/"
+    - name: Set Outputs Alt
+      id: set-outputs-alt
+      shell: bash
+      run: |
+        echo 'changed:          ${{ steps.bump-version-tag-alt.outputs.changed }}'
+        echo 'major:            ${{ steps.bump-version-tag-alt.outputs.major }}'
+        echo 'minor:            ${{ steps.bump-version-tag-alt.outputs.minor }}'
+        echo 'patch:            ${{ steps.bump-version-tag-alt.outputs.patch }}'
+        echo 'increment:        ${{ steps.bump-version-tag-alt.outputs.increment }}'
+        echo 'version:          ${{ steps.bump-version-tag-alt.outputs.version }}'
+        echo 'version_tag:      ${{ steps.bump-version-tag-alt.outputs.version_tag }}'
+        echo 'version_type:     ${{ steps.bump-version-tag-alt.outputs.version_type }}'
+        echo 'previous_version: ${{ steps.bump-version-tag-alt.outputs.previous_version }}'
 
-    #     # echo "major=${{ steps.bump-version-tag-alt.outputs.major }}" >> $GITHUB_OUTPUT
-    #     # echo "minor=${{ steps.bump-version-tag-alt.outputs.minor }}" >> $GITHUB_OUTPUT
-    #     # echo "patch=${{ steps.bump-version-tag-alt.outputs.patch }}" >> $GITHUB_OUTPUT
-    #     # echo "increment=${{ steps.bump-version-tag-alt.outputs.increment }}" >> $GITHUB_OUTPUT
-    #     # echo "version=${{ steps.bump-version-tag-alt.outputs.version }}" >> $GITHUB_OUTPUT
-    #     # echo "version_tag=${{ steps.bump-version-tag-alt.outputs.version_tag }}" >> $GITHUB_OUTPUT
-    #     # echo "version_type=${{ steps.bump-version-tag-alt.outputs.version_type }}" >> $GITHUB_OUTPUT
-    #     # echo "previous_version=${{ steps.bump-version-tag-alt.outputs.previous_version }}" >> $GITHUB_OUTPUT
+        # echo "major=${{ steps.bump-version-tag-alt.outputs.major }}" >> $GITHUB_OUTPUT
+        # echo "minor=${{ steps.bump-version-tag-alt.outputs.minor }}" >> $GITHUB_OUTPUT
+        # echo "patch=${{ steps.bump-version-tag-alt.outputs.patch }}" >> $GITHUB_OUTPUT
+        # echo "increment=${{ steps.bump-version-tag-alt.outputs.increment }}" >> $GITHUB_OUTPUT
+        # echo "version=${{ steps.bump-version-tag-alt.outputs.version }}" >> $GITHUB_OUTPUT
+        # echo "version_tag=${{ steps.bump-version-tag-alt.outputs.version_tag }}" >> $GITHUB_OUTPUT
+        # echo "version_type=${{ steps.bump-version-tag-alt.outputs.version_type }}" >> $GITHUB_OUTPUT
+        # echo "previous_version=${{ steps.bump-version-tag-alt.outputs.previous_version }}" >> $GITHUB_OUTPUT
