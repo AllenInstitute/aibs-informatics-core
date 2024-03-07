@@ -34,6 +34,7 @@ jobs:
       version_tag: ${{ steps.set-target-version.outputs.version_tag || steps.version-tag.outputs.version_tag }}
       version_type: ${{ steps.set-target-version.outputs.version_type || steps.version-tag.outputs.version_type }}
       previous_version: ${{ steps.get-current-version.outputs.previous_version || steps.version-tag.outputs.previous_version }}
+      update_required: ${{ steps.set-update-required.outputs.update_required }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,7 +46,8 @@ jobs:
           bump_type: ${{ github.event.inputs.bump_type }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Print Version Info
-        if: github.event.inputs.target_version == 'N/A'
+        # We only want to print if we are not a workflow call or if the target version is 'N/A'
+        if: github.event_name != 'workflow_call' || inputs.target_version == 'N/A'
         run: |
           echo "Version:          ${{ steps.version-tag.outputs.version }}"
           echo "Version Tag:      ${{ steps.version-tag.outputs.version_tag }}"
@@ -53,24 +55,44 @@ jobs:
           echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
       - name: Set Target Version
         id: set-target-version
-        if: github.event.inputs.target_version == 'N/A'
+        # We only want to set the target version if we are a workflow call and the target version is set
+        if: github.event_name == 'workflow_call' && inputs.target_version != 'N/A'
         run: |
-          echo "Setting target version to ${{ github.event.inputs.target_version }}"
-          echo "version=${{ github.event.inputs.target_version }}" >> $GITHUB_OUTPUT
-          echo "version_tag=v${{ github.event.inputs.target_version }}" >> $GITHUB_OUTPUT
+          echo "Setting target version to ${{ inputs.target_version }}"
+          echo "version=${{ inputs.target_version }}" >> $GITHUB_OUTPUT
+          echo "version_tag=v${{ inputs.target_version }}" >> $GITHUB_OUTPUT
       - name: Get Current Version
         id: get-current-version
-        if: github.event.inputs.target_version != 'N/A'
+        # We only want to get current version if we are a workflow call and the target version is set
+        if: github.event_name == 'workflow_call' && inputs.target_version != 'N/A'
         run: |
           echo "Getting current version"
           version=$(grep -oP '(?<=__version__ = \").*(?=\")' src/**/_version.py | head -n 1)
+          echo "Version found: $version"
           echo "previous_version=$version" >> $GITHUB_OUTPUT
-      
+      - name: Set Update Required
+        id: set-update-required
+        run: |
+          if [ "${{ steps.version-tag.outputs.version }}" != "${{ steps.version-tag.outputs.previous_version }}" ]; then
+              echo "Update required"
+              echo "update_required=true" >> $GITHUB_OUTPUT
+          else
+              echo "No update required"
+              echo "update_required=false" >> $GITHUB_OUTPUT
+          fi
+
   update-version-and-tag:
     name: Update Repo Tag and Version
     runs-on: ubuntu-latest
     needs: get-version-tag
-    if: github.actor != 'github-actions[bot]' && ${{ !inputs.dry_run }} && needs.get-version-tag.outputs.version != needs.get-version-tag.outputs.previous_version
+    # We only want to run if:
+    #   1. We are not the GitHub bot
+    #   2. We are not a workflow call or we are not in dry run mode
+    #   3. The update is required (i.e. the version has changed)
+    if: |
+      github.actor != 'github-actions[bot]' && 
+      (github.event_name != 'workflow_call' || !inputs.dry_run) && 
+      needs.get-version-tag.outputs.update_required == 'true'
 
     steps:
       - uses: actions/checkout@v4
