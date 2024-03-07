@@ -21,7 +21,18 @@ from dataclasses import Field, dataclass, fields
 from functools import wraps
 from pathlib import Path
 from types import MethodType
-from typing import Any, ClassVar, Dict, Protocol, Tuple, Type, TypeVar, Union, cast
+from typing import (
+    Any,
+    ClassVar,
+    Dict,
+    Protocol,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+    runtime_checkable,
+)
 
 import marshmallow as mm
 import yaml  # type: ignore[import-untyped]
@@ -52,6 +63,7 @@ SM = TypeVar("SM", bound="SchemaModel")
 # --------------------------------------------------------------
 
 
+@runtime_checkable
 class ModelProtocol(Protocol):
     @classmethod
     def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T:
