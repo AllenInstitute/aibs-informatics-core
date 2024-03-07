@@ -9,7 +9,10 @@ on:
   workflow_dispatch:
     inputs:
       target_version:
-        description: 'Target Version (e.g. 1.2.3). This is the version to bump to.'
+        description: |
+          Optionally, the target version (e.g. 1.2.3) to bump to. 
+          If not set, the version will be bumped based on the bump type.
+          (leave empty for default)
         required: false
         default: 'N/A'
       bump_type:
@@ -47,12 +50,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Print Version Info
         # We only want to print if we are not a workflow call or if the target version is 'N/A'
-        if: github.event_name != 'workflow_call' || inputs.target_version == 'N/A'
+        # if: github.event_name != 'workflow_call' || inputs.target_version == 'N/A'
         run: |
           echo "Version:          ${{ steps.version-tag.outputs.version }}"
           echo "Version Tag:      ${{ steps.version-tag.outputs.version_tag }}"
           echo "Version Type:     ${{ steps.version-tag.outputs.version_type }}"
           echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
+          echo "github event name: ${{ github.event_name }}, target version: ${{ inputs.target_version }}"
       - name: Set Target Version
         id: set-target-version
         # We only want to set the target version if we are a workflow call and the target version is set
