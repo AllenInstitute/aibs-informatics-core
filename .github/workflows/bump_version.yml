@@ -49,17 +49,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Print Version Info
         # We only want to print if we are not a workflow call or if the target version is 'N/A'
-        # if: github.event_name != 'workflow_dispatch' || !inputs.target_version
+        if: github.event_name != 'workflow_dispatch' || !inputs.target_version
         run: |
           echo "Version:          ${{ steps.version-tag.outputs.version }}"
           echo "Version Tag:      ${{ steps.version-tag.outputs.version_tag }}"
           echo "Version Type:     ${{ steps.version-tag.outputs.version_type }}"
           echo "Previous Version: ${{ steps.version-tag.outputs.previous_version }}"
-          echo "github event name: ${{ github.event_name }}, target version: ${{ inputs.target_version }}"
       - name: Set Target Version
         id: set-target-version
         # We only want to set the target version if we are a workflow call and the target version is set
-        # if: github.event_name == 'workflow_dispatch' && inputs.target_version
+        if: github.event_name == 'workflow_dispatch' && inputs.target_version
         run: |
           echo "Setting target version to ${{ inputs.target_version }}"
           echo "version=${{ inputs.target_version }}" >> $GITHUB_OUTPUT
