@@ -201,11 +201,13 @@ def test__LambdaFunctionUrl__validation(
 
 
 def test__LambdaFunctionUrl__processed_props_work():
-    function_url1 = LambdaFunctionUrl("https://abcd1234.lambda-url.us-west-2.on.aws/subpath?query=string&other=stuff")
+    function_url1 = LambdaFunctionUrl(
+        "https://abcd1234.lambda-url.us-west-2.on.aws/subpath?query=string&other=stuff"
+    )
 
     assert function_url1.path == "/subpath"
     assert function_url1.query == {"query": ["string"], "other": ["stuff"]}
-    
+
     function_url2 = LambdaFunctionUrl("https://abcd1234.lambda-url.us-west-2.on.aws")
     assert function_url2.path == ""
     assert function_url2.query == {}
