@@ -75,7 +75,7 @@ jobs:
       - name: Set Update Required
         id: set-update-required
         run: |
-          if [ "${{ steps.version-tag.outputs.version }}" != "${{ steps.version-tag.outputs.previous_version }}" ]; then
+          if [ "${{ steps.set-target-version.outputs.version || steps.version-tag.outputs.version }}" != "${{ steps.version-tag.outputs.previous_version }}" ]; then
               echo "Update required"
               echo "update_required=true" >> $GITHUB_OUTPUT
           else
@@ -94,7 +94,7 @@ jobs:
     if: |
       github.actor != 'github-actions[bot]' && 
       (github.event_name != 'workflow_dispatch' || !inputs.dry_run) && 
-      needs.get-version-tag.outputs.version == needs.get-version-tag.outputs.previous_version
+      needs.get-version-tag.outputs.update_required == 'true'
 
     steps:
       - uses: actions/checkout@v4
