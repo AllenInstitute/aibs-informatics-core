@@ -94,7 +94,7 @@ jobs:
     if: |
       github.actor != 'github-actions[bot]' && 
       (github.event_name != 'workflow_dispatch' || !inputs.dry_run) && 
-      needs.get-version-tag.outputs.update_required == 'true'
+      needs.get-version-tag.outputs.version == needs.get-version-tag.outputs.previous_version
 
     steps:
       - uses: actions/checkout@v4
