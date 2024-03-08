@@ -1,0 +1,52 @@
+# 
+name: Update Version in Source Code
+
+description: |
+  Get the version from the source code and output the version and tag. 
+
+inputs:
+  version:
+    description: 'The version number (e.g. 1.2.3)'
+    required: true
+  version_tag:
+    description: 'Optionally, can The version tag (e.g. v1.2.3)'
+  version_file:
+    description: 'The file containing the version number'
+    default: '_version.py'
+    required: false
+  version_regex:
+    description:|
+     The regex to extract everything BUT the version number. It is very important to 
+     capture BEFORE and AFTER the version number. This is going to be used with `sed -E`
+    default: "(__version__ = ['\"])[0-9]+\.[0-9]+\.[0-9]+(['\"])"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update Version in Source Code
+      run: |
+        echo "Updating version to ${{ inputs.version }}"
+        find . -name ${{ inputs.version_file }} -exec sed -i -E "s/${{ inputs.version_regex }}/\1${new_version}\2/" {} \;
+        echo git diff following update:
+        git diff
+    - name: Create Git commit and tag
+        if ! git diff --name-only -- **/${{ inputs.version_file }} | grep -q '${{ inputs.version_file }}'; then
+            echo "No changes detected. Version already ${{ inputs.version }}."
+            echo "Skipping commit and tag."  
+        else
+            echo "Changes detected."
+            git add **/${{ inputs.version_file }}
+            git commit -m "Bump version to ${{ inputs.version }}"
+            git push
+
+            if [ -z "${{ inputs.version_tag }}" ]; then
+                echo "No version tag provided. Skipping tag."
+                echo "Skipping tag."  
+            else
+                echo "Creating tag ${{ inputs.version_tag }}"
+                git tag -a ${{ inputs.version_tag }} -m "Release ${{ inputs.version_tag }}"
+                git push --tags
+            fi
+        fi
+```

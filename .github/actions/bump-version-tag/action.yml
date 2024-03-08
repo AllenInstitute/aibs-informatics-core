@@ -1,7 +1,7 @@
 name: Bump Version and Tag Reusable Workflow
 
 description: |
-  Bumps the version and version tags for commit if there are any specified 
+  Get the would-be bumped version and version tag for a commit based on the 
   changes since last version.
 inputs:
   bump_type:
@@ -15,7 +15,7 @@ inputs:
     type: boolean
     required: false
     default: false
-  GITHUB_TOKEN:
+  token:
     description: 'Token for AllenInstitute GitHub'
     required: true
 outputs:
@@ -51,7 +51,7 @@ runs:
       id: bump-version-tag
       uses: anothrNick/github-tag-action@1.64.0
       env:
-        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ inputs.token }}
         DEFAULT_BUMP: ${{ inputs.bump_type || 'none' }}
         MAJOR_STRING_TOKEN: '(MAJOR)'
         MINOR_STRING_TOKEN: '(MINOR)'

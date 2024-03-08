@@ -1,4 +1,4 @@
-name: AllenInstitute Repo Setup
+name: AllenInstitute Repo Permissions Setup
 
 description: |
   Configures all credentials to use AllenInstitute Repos in GitHub.

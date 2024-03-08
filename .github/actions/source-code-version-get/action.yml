@@ -2,7 +2,7 @@
 name: Get Version from Source Code
 
 description: |
-  Get the version from the source code and output the version and tag.
+  Get the version from the source code and output the version and tag. 
 
 inputs:
   version_file:
@@ -15,7 +15,7 @@ inputs:
     required: false
   version_tag_prefix:
     description: 'The prefix for the version tag'
-    required: true
+    required: false
     default: 'v'
 outputs:
   version:
