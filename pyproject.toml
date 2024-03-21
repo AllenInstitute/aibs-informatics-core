@@ -22,7 +22,7 @@ dependencies = [
     "pathlib-abc",
     "python-dateutil",
     "pytz",
-    "pyyaml==6.0",
+    "pyyaml~=6.0",
     "requests",
     "typing_inspect",
 ]
