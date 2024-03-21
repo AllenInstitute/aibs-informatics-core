@@ -25,12 +25,14 @@ from typing import (
     Any,
     ClassVar,
     Dict,
+    Optional,
     Protocol,
     Tuple,
     Type,
     TypeVar,
     Union,
     cast,
+    get_type_hints,
     runtime_checkable,
 )
 
@@ -163,7 +165,20 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
     @classmethod
     @cache
     def get_model_fields(cls) -> Tuple[Field, ...]:
-        return fields(cls)  # type: ignore[arg-type]
+        resolved: Optional[Dict[str, Type]] = None
+        class_fields = fields(cls)  # type: ignore[arg-type]
+        for f in class_fields:
+            # There is a bug with https://peps.python.org/pep-0563/
+            # (postponed evaluation of annotations) where the type of the field is a string.
+            # This is a workaround for that issue.
+            # https://stackoverflow.com/a/55938344/4544508
+            if isinstance(f.type, str):
+                # This avoids running `get_type_hints` unnecessarily
+                if resolved is None:
+                    resolved = get_type_hints(cls)
+                f.type = resolved[f.name]
+
+        return class_fields  # type: ignore[arg-type]
 
     @classmethod
     def is_missing(cls, value: Any) -> bool:
