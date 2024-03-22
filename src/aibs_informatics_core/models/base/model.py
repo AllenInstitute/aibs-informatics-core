@@ -97,7 +97,7 @@ class ModelProtocol(Protocol):
 # --------------------------------------------------------------
 
 
-class ModelBase(ModelProtocol):
+class ModelBase:
     @classmethod
     @abc.abstractmethod
     def from_dict(cls: Type[M], data: JSONObject, **kwargs) -> M:
