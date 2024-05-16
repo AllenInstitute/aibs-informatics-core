@@ -71,6 +71,7 @@ def retry(
                         [callback(ex) for callback in applicable_callbacks]
                     ):
                         raise ex
+                    assert logger is not None
                     logger.warning("%s, Retrying in %d seconds..." % (str(ex), mdelay))
                     time.sleep(mdelay)
                     mtries -= 1

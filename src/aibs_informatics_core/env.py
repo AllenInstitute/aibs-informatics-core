@@ -180,7 +180,7 @@ class EnvBase(ValidatedStr):
         return EnvType(env_type)
 
     @classmethod
-    def load_env_label__from_env(cls) -> str:
+    def load_env_label__from_env(cls) -> Optional[str]:
         return get_env_var(ENV_LABEL_KEY, ENV_LABEL_KEY_ALIAS, LABEL_KEY, LABEL_KEY_ALIAS)
 
 
@@ -197,7 +197,7 @@ class EnvBaseMixins:
         try:
             return self._env_base
         except AttributeError:
-            self.env_base = None
+            self.env_base = None  # type: ignore[assignment]
             return self._env_base
 
     @env_base.setter
@@ -213,8 +213,8 @@ class EnvBaseMixins:
 
 
 class EnvBaseEnumMixins:
-    def prefix_with(self, env_base: EnvBase = None) -> str:
-        env_base = get_env_base(env_base)
+    def prefix_with(self, env_base: Optional[EnvBase] = None) -> str:
+        env_base: EnvBase = get_env_base(env_base)
         if isinstance(self, Enum):
             return env_base.prefixed(self.value)
         else:

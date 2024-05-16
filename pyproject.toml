@@ -146,8 +146,7 @@ no_site_packages = false
 
 # Untyped definitions and calls
 # https://mypy.readthedocs.io/en/stable/config_file.html#untyped-definitions-and-calls
-# TODO: enable and fix errors
-check_untyped_defs = false
+check_untyped_defs = true
 
 # Miscellaneous strictness flags
 # https://mypy.readthedocs.io/en/latest/config_file.html#miscellaneous-strictness-flags
@@ -170,7 +169,7 @@ show_absolute_path = false
 
 # None and Optional handling
 # https://mypy.readthedocs.io/en/latest/config_file.html#none-and-optional-handling
-strict_optional = false
+strict_optional = true
 
 # Miscellaneous
 # https://mypy.readthedocs.io/en/latest/config_file.html#miscellaneous

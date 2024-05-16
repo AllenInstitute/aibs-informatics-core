@@ -406,8 +406,8 @@ def env_var_overrides(*env_vars: EnvVarItemType):
     try:
         yield
     finally:
-        for key, value in original_env_vars.items():
-            if value is None:
-                del os.environ[key]
+        for k, v in original_env_vars.items():
+            if v is None:
+                del os.environ[k]
             else:
-                os.environ[key] = value
+                os.environ[k] = v

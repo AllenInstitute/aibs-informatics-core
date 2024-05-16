@@ -52,10 +52,14 @@ class HTTPParameters:
         return request_json
 
     @classmethod
-    def from_stringified_route_params(cls, parameters: Dict[str, str]) -> Dict[str, JSON]:
+    def from_stringified_route_params(
+        cls, parameters: Optional[Dict[str, str]]
+    ) -> Dict[str, JSON]:
         evaluated_params = dict()
+
+        input_params = parameters or dict()
         # literal_eval as much as we can to python primitives, our schema will take care of rest.
-        for k, v in parameters.items():
+        for k, v in input_params.items():
             try:
                 evaluated_params[k] = ast.literal_eval(urllib.parse.unquote(v))
             except Exception:
@@ -94,7 +98,7 @@ class HTTPParameters:
         return {QUERY_PARAMS_KEY: urlsafe_b64encode(parameters_str.encode()).decode()}
 
     @classmethod
-    def to_stringified_request_body(cls, parameters: Optional[Dict[str, JSON]]) -> str:
+    def to_stringified_request_body(cls, parameters: Optional[Dict[str, JSON]]) -> Optional[str]:
         if parameters is None or len(parameters) == 0:
             return None
         return json.dumps(parameters, sort_keys=True)
