@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, Iterable, List, Optional
+from typing import Dict, FrozenSet, Iterable, List, Optional, Union
 
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.base import (
@@ -105,7 +105,7 @@ class ParamSetPair(SchemaModel):
             List[ParamSetPair]: A list of ParamSetPairs
         """
         # group pairs only by outputs
-        output_set_pairs: Dict[str, ParamSetPair] = {}
+        output_set_pairs: Dict[Union[str, None], ParamSetPair] = {}
         for pair in pairs:
             if pair.output not in output_set_pairs:
                 output_set_pairs[pair.output] = ParamSetPair(
@@ -210,7 +210,7 @@ class JobParamSetPair:
             List[JobParamSetPair]: A list of JobParamSetPairs
         """
         # group pairs only by outputs
-        output_set_pairs: Dict[ResolvableJobParam, JobParamSetPair] = {}
+        output_set_pairs: Dict[Union[ResolvableJobParam, None], JobParamSetPair] = {}
         for pair in pairs:
             if pair.output not in output_set_pairs:
                 output_set_pairs[pair.output] = JobParamSetPair(

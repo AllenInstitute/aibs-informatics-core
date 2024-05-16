@@ -107,7 +107,13 @@ class DBIndex(StrEnum):
         obj._sort_key_name = values[2]
         obj._index_name = values[3]
         obj._attributes = values[4] if len(values) > 4 else None
-        obj._all_values = tuple(values)
+        obj._all_values = (
+            obj._value_,
+            obj._key_name,
+            obj._sort_key_name,
+            obj._index_name,
+            obj._attributes,
+        )
         return obj
 
     @classmethod

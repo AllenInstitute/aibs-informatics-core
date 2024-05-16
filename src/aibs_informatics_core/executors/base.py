@@ -187,7 +187,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         """
 
         if local_path.is_dir() or (
-            local_path.parent.exists and not os.access(local_path.parent, os.W_OK)
+            local_path.parent.exists() and not os.access(local_path.parent, os.W_OK)
         ):
             raise ValueError(
                 f"local path specified {local_path} cannot be written to. " f"Must be a file "

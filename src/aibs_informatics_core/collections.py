@@ -268,7 +268,7 @@ class PostInitMixin:
         """Default __post_init__ method. Safe parent __post_init__ method calls"""
 
         try:
-            post_init = super().__post_init__  # type: ignore[attr]
+            post_init = super().__post_init__  # type: ignore[misc]
         except AttributeError:
             pass
         else:

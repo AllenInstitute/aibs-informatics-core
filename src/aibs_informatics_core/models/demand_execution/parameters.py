@@ -147,11 +147,12 @@ class DemandExecutionParameters(SchemaModel):
 
         # Validate no duplicate output sets
         seen = set()
-        duplicate_output_sets = [
-            s.outputs
-            for s in self.param_set_pairs
-            if s.outputs in seen or (s.outputs and seen.add(s.outputs))
-        ]
+        duplicate_output_sets = []
+        for s in self.param_set_pairs:
+            if s.outputs in seen:
+                duplicate_output_sets.append(s.outputs)
+            if s.outputs:
+                seen.add(s.outputs)
         if len(duplicate_output_sets) > 0:
             raise ValidationError(
                 "Duplicate output set(s) in input_output_map: " f"{duplicate_output_sets}"
@@ -234,7 +235,7 @@ class DemandExecutionParameters(SchemaModel):
         param_set_pairs: List[ParamSetPair] = []
         param_pairs: List[ParamPair] = []
         if self.param_pair_overrides:
-            seen_outputs: Set[str] = set()
+            seen_outputs: Set[Union[str, None]] = set()
             for pair in self.param_pair_overrides:
                 if isinstance(pair, ParamSetPair):
                     seen_outputs.update(pair.outputs)
