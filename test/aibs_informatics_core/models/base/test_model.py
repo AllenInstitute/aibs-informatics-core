@@ -68,14 +68,6 @@ def test__BaseModel__to_json__from_json():
     assert new_model.a_str == "I'm a string!"
 
 
-def test__BaseModel__copy():
-    model = SimpleBaseModel(a_str="I'm a string!", a_int=42)
-    new_model = model.copy()
-    assert new_model.a_int == 42
-    assert new_model.a_str == "I'm a string!"
-    assert new_model is not model
-
-
 # ----------------------------------------------------------
 #                       DataClassModel tests
 # ----------------------------------------------------------

@@ -88,9 +88,6 @@ class ModelProtocol(Protocol):
     def to_path(self, path: Path, **kwargs):
         ...  # pragma: no cover
 
-    def copy(self: T, **kwargs) -> T:
-        ...  # pragma: no cover
-
 
 # --------------------------------------------------------------
 #                             BaseModel ABC
@@ -129,9 +126,6 @@ class ModelBase:
 
     def to_path(self, path: Path, **kwargs):
         path.write_text(self.to_json(**kwargs))
-
-    def copy(self: M, **kwargs) -> M:
-        return self.from_dict(self.to_dict(**kwargs), **kwargs)
 
 
 # --------------------------------------------------------------
