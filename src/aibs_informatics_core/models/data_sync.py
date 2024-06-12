@@ -100,6 +100,8 @@ class DataSyncConfig(SchemaModel):
     max_concurrency: int = custom_field(default=25, mm_field=IntegerField())
     retain_source_data: bool = custom_field(default=True, mm_field=BooleanField())
     require_lock: bool = custom_field(default=False, mm_field=BooleanField())
+    force: bool = custom_field(default=False, mm_field=BooleanField())
+    size_only: bool = custom_field(default=False, mm_field=BooleanField())
 
 
 @dataclass

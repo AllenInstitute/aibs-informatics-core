@@ -19,6 +19,7 @@ __all__ = [
 ]
 
 import re
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -39,6 +40,10 @@ from typing import (
     Union,
     overload,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import NotRequired
+
 
 import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
@@ -77,9 +82,24 @@ def validate_url(
     validate(candidate_url)  # raises marshmallow.ValidationError if invalid
 
 
-class BucketAndKey(TypedDict):
-    Bucket: str
-    Key: str
+if sys.version_info >= (3, 11):
+
+    class BucketAndKey(TypedDict):
+        Bucket: str
+        Key: str
+        VersionId: NotRequired[str]
+
+else:  # pragma: no cover
+
+    class _BucketAndKeyOpt(TypedDict, total=False):
+        VersionId: str
+
+    class _BucketAndKeyReq(TypedDict):
+        Bucket: str
+        Key: str
+
+    class BucketAndKey(_BucketAndKeyReq, _BucketAndKeyOpt):
+        pass
 
 
 @dataclass
@@ -366,7 +386,6 @@ U = TypeVar("U", S3Path, Path)
 class S3TransferRequest(Generic[T, U]):
     source_path: T
     destination_path: U
-    force: bool = True
 
 
 @dataclass
