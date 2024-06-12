@@ -31,7 +31,6 @@ from typing import (
     Generic,
     List,
     Literal,
-    NotRequired,
     Optional,
     Pattern,
     Protocol,
@@ -41,6 +40,10 @@ from typing import (
     Union,
     overload,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import NotRequired
+
 
 import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
