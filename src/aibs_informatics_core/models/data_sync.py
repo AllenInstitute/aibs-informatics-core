@@ -102,6 +102,7 @@ class DataSyncConfig(SchemaModel):
     require_lock: bool = custom_field(default=False, mm_field=BooleanField())
     force: bool = custom_field(default=False, mm_field=BooleanField())
     size_only: bool = custom_field(default=False, mm_field=BooleanField())
+    fail_if_missing: bool = custom_field(default=True, mm_field=BooleanField())
 
 
 @dataclass
