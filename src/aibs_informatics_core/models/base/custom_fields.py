@@ -242,6 +242,9 @@ class UnionField(mm.fields.Field):
                         return class_field._serialize(value, attr=attr, obj=obj, **kwargs)
                     except mm.ValidationError as e:
                         errors[class_type].append(e)
+                    except Exception as e:
+                        print(e)
+                        errors[class_type].append(self.make_error(key="unexpected_error", error=e))
         else:
             if len(errors):
                 raise self.make_error(

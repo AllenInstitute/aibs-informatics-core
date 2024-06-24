@@ -17,7 +17,7 @@ __all__ = [
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import marshmallow as mm
 
@@ -27,6 +27,7 @@ from aibs_informatics_core.models.base import (
     BooleanField,
     CustomStringField,
     IntegerField,
+    ListField,
     PathField,
     RawField,
     SchemaModel,
@@ -123,7 +124,14 @@ class DataSyncResponse(SchemaModel):
 
 @dataclass
 class BatchDataSyncRequest(SchemaModel):
-    requests: List[DataSyncRequest]
+    requests: Union[List[DataSyncRequest], S3Path] = custom_field(
+        mm_field=UnionField(
+            [
+                (list, ListField(DataSyncRequest.as_mm_field())),
+                (S3Path, S3Path.as_mm_field()),
+            ]
+        )
+    )
 
     @classmethod
     @mm.pre_load
@@ -141,8 +149,13 @@ class BatchDataSyncResponse(SchemaModel):
 @dataclass
 class PrepareBatchDataSyncRequest(DataSyncRequest):
     batch_size_bytes_limit: Optional[int] = custom_field(default=None, mm_field=IntegerField())
+    intermediate_s3_path: Optional[S3Path] = custom_field(
+        default=None, mm_field=S3Path.as_mm_field()
+    )
 
 
 @dataclass
 class PrepareBatchDataSyncResponse(SchemaModel):
-    requests: List[BatchDataSyncRequest]
+    requests: List[BatchDataSyncRequest] = custom_field(
+        mm_field=ListField(BatchDataSyncRequest.as_mm_field())
+    )
