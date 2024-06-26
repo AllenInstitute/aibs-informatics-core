@@ -7,7 +7,7 @@ from pytest import mark, param, raises
 
 from aibs_informatics_core.env import EnvBase
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3Path
+from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
 from aibs_informatics_core.models.data_sync import (
     BatchDataSyncRequest,
     BatchDataSyncResponse,
@@ -110,7 +110,7 @@ def test__BatchDataSyncRequest__from_dict():
             DataSyncRequest(
                 source_path=S3_URI,
                 destination_path=S3_URI,
-                source_path_prefix="prefix",
+                source_path_prefix=S3KeyPrefix("prefix"),
             ),
         ],
     )
@@ -119,4 +119,131 @@ def test__BatchDataSyncRequest__from_dict():
 
     # handles single request
     actual = BatchDataSyncRequest.from_dict(single_request)
+    assert actual == expected
+
+
+def test__BatchDataSyncRequest__to_dict():
+    request = BatchDataSyncRequest(
+        requests=[
+            DataSyncRequest(
+                source_path=S3_URI,
+                destination_path=S3_URI,
+                source_path_prefix=S3KeyPrefix("prefix"),
+            ),
+        ],
+    )
+    expected = {
+        "requests": [
+            {
+                "source_path": str(S3_URI),
+                "destination_path": str(S3_URI),
+                "source_path_prefix": "prefix",
+                "fail_if_missing": True,
+                "max_concurrency": 25,
+                "require_lock": False,
+                "force": False,
+                "size_only": False,
+                "retain_source_data": True,
+            },
+        ],
+    }
+    actual = request.to_dict()
+    assert actual == expected
+
+
+def test__BatchDataSyncRequest__to_dict__s3_path():
+    response = BatchDataSyncRequest(
+        requests=S3_URI,
+    )
+    expected = {
+        "requests": str(S3_URI),
+    }
+    actual = response.to_dict()
+    assert actual == expected
+
+
+def test__PrepareBatchDataSyncResponse__to_dict():
+    model_dict = PrepareBatchDataSyncResponse(
+        requests=[
+            BatchDataSyncRequest(
+                requests=[
+                    DataSyncRequest(
+                        source_path=S3_URI,
+                        destination_path=S3_URI,
+                        retain_source_data=True,
+                    ),
+                ],
+            ),
+        ],
+    )
+    expected = {
+        "requests": [
+            {
+                "requests": [
+                    {
+                        "source_path": str(S3_URI),
+                        "destination_path": str(S3_URI),
+                        "fail_if_missing": True,
+                        "max_concurrency": 25,
+                        "require_lock": False,
+                        "force": False,
+                        "size_only": False,
+                        "retain_source_data": True,
+                    },
+                ],
+            },
+        ],
+    }
+    actual = model_dict.to_dict()
+    assert actual == expected
+
+
+def test__PrepareBatchDataSyncResponse__to_dict__s3_paths():
+    model_dict = PrepareBatchDataSyncResponse(
+        requests=[BatchDataSyncRequest(requests=S3_URI)],
+    )
+    expected = {
+        "requests": [
+            {
+                "requests": str(S3_URI),
+            },
+        ],
+    }
+    actual = model_dict.to_dict()
+    assert actual == expected
+
+
+def test__PrepareBatchDataSyncResponse__from_dict():
+    expected = PrepareBatchDataSyncResponse(
+        requests=[
+            BatchDataSyncRequest(
+                requests=[
+                    DataSyncRequest(
+                        source_path=S3_URI,
+                        destination_path=S3_URI,
+                        retain_source_data=True,
+                    ),
+                ],
+            ),
+        ],
+    )
+    model_dict = {
+        "requests": [
+            {
+                "requests": [
+                    {
+                        "source_path": str(S3_URI),
+                        "destination_path": str(S3_URI),
+                        "fail_if_missing": True,
+                        "max_concurrency": 25,
+                        "require_lock": False,
+                        "force": False,
+                        "size_only": False,
+                        "retain_source_data": True,
+                    },
+                ],
+            },
+        ],
+    }
+    actual = PrepareBatchDataSyncResponse.from_dict(model_dict)
     assert actual == expected
