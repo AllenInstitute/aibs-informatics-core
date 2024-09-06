@@ -437,8 +437,8 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
         schema = model_schema_method(cls, partial=partial, **kwargs)
 
         if remove_post_load_hooks:
-            post_load_key = (POST_LOAD, False)
-            for post_load_method_name in schema._hooks.get(post_load_key, []):
+            post_load_key = POST_LOAD
+            for post_load_method_name, many, args in schema._hooks.get(post_load_key, []):
                 try:
                     post_load_method = getattr(schema, post_load_method_name)
                     if hook_attr := getattr(post_load_method, MARSHMALLOW_HOOK_ATTR):
