@@ -710,13 +710,24 @@ def test__SchemaModel__auto():
     with_hooks_schema = ModelWithSchemaHooks.model_schema()
 
     for key, expected1, expected2 in [
-        (("pre_load", False), [], []),
-        (("post_load", False), ["make_modelwithnoschemahooks"], ["_make_object__auto"]),
-        (("pre_dump", False), [], ["_no_op__auto"]),
+        ("pre_load", [], []),
         (
-            ("post_dump", False),
+            "post_load",
+            [("make_modelwithnoschemahooks", False, {"pass_original": False})],
+            [("_make_object__auto", False, {"pass_original": False})],
+        ),
+        (
+            "pre_dump",
             [],
-            ["_remove_missing_values__auto", "_remove_optional_values__auto"],
+            [("_no_op__auto", False, {})],
+        ),
+        (
+            "post_dump",
+            [],
+            [
+                ("_remove_missing_values__auto", False, {"pass_original": False}),
+                ("_remove_optional_values__auto", False, {"pass_original": False}),
+            ],
         ),
     ]:
         assert no_hooks_schema._hooks[key] == expected1
