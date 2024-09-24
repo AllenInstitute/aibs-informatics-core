@@ -362,6 +362,16 @@ class FileOperationsTests(FileOperationsBaseTest):
         remove_path(path)
         self.assertFalse(path.exists())
 
+    def test__PathLock__locks_using_lock_root(self):
+        path = self.tmp_path()
+        lock_root = self.tmp_path()
+        with PathLock(path, lock_root=lock_root) as lock:
+            lock_path = lock._lock_path
+            self.assertTrue(lock_path.exists())
+            self.assertStringPattern(rf"{lock_root}/[a-z0-9]{{64}}.lock", f"{lock_path}")
+
+        self.assertFalse(lock_path.exists())
+
     def test__PathLock__locks_folder(self):
         path = self.tmp_path()
         with PathLock(path) as lock:

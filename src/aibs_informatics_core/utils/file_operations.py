@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Pattern, Union, cast
+from typing import Dict, List, Literal, Optional, Pattern, Sequence, Union, cast
 
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
@@ -252,15 +252,15 @@ def get_path_size_bytes(path: Path) -> int:
 
 def get_path_hash(
     path: Union[Path, str],
-    includes: Optional[List[Union[Pattern, str]]] = None,
-    excludes: Optional[List[Union[Pattern, str]]] = None,
+    includes: Optional[Sequence[Union[Pattern, str]]] = None,
+    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
 ) -> str:
     """Generate the hash based on files found under a given path.
 
     Args:
         path (str): path to compute a hash
-        includes (List[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (List[str], optional): list of regex patterns to exclude. Defaults to None.
+        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
+        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
         str: hash value
@@ -278,8 +278,8 @@ def find_paths(
     root: Union[str, Path],
     include_dirs: bool = True,
     include_files: bool = True,
-    includes: Optional[List[Union[Pattern, str]]] = None,
-    excludes: Optional[List[Union[Pattern, str]]] = None,
+    includes: Optional[Sequence[Union[Pattern, str]]] = None,
+    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
 ) -> List[str]:
     """Find paths that match criteria
 
@@ -288,8 +288,8 @@ def find_paths(
         include_dirs (bool, optional): whether to include directories. Defaults to True.
         include_files (bool, optional): whether to include files. Defaults to True.
 
-        includes (List[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (List[str], optional): list of regex patterns to exclude. Defaults to None.
+        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
+        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
         List[str]: list of paths matching criteria
@@ -354,9 +354,17 @@ class CannotAcquirePathLockError(Exception):
 @dataclass
 class PathLock:
     path: Union[str, Path]
+    lock_root: Optional[Union[str, Path]] = None
 
     def __post_init__(self):
-        self._lock_path = Path(f"{self.path}.lock")
+        # If lock root is provided, then create a lock file in that directory
+        # with the name of the hash of the path. Otherwise, create a lock file
+        # with the same name as the path with a .lock extension.
+        if self.lock_root:
+            lock_file_name = f"{hashlib.sha256(str(self.path).encode()).hexdigest()}.lock"
+            self._lock_path = Path(self.lock_root) / lock_file_name
+        else:
+            self._lock_path = Path(f"{self.path}.lock")
         self._lock_file = None
         logger.info(f"Created {self} with {self._lock_path} lock file")
 
@@ -366,6 +374,10 @@ class PathLock:
 
     def __exit__(self, exec_type, exec_val, exec_tb):
         self.release()
+
+    @property
+    def is_locked(self) -> bool:
+        return self._lock_file is not None and not self._lock_file.closed
 
     def acquire(self):
         logger.info(f"Acquiring lock...")
