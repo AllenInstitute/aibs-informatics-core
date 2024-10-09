@@ -1,6 +1,7 @@
 import errno
 import os
 import tarfile
+import threading
 import zipfile
 from pathlib import Path
 from typing import List, Literal, Sequence, Tuple, Union
@@ -393,8 +394,32 @@ class FileOperationsTests(FileOperationsBaseTest):
         path = self.tmp_path()
         with PathLock(path) as lock:
             with self.assertRaises(Exception):
-                with PathLock(path) as lock2:
+                with PathLock(path, raise_if_locked=True) as lock2:
                     pass
+
+    def test__PathLock__blocks_if_lock_already_acquired(self):
+        path = self.tmp_path()
+        lock1 = PathLock(path)
+        lock1.__enter__()
+        try:
+
+            def acquire_lock():
+                with PathLock(path, raise_if_locked=False):
+                    pass  # Should not get here until lock1 is released
+
+            t = threading.Thread(target=acquire_lock)
+            t.start()
+            t.join(timeout=1)  # Wait 1 second for the thread to finish
+
+            # If the thread is still alive, it means it's blocked as expected
+            self.assertTrue(t.is_alive(), "The thread should be blocked and still alive.")
+
+        finally:
+            try:
+                lock1.__exit__(None, None, None)
+                t.join()  # Now the thread should finish since the lock is released
+            except Exception:
+                pass
 
 
 @mark.parametrize(

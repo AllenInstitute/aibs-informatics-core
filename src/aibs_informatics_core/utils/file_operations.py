@@ -353,8 +353,26 @@ class CannotAcquirePathLockError(Exception):
 
 @dataclass
 class PathLock:
+    """
+    A context manager for acquiring and releasing locks on a file or directory path.
+
+    If lock_root is provided, a lock file will be created in that directory with the name of the hash of the path.
+    If lock_root is not provided, a lock file with the same name as the path and a .lock extension will be created.
+
+    Providing an explicit lock root is useful if you dont want processes to read the lock file
+    from the same directory as the file being locked.
+
+    Attributes:
+        path (Union[str, Path]): The path to the file.
+        lock_root (Optional[Union[str, Path]]): The root directory for lock files. If provided, a
+            lock file will be created in this directory with the name of the hash of the path.
+            Otherwise, a lock file with the same name as the path and a .lock extension
+            will be created. Defaults to None.
+    """
+
     path: Union[str, Path]
     lock_root: Optional[Union[str, Path]] = None
+    raise_if_locked: bool = False
 
     def __post_init__(self):
         # If lock root is provided, then create a lock file in that directory
@@ -375,16 +393,15 @@ class PathLock:
     def __exit__(self, exec_type, exec_val, exec_tb):
         self.release()
 
-    @property
-    def is_locked(self) -> bool:
-        return self._lock_file is not None and not self._lock_file.closed
-
     def acquire(self):
         logger.info(f"Acquiring lock...")
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
             self._lock_file = open(self._lock_path, "w")
-            fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            op = fcntl.LOCK_EX
+            if self.raise_if_locked:
+                op |= fcntl.LOCK_NB
+            fcntl.flock(self._lock_file, op)
             self._lock_file.write(f"{datetime.now().timestamp()}")
             logger.info(f"Lock acquired!")
         except Exception as e:
