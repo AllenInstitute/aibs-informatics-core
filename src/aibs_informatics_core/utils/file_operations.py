@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Pattern, Union, cast
+from typing import Dict, List, Literal, Optional, Pattern, Sequence, Union, cast
 
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
@@ -252,15 +252,15 @@ def get_path_size_bytes(path: Path) -> int:
 
 def get_path_hash(
     path: Union[Path, str],
-    includes: Optional[List[Union[Pattern, str]]] = None,
-    excludes: Optional[List[Union[Pattern, str]]] = None,
+    includes: Optional[Sequence[Union[Pattern, str]]] = None,
+    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
 ) -> str:
     """Generate the hash based on files found under a given path.
 
     Args:
         path (str): path to compute a hash
-        includes (List[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (List[str], optional): list of regex patterns to exclude. Defaults to None.
+        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
+        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
         str: hash value
@@ -278,8 +278,8 @@ def find_paths(
     root: Union[str, Path],
     include_dirs: bool = True,
     include_files: bool = True,
-    includes: Optional[List[Union[Pattern, str]]] = None,
-    excludes: Optional[List[Union[Pattern, str]]] = None,
+    includes: Optional[Sequence[Union[Pattern, str]]] = None,
+    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
 ) -> List[str]:
     """Find paths that match criteria
 
@@ -288,8 +288,8 @@ def find_paths(
         include_dirs (bool, optional): whether to include directories. Defaults to True.
         include_files (bool, optional): whether to include files. Defaults to True.
 
-        includes (List[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (List[str], optional): list of regex patterns to exclude. Defaults to None.
+        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
+        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
         List[str]: list of paths matching criteria
@@ -353,10 +353,36 @@ class CannotAcquirePathLockError(Exception):
 
 @dataclass
 class PathLock:
+    """
+    A context manager for acquiring and releasing locks on a file or directory path.
+
+    If lock_root is provided, a lock file will be created in that directory with the name of the hash of the path.
+    If lock_root is not provided, a lock file with the same name as the path and a .lock extension will be created.
+
+    Providing an explicit lock root is useful if you dont want processes to read the lock file
+    from the same directory as the file being locked.
+
+    Attributes:
+        path (Union[str, Path]): The path to the file.
+        lock_root (Optional[Union[str, Path]]): The root directory for lock files. If provided, a
+            lock file will be created in this directory with the name of the hash of the path.
+            Otherwise, a lock file with the same name as the path and a .lock extension
+            will be created. Defaults to None.
+    """
+
     path: Union[str, Path]
+    lock_root: Optional[Union[str, Path]] = None
+    raise_if_locked: bool = False
 
     def __post_init__(self):
-        self._lock_path = Path(f"{self.path}.lock")
+        # If lock root is provided, then create a lock file in that directory
+        # with the name of the hash of the path. Otherwise, create a lock file
+        # with the same name as the path with a .lock extension.
+        if self.lock_root:
+            lock_file_name = f"{hashlib.sha256(str(self.path).encode()).hexdigest()}.lock"
+            self._lock_path = Path(self.lock_root) / lock_file_name
+        else:
+            self._lock_path = Path(f"{self.path}.lock")
         self._lock_file = None
         logger.info(f"Created {self} with {self._lock_path} lock file")
 
@@ -372,7 +398,10 @@ class PathLock:
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
             self._lock_file = open(self._lock_path, "w")
-            fcntl.flock(self._lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            op = fcntl.LOCK_EX
+            if self.raise_if_locked:
+                op |= fcntl.LOCK_NB
+            fcntl.flock(self._lock_file, op)
             self._lock_file.write(f"{datetime.now().timestamp()}")
             logger.info(f"Lock acquired!")
         except Exception as e:
