@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Dict,
     Generic,
     List,
@@ -92,6 +93,8 @@ class ApiRequestConfig(SchemaModel):
     client_version: VersionStr = custom_field(mm_field=CustomStringField(VersionStr))
     service_log_level: Optional[str] = custom_field(default=None)
 
+    client_package_name_default: ClassVar[str] = aibs_informatics_core.__name__
+
     def to_headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {
             CLIENT_VERSION_KEY: str(self.client_version),
@@ -123,7 +126,7 @@ class ApiRequestConfig(SchemaModel):
     @classmethod
     def client_package_name(cls) -> str:
         return get_env_var(
-            CLIENT_VERSION_PACKAGE_ENV_VAR, default_value=aibs_informatics_core.__name__
+            CLIENT_VERSION_PACKAGE_ENV_VAR, default_value=cls.client_package_name_default
         )
 
 
@@ -136,6 +139,23 @@ class ApiHeadersMixin:
             Dict[str, Any]: dictionary of header key-value pairs
         """
         return ApiRequestConfig.build().to_headers()
+
+    @classmethod
+    def validate_headers(
+        cls,
+        headers: Dict[str, str],
+        minimum_client_version: Optional[Union[VersionStr, str]] = None,
+    ) -> None:
+        config = ApiRequestConfig.from_headers(headers)
+
+        # validate client version
+        if minimum_client_version:
+            minimum_client_version = VersionStr(minimum_client_version)
+            if config.client_version < minimum_client_version:
+                raise ValueError(
+                    f"Client version {config.client_version} is too old. "
+                    f"Must use client version {minimum_client_version} or newer"
+                )
 
     @classmethod
     def resolve_request_config(cls, headers: Dict[str, str]) -> ApiRequestConfig:

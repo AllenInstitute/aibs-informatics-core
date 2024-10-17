@@ -281,6 +281,14 @@ class ApiRouteTests(BaseTest):
         with self.assertRaises(ValueError):
             InvalidGetterResourceRoute.get_http_parameters_from_request(BaseRequest(id_str="i"))
 
+    def test__validate_headers__raises_error_for_stale_client_version(self):
+        self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
+        with self.assertRaises(ValueError):
+            GetterResourceRoute.validate_headers(
+                {CLIENT_VERSION_KEY: "0.0.1", API_SERVICE_LOG_LEVEL_KEY: "INFO"},
+                VersionStr("0.0.2"),
+            )
+
     def test__resolve_request_config__works(self):
         config = GetterResourceRoute.resolve_request_config(
             {CLIENT_VERSION_KEY: "0.0.1", API_SERVICE_LOG_LEVEL_KEY: "INFO"}
