@@ -2,20 +2,25 @@ import json
 from dataclasses import dataclass
 from test.base import BaseTest
 from typing import Any, Dict, List, Optional
+from unittest import mock
 
 import requests
 from pytest import mark, param
 
+import aibs_informatics_core
 from aibs_informatics_core.models.api.http_parameters import HTTPParameters
 from aibs_informatics_core.models.api.route import (
     API_SERVICE_LOG_LEVEL_ENV_VAR,
     API_SERVICE_LOG_LEVEL_KEY,
+    CLIENT_VERSION_ENV_VAR,
     CLIENT_VERSION_KEY,
+    CLIENT_VERSION_PACKAGE_ENV_VAR,
     ApiRequestConfig,
     ApiRoute,
 )
 from aibs_informatics_core.models.base.model import ModelProtocol, SchemaModel
 from aibs_informatics_core.models.version import VersionStr
+from aibs_informatics_core.utils.version import get_version
 
 from .helpers import (
     BaseRequest,
@@ -262,6 +267,46 @@ class ApiRequestConfigTests(BaseTest):
         config = ApiRequestConfig.from_headers(headers)
         self.assertEqual(config.client_version, VersionStr("1.0.0"))
         self.assertEqual(config.service_log_level, "INFO")
+
+    def build__client_version__fallback_to_client_version_package_name_default(self):
+        class TestApiRequestConfig(ApiRequestConfig):
+            client_version_default = None
+            client_version_package_name_default = "aibs_informatics_core"
+
+        expected_version = VersionStr(get_version("aibs_informatics_core"))
+
+        self.assertEqual(TestApiRequestConfig.build__client_version(), expected_version)
+
+    @mock.patch("aibs_informatics_core.models.api.route.get_version")
+    def test__build__client_version__when_kwargs_and_env_vars_take_precedence(
+        self, mock_get_version
+    ):
+        PACKAGE_A = "package_a"
+        PACKAGE_B = "package_b"
+
+        mock_get_version.side_effect = lambda x: {
+            PACKAGE_A: "1.1.1",
+            PACKAGE_B: "2.2.2",
+        }[x]
+
+        class TestApiRequestConfig(ApiRequestConfig):
+            client_version_default = VersionStr("1.2.3")
+            client_version_package_name_default = PACKAGE_A
+
+        # client_version_default takes precedence over client_version_package_name_default
+        self.assertEqual(TestApiRequestConfig.build__client_version(), VersionStr("1.2.3"))
+
+        # client_version_package takes precedence over client_version_default when set in env vars / kwargs
+        self.assertEqual(
+            TestApiRequestConfig.build__client_version(client_version_package_name=PACKAGE_B),
+            VersionStr("2.2.2"),
+        )
+
+        # client_version takes precedence over rest when set in env vars / kwargs
+        self.assertEqual(
+            TestApiRequestConfig.build__client_version(client_version=VersionStr("4.5.6")),
+            VersionStr("4.5.6"),
+        )
 
 
 class ApiRouteTests(BaseTest):

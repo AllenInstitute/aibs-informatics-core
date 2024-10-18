@@ -93,7 +93,8 @@ class ApiRequestConfig(SchemaModel):
     client_version: VersionStr = custom_field(mm_field=CustomStringField(VersionStr))
     service_log_level: Optional[str] = custom_field(default=None)
 
-    client_package_name_default: ClassVar[str] = aibs_informatics_core.__name__
+    client_version_default: ClassVar[Optional[VersionStr]] = None
+    client_version_package_name_default: ClassVar[str] = aibs_informatics_core.__name__
 
     def to_headers(self) -> Dict[str, str]:
         headers: Dict[str, str] = {
@@ -115,7 +116,7 @@ class ApiRequestConfig(SchemaModel):
 
     @classmethod
     def build(cls, **kwargs) -> ApiRequestConfig:
-        client_version = VersionStr(get_version(cls.client_package_name()))
+        client_version = cls.build__client_version(**kwargs)
         service_log_level = get_env_var(API_SERVICE_LOG_LEVEL_ENV_VAR)
 
         return cls(
@@ -124,13 +125,33 @@ class ApiRequestConfig(SchemaModel):
         )
 
     @classmethod
-    def client_package_name(cls) -> str:
-        return get_env_var(
-            CLIENT_VERSION_PACKAGE_ENV_VAR, default_value=cls.client_package_name_default
-        )
+    def build__client_version(cls, **kwargs) -> VersionStr:
+        """Builds the client version
+
+        Order of precedence:
+        1. "client_version" in kwargs
+        2. "client_version_package_name" in kwargs -> get_version(VALUE)
+        3. client_version_default (if set) in class
+        4. client_version_package_name_default in class -> get_version(VALUE)
+
+        Returns:
+            VersionStr: version string resolved from the above order of precedence
+        """
+        if "client_version" in kwargs:
+            return VersionStr(kwargs["client_version"])
+        elif "client_version_package_name" in kwargs:
+            return VersionStr(get_version(kwargs["client_version_package_name"]))
+        elif cls.client_version_default:
+            return cls.client_version_default
+        elif cls.client_version_package_name_default:
+            return VersionStr(get_version(cls.client_version_package_name_default))
+        else:  # pragma: no cover
+            raise ValueError("Could not resolve client version")
 
 
 class ApiHeadersMixin:
+    request_config_cls: ClassVar[Type[ApiRequestConfig]] = ApiRequestConfig
+
     @classmethod
     def generate_headers(cls) -> Dict[str, str]:
         """Custom headers attached with each client request
@@ -138,7 +159,7 @@ class ApiHeadersMixin:
         Returns:
             Dict[str, Any]: dictionary of header key-value pairs
         """
-        return ApiRequestConfig.build().to_headers()
+        return cls.request_config_cls.build().to_headers()
 
     @classmethod
     def validate_headers(
@@ -146,7 +167,7 @@ class ApiHeadersMixin:
         headers: Dict[str, str],
         minimum_client_version: Optional[Union[VersionStr, str]] = None,
     ) -> None:
-        config = ApiRequestConfig.from_headers(headers)
+        config = cls.resolve_request_config(headers)
 
         # validate client version
         if minimum_client_version:
@@ -159,7 +180,7 @@ class ApiHeadersMixin:
 
     @classmethod
     def resolve_request_config(cls, headers: Dict[str, str]) -> ApiRequestConfig:
-        return ApiRequestConfig.from_headers(headers)
+        return cls.request_config_cls.from_headers(headers)
 
 
 class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
