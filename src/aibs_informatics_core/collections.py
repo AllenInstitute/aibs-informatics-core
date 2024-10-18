@@ -321,7 +321,15 @@ class OrderedEnum(BaseEnum):
         return self.__class__._member_names_.index(self.name)  # type: ignore[attr-defined]
 
 
+SE = TypeVar("SE", bound="StrEnum")
+
+
 class StrEnum(str, BaseEnum):
+    def __new__(cls: Type[SE], value: str, *args: Any, **kwargs: Any) -> SE:
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        return obj
+
     def __str__(self) -> str:
         return self.value
 
