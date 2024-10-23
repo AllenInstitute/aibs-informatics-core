@@ -299,11 +299,6 @@ def get_env_base(
     return env_base_cls.from_env()
 
 
-# def get_env_base(env_base: Optional[Union[str, EnvBase]] = None) -> EnvBase:
-#     """Will look for the env_base as an environment variable."""
-#     return get_any_env_base(env_base)
-
-
 def get_env_type(
     env_type: Optional[Union[str, EnvType]] = None,
     default_env_type: Optional[EnvType] = None,
