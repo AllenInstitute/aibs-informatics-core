@@ -136,7 +136,7 @@ class ResolvableBase(SchemaModel, Generic[T]):
             return value
         elif isinstance(value, dict):
             obj = cls.from_dict(value, partial=True)
-            if obj.local is None:
+            if obj.local is None or cls.is_missing(obj.local):
                 if default_local is None:
                     raise ValueError(f"Local is None for {value}. No default provided")
                 obj.local = default_local
