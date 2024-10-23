@@ -1,5 +1,5 @@
 from test.base import does_not_raise
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Type, Union
 
 import marshmallow as mm
 from pytest import mark, param, raises
@@ -7,6 +7,7 @@ from pytest import mark, param, raises
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.demand_execution.resolvables import (
+    R,
     Resolvable,
     S3Resolvable,
     StringifiedDownloadable,
@@ -191,6 +192,63 @@ def test__get_resolvable_from_value__parses_stuff(
 
 
 @mark.parametrize(
+    "resolvable_class, value, default_local, default_remote, expected, raise_expectation",
+    [
+        param(
+            S3Resolvable,
+            S3Resolvable("/tmp/somefile", S3URI("s3://bucket/key")),
+            None,
+            None,
+            S3Resolvable("/tmp/somefile", S3URI("s3://bucket/key")),
+            does_not_raise(),
+            id="object is returned as is",
+        ),
+        param(
+            Uploadable,
+            {"remote": "s3://bucket/key"},
+            "/tmp/somefile",
+            None,
+            Uploadable("/tmp/somefile", "s3://bucket/key"),
+            does_not_raise(),
+            id="default local fills missing local in input",
+        ),
+        param(
+            Uploadable,
+            {"remote": "s3://bucket/key"},
+            None,
+            None,
+            None,
+            raises(ValueError, match=r"Local is None for .*\. No default provided"),
+            id="ERROR: no local in input or default",
+        ),
+        param(
+            S3Resolvable,
+            42,
+            None,
+            None,
+            None,
+            raises(ValueError),
+            id="ERROR: invalid type",
+        ),
+    ],
+)
+def test__from_any__works_as_intended(
+    resolvable_class: Type[R],
+    value: Any,
+    default_local: Optional[str],
+    default_remote: Optional[str],
+    expected: Optional[Resolvable],
+    raise_expectation,
+):
+    with raise_expectation:
+        actual = resolvable_class.from_any(
+            value=value, default_local=default_local, default_remote=default_remote
+        )
+    if expected is not None:
+        assert actual == expected
+
+
+@mark.parametrize(
     "value, expected, raise_expectation",
     [
         param(
@@ -213,7 +271,7 @@ def test__get_resolvable_from_value__parses_stuff(
         ),
     ],
 )
-def test__from_str__works(value: str, expected: S3Resolvable, raise_expectation):
+def test__from_str__works(value: str, expected: Resolvable, raise_expectation):
     with raise_expectation:
         actual = expected.from_str(value)
         assert actual == expected
