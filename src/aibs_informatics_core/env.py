@@ -223,7 +223,9 @@ class EnvBaseMixinsBase(Generic[E]):
 
 
 class EnvBaseMixins(EnvBaseMixinsBase[EnvBase]):
-    pass
+    @classmethod
+    def _env_base_class(cls) -> Type[EnvBase]:
+        return EnvBase
 
 
 class EnvBaseEnumMixins:
