@@ -97,6 +97,23 @@ class DataSyncTask(SchemaModel):
 
 
 @dataclass
+class RemoteToLocalConfig(SchemaModel):
+    # Use a custom intermediate tmp dir when syncing an s3 object to a local filesystem
+    # instead of using boto3's implementation which creates a part file (e.g. *.6eF5b5da)
+    # in SAME parent dir as the desired destination path.
+    use_custom_tmp_dir: bool = custom_field(default=False, mm_field=BooleanField())
+    custom_tmp_dir: Optional[Union[EFSPath, Path]] = custom_field(
+        default=None,
+        mm_field=UnionField(
+            [
+                (EFSPath, EFSPath.as_mm_field()),
+                ((Path, str), PathField()),
+            ]
+        ),
+    )
+
+
+@dataclass
 class DataSyncConfig(SchemaModel):
     max_concurrency: int = custom_field(default=25, mm_field=IntegerField())
     retain_source_data: bool = custom_field(default=True, mm_field=BooleanField())
@@ -104,17 +121,33 @@ class DataSyncConfig(SchemaModel):
     force: bool = custom_field(default=False, mm_field=BooleanField())
     size_only: bool = custom_field(default=False, mm_field=BooleanField())
     fail_if_missing: bool = custom_field(default=True, mm_field=BooleanField())
+    remote_to_local_config: RemoteToLocalConfig = custom_field(
+        default_factory=RemoteToLocalConfig,
+        mm_field=RemoteToLocalConfig.as_mm_field(),
+    )
 
 
 @dataclass
 class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
     @property
     def config(self) -> DataSyncConfig:
-        return self
+        return DataSyncConfig(
+            max_concurrency=self.max_concurrency,
+            retain_source_data=self.retain_source_data,
+            require_lock=self.require_lock,
+            force=self.force,
+            size_only=self.size_only,
+            fail_if_missing=self.fail_if_missing,
+            remote_to_local_config=self.remote_to_local_config,
+        )
 
     @property
     def task(self) -> DataSyncTask:
-        return self
+        return DataSyncTask(
+            source_path=self.source_path,
+            destination_path=self.destination_path,
+            source_path_prefix=self.source_path_prefix,
+        )
 
 
 @dataclass
