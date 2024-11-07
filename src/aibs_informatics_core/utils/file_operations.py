@@ -182,6 +182,39 @@ def make_archive(
         raise ValueError(f"Error extracting file {source_path}. [{e}]") from e
 
 
+def find_filesystem_boundary(starting_path: Path) -> Path:
+    """Given some starting Path, determine the nearest filesystem boundary (mount point).
+    If no mount is found, then this function will return the first parent directory PRIOR
+    to the filesystem anchor.
+
+    >>> find_filesystem_boundary(Path("/allen/scratch/aibstemp"))
+    PosixPath('/allen/scratch')
+
+    >>> find_filesystem_boundary(Path("/tmp/random_file.txt"))
+    PosixPath('/tmp')
+
+    Args:
+        starting_path (Path): The starting Path
+
+    Raises:
+        RuntimeError: If the provided starting_path cannot resolve to a real existing path
+
+    Returns:
+        Path: The path of the nearest filesystem boundary OR the first parent directory prior
+            to the filesystem anchor (example anchors: "/", "c:\\")
+    """
+    current_path = starting_path.resolve()
+    while current_path.parent != Path(current_path.anchor):
+        if current_path.is_mount():
+            break
+        current_path = current_path.parent
+
+    if current_path.exists():
+        return current_path
+    else:
+        raise OSError(f"Could not find a real filesystem boundary for: {str(starting_path)}")
+
+
 def move_path(source_path: Path, destination_path: Path, exists_ok: bool = False):
     """Alias to simple mv command from one path to another
 

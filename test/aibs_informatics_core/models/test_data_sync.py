@@ -92,8 +92,11 @@ def test__DataSyncRequest__properties():
         destination_path=S3_URI,
         retain_source_data=True,
     )
-    assert request.config == request
-    assert request.task == request
+    assert request.config == DataSyncConfig(retain_source_data=True)
+    assert request.task == DataSyncTask(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+    )
 
 
 def test__BatchDataSyncRequest__from_dict():
@@ -144,6 +147,7 @@ def test__BatchDataSyncRequest__to_dict():
                 "force": False,
                 "size_only": False,
                 "retain_source_data": True,
+                "remote_to_local_config": {"use_custom_tmp_dir": False},
             },
         ],
     }
@@ -189,6 +193,7 @@ def test__PrepareBatchDataSyncResponse__to_dict():
                         "force": False,
                         "size_only": False,
                         "retain_source_data": True,
+                        "remote_to_local_config": {"use_custom_tmp_dir": False},
                     },
                 ],
             },
@@ -240,6 +245,7 @@ def test__PrepareBatchDataSyncResponse__from_dict():
                         "force": False,
                         "size_only": False,
                         "retain_source_data": True,
+                        "remote_to_local_config": {"use_custom_tmp_dir": False},
                     },
                 ],
             },

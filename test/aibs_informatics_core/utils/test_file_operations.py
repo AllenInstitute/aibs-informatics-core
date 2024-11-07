@@ -15,6 +15,7 @@ from aibs_informatics_core.utils.file_operations import (
     PathLock,
     copy_path,
     extract_archive,
+    find_filesystem_boundary,
     get_path_hash,
     get_path_size_bytes,
     get_path_with_root,
@@ -454,3 +455,34 @@ def test__strip_path_root__works(path, root, expected, expectation):
         actual = strip_path_root(path, root)
     if expected is not None:
         assert actual == expected
+
+
+@mark.parametrize(
+    "starting_path, raise_expectation, expected",
+    [
+        param(
+            # starting_path
+            Path("/tmp/test_subdir/test_file.txt"),
+            # raise_expectation
+            does_not_raise(),
+            # expected
+            Path("/tmp"),
+            id="Test basic case",
+        ),
+        param(
+            # starting_path
+            Path("/non_existent_dir/test_file.txt"),
+            # raise_expectation
+            raises(OSError, match=r"Could not find a real filesystem boundary.+"),
+            # expected
+            None,
+            id="Test non-existent path",
+        ),
+    ],
+)
+def test__find_filesystem_boundary(starting_path: Path, raise_expectation, expected: Path):
+    with raise_expectation:
+        obt = find_filesystem_boundary(starting_path=starting_path)
+
+    if expected is not None:
+        assert expected == obt
