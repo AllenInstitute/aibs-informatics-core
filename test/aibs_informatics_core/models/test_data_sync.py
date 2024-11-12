@@ -147,9 +147,11 @@ def test__BatchDataSyncRequest__to_dict():
                 "force": False,
                 "size_only": False,
                 "retain_source_data": True,
+                "include_detailed_response": False,
                 "remote_to_local_config": {"use_custom_tmp_dir": False},
             },
         ],
+        "allow_partial_failure": False,
     }
     actual = request.to_dict()
     assert actual == expected
@@ -161,6 +163,7 @@ def test__BatchDataSyncRequest__to_dict__s3_path():
     )
     expected = {
         "requests": str(S3_URI),
+        "allow_partial_failure": False,
     }
     actual = response.to_dict()
     assert actual == expected
@@ -193,9 +196,11 @@ def test__PrepareBatchDataSyncResponse__to_dict():
                         "force": False,
                         "size_only": False,
                         "retain_source_data": True,
+                        "include_detailed_response": False,
                         "remote_to_local_config": {"use_custom_tmp_dir": False},
                     },
                 ],
+                "allow_partial_failure": False,
             },
         ],
     }
@@ -211,6 +216,7 @@ def test__PrepareBatchDataSyncResponse__to_dict__s3_paths():
         "requests": [
             {
                 "requests": str(S3_URI),
+                "allow_partial_failure": False,
             },
         ],
     }
@@ -250,6 +256,7 @@ def test__PrepareBatchDataSyncResponse__from_dict():
                 ],
             },
         ],
+        "allow_partial_failure": False,
     }
     actual = PrepareBatchDataSyncResponse.from_dict(model_dict)
     assert actual == expected

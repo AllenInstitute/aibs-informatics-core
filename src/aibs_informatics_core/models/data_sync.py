@@ -17,7 +17,8 @@ __all__ = [
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Union
+from urllib import request
 
 import marshmallow as mm
 
@@ -121,6 +122,7 @@ class DataSyncConfig(SchemaModel):
     force: bool = custom_field(default=False, mm_field=BooleanField())
     size_only: bool = custom_field(default=False, mm_field=BooleanField())
     fail_if_missing: bool = custom_field(default=True, mm_field=BooleanField())
+    include_detailed_response: bool = custom_field(default=False, mm_field=BooleanField())
     remote_to_local_config: RemoteToLocalConfig = custom_field(
         default_factory=RemoteToLocalConfig,
         mm_field=RemoteToLocalConfig.as_mm_field(),
@@ -138,6 +140,7 @@ class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
             force=self.force,
             size_only=self.size_only,
             fail_if_missing=self.fail_if_missing,
+            include_detailed_response=self.include_detailed_response,
             remote_to_local_config=self.remote_to_local_config,
         )
 
@@ -151,8 +154,21 @@ class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
 
 
 @dataclass
+class DataSyncResult(SchemaModel):
+    bytes_transferred: int = 0
+    files_transferred: int = 0
+
+    def add_bytes_transferred(self, bytes_transferred: int) -> None:
+        self.bytes_transferred += bytes_transferred
+
+    def add_files_transferred(self, files_transferred: int) -> None:
+        self.files_transferred += files_transferred
+
+
+@dataclass
 class DataSyncResponse(SchemaModel):
-    request: DataSyncRequest
+    request: DataSyncRequest = custom_field(mm_field=DataSyncRequest.as_mm_field())
+    result: DataSyncResult = custom_field(mm_field=DataSyncResult.as_mm_field())
 
 
 @dataclass
@@ -165,18 +181,44 @@ class BatchDataSyncRequest(SchemaModel):
             ]
         )
     )
+    allow_partial_failure: bool = custom_field(default=False, mm_field=BooleanField())
 
     @classmethod
     @mm.pre_load
     def _handle_single_flattened_request(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
         if DataSyncRequest.is_valid(data=data, many=False, partial=False):
-            data = {"requests": [data]}
+            data = {
+                "requests": [data],
+                "allow_partial_failure": False,
+                "include_detailed_response": False,
+            }
         return data
 
 
 @dataclass
+class BatchDataSyncResult(DataSyncResult):
+    total_requests_count: int = 0
+    successful_requests_count: int = 0
+    failed_requests_count: int = 0
+
+    def increment_successful_requests_count(self, increment: int = 1) -> None:
+        self.successful_requests_count += increment
+        self.total_requests_count += increment
+
+    def increment_failed_requests_count(self, increment: int = 1) -> None:
+        self.failed_requests_count += increment
+        self.total_requests_count += increment
+
+
+@dataclass
 class BatchDataSyncResponse(SchemaModel):
-    responses: List[DataSyncResponse]
+    result: BatchDataSyncResult = custom_field(mm_field=BatchDataSyncResult.as_mm_field())
+    failed_requests: Optional[List[DataSyncRequest]] = custom_field(default=None)
+
+    def add_failed_request(self, request: DataSyncRequest) -> None:
+        if self.failed_requests is None:
+            self.failed_requests = []
+        self.failed_requests.append(request)
 
 
 @dataclass

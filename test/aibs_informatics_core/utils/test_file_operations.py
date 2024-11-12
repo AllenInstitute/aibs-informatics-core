@@ -422,6 +422,16 @@ class FileOperationsTests(FileOperationsBaseTest):
             except Exception:
                 pass
 
+    def test__find_filesystem_boundary__finds_root(self):
+        path = self.tmp_path()
+        expected = Path("/") / path.parts[1]
+        root = find_filesystem_boundary(path)
+        self.assertEqual(root, expected)
+
+    def test__find_filesystem_boundary__raises_error_for_invalid_path(self):
+        with raises(OSError, match=r"Could not find a real filesystem boundary.+"):
+            find_filesystem_boundary(Path("/non_existent_dir/test_file.txt"))
+
 
 @mark.parametrize(
     "path, root, expected",
@@ -455,34 +465,3 @@ def test__strip_path_root__works(path, root, expected, expectation):
         actual = strip_path_root(path, root)
     if expected is not None:
         assert actual == expected
-
-
-@mark.parametrize(
-    "starting_path, raise_expectation, expected",
-    [
-        param(
-            # starting_path
-            Path("/tmp/test_subdir/test_file.txt"),
-            # raise_expectation
-            does_not_raise(),
-            # expected
-            Path("/tmp"),
-            id="Test basic case",
-        ),
-        param(
-            # starting_path
-            Path("/non_existent_dir/test_file.txt"),
-            # raise_expectation
-            raises(OSError, match=r"Could not find a real filesystem boundary.+"),
-            # expected
-            None,
-            id="Test non-existent path",
-        ),
-    ],
-)
-def test__find_filesystem_boundary(starting_path: Path, raise_expectation, expected: Path):
-    with raise_expectation:
-        obt = find_filesystem_boundary(starting_path=starting_path)
-
-    if expected is not None:
-        assert expected == obt
