@@ -201,13 +201,13 @@ class BatchDataSyncResult(DataSyncResult):
     successful_requests_count: int = 0
     failed_requests_count: int = 0
 
-    def increment_successful_requests_count(self) -> None:
-        self.successful_requests_count += 1
-        self.total_requests_count += 1
+    def increment_successful_requests_count(self, increment: int = 1) -> None:
+        self.successful_requests_count += increment
+        self.total_requests_count += increment
 
-    def increment_failed_requests_count(self) -> None:
-        self.failed_requests_count += 1
-        self.total_requests_count += 1
+    def increment_failed_requests_count(self, increment: int = 1) -> None:
+        self.failed_requests_count += increment
+        self.total_requests_count += increment
 
 
 @dataclass
