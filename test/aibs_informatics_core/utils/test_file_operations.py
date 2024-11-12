@@ -462,11 +462,11 @@ def test__strip_path_root__works(path, root, expected, expectation):
     [
         param(
             # starting_path
-            Path("/tmp/test_subdir/test_file.txt"),
+            Path("/temp/test_subdir/test_file.txt"),
             # raise_expectation
             does_not_raise(),
             # expected
-            Path("/tmp"),
+            Path("/temp"),
             id="Test basic case",
         ),
         param(
