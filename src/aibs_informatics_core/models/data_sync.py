@@ -155,14 +155,14 @@ class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
 
 @dataclass
 class DataSyncResult(SchemaModel):
-    bytes_transferred: Optional[int] = None
-    files_transferred: Optional[int] = None
+    bytes_transferred: int = 0
+    files_transferred: int = 0
 
     def add_bytes_transferred(self, bytes_transferred: int) -> None:
-        self.bytes_transferred = (self.bytes_transferred or 0) + bytes_transferred
+        self.bytes_transferred += bytes_transferred
 
     def add_files_transferred(self, files_transferred: int) -> None:
-        self.files_transferred = (self.files_transferred or 0) + files_transferred
+        self.files_transferred += files_transferred
 
 
 @dataclass
@@ -200,6 +200,14 @@ class BatchDataSyncResult(DataSyncResult):
     total_requests_count: int = 0
     successful_requests_count: int = 0
     failed_requests_count: int = 0
+
+    def increment_successful_requests_count(self) -> None:
+        self.successful_requests_count += 1
+        self.total_requests_count += 1
+
+    def increment_failed_requests_count(self) -> None:
+        self.failed_requests_count += 1
+        self.total_requests_count += 1
 
 
 @dataclass
