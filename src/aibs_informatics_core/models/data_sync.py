@@ -224,7 +224,7 @@ class BatchDataSyncResponse(SchemaModel):
 @dataclass
 class PrepareBatchDataSyncRequest(DataSyncRequest):
     batch_size_bytes_limit: Optional[int] = custom_field(default=None, mm_field=IntegerField())
-    intermediate_s3_path: Optional[S3Path] = custom_field(
+    temporary_request_payload_path: Optional[S3Path] = custom_field(
         default=None, mm_field=S3Path.as_mm_field()
     )
 
