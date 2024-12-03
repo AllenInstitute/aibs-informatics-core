@@ -7,11 +7,6 @@
 Core library to be used as foundation across multiple projects 
 
 
-
-## Development
-
-*Move to separate DEVELOPMENT.md file later...*
-
 ### Versioning
 
 This project uses [semantic versioning](https://semver.org/). The version is stored in the `_version.py` file. 
@@ -26,3 +21,10 @@ Notes about versioning using the above keywords:
   - The If you specify multiple keywords in a single commit message, the highest version bump will be used
   - If you specify `(NONE)` keyword in a commit message, the version will not be bumped regardless of other keywords in the commit message.
 
+## Contributing
+
+Any and all PRs are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+
+## Licensing
+
+This software is licensed under the Allen Institute Software License, which is the 2-clause BSD license plus a third clause that prohibits redistribution and use for commercial purposes without further permission. For more information, please visit [Allen Institute Terms of Use](https://alleninstitute.org/terms-of-use/).

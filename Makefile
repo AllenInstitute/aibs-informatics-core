@@ -174,6 +174,11 @@ package: $(INSTALL_STAMP)  ## Build package distribution
 ##@ Release Commands
 #####################
 
+dist: $(PYTHON) $(DEP_FILES) ## Build source and wheel package
+	@. $(VENV_BIN)/activate;\
+	$(PIP) install .[release];\
+	$(PYTHON) -m build;
+
 reinstall: obliterate install ## Recreate environment and install
 
 pre-build: obliterate ## Removes existing build environment

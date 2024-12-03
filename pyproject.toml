@@ -11,11 +11,13 @@ build-backend = "setuptools.build_meta"
 # -----------------------------------------------------------------------------
 [project]
 name = "aibs-informatics-core"
+authors = [{ name = "AIBS Informatics Group"}]
+maintainers = [{ name = "AIBS Informatics Group"}]
 description = "Core package for informatics projects at the Allen Institute for Brain Science"
 readme = "README.md"
-dynamic = [ "version"]
+license = { file = "LICENSE" }
+dynamic = ["version"]
 requires-python = ">=3.9"
-
 dependencies = [
     "marshmallow~=3.22.0",
     "dataclasses-json~=0.6.7",
@@ -43,6 +45,12 @@ where = ["src"]
 
 [tool.setuptools.dynamic]
 version = {attr = "aibs_informatics_core._version.__version__"}
+
+[project.urls]
+Documentation = "https://.github.io/CAVEclient/"
+Homepage = "https://caveconnectome.github.io/CAVEclient/"
+Issues = "https://github.com/CAVEconnectome/CAVEclient/issues"
+Repository = "https://github.com/CAVEconnectome/CAVEclient/"
 
 # -----------------------------------------------------------------------------
 ##  Pyright Configurations
