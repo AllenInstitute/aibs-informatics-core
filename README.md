@@ -18,11 +18,15 @@ The `utils` module provides various utility functions and classes to facilitate 
 - **decorators**: Decorators for adding functionality to functions and methods.
 - **hashing**: Functions for generating hashes.
 - **json**: Functions for working with JSON data.
-- 
 - **logging**: Utilities for setting up and managing logging.
+- **modules**: Functions dealing with modules and imports.
+- **multiprocessing**: Functions for working with multiprocessing.
+- **os_operations**: Functions for working with the operating system.
+- **time**: Functions for working with time.
+- **units**: Functions for converting units.
+- **version**: Functions and classes for handling version numbers.
 - **tools.dicttools**: Functions for manipulating dictionaries.
 - **tools.strtools**: Functions for manipulating strings.
-- **
 
 ### Models
 
@@ -48,7 +52,7 @@ The `env` module provides a concept of `EnvBase` which allows for creating isola
 
 ```python
 env_base = EnvBase('dev-projectX')
-env_base.prefixed('my_resource')  # 'dev-projectX-my_resource'
+env_base.prefixed('my_resource', 'blue')  # 'dev-projectX-my_resource-blue'
 ```
 
 
