@@ -106,7 +106,7 @@ jobs:
           python-version: ${{ github.event.inputs.python-version }}
           cache: 'pip'
       - name: Set up AllenInstitute Repo Authorization
-        uses: ./.github/actions/setup-ai-github-urls
+        uses: ./.github/actions/configure-org-repo-authorization
         with:
           token: ${{ secrets.AI_PACKAGES_TOKEN }}
       - name: Run Release
