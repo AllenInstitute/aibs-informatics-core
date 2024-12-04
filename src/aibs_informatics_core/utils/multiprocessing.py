@@ -29,12 +29,7 @@ def apply_args_and_kwargs(fn, args: Iterable[Any], kwargs: Mapping[str, Any]):
 
 
 def _starmap_apply(
-    fn: Callable[
-        [
-            Any,
-        ],
-        U,
-    ],
+    fn: Callable[[List[Any]], U],
     args: Sequence[Any],
     kwargs: Mapping[str, Any],
 ) -> U:
@@ -42,18 +37,13 @@ def _starmap_apply(
 
 
 def parallel_starmap(
-    callable: Callable[
-        [
-            Any,
-        ],
-        U,
-    ],
+    callable: Callable[[Any], U],
     arguments: Sequence[T],
     keyword_arguments: Optional[Union[Sequence[Mapping[str, Any]], Mapping[str, Any]]] = None,
     pool_class: Optional[Type[mp_pool.Pool]] = None,
     processes: Optional[int] = None,
     chunk_size: Optional[int] = None,
-    callback: Optional[Callable[[T], Any]] = None,
+    callback: Optional[Callable[[List[T]], Any]] = None,
     error_callback: Optional[Callable[[BaseException], None]] = None,
 ) -> List[U]:
     pool_class = pool_class or mp_pool.Pool

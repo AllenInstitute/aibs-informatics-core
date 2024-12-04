@@ -76,6 +76,10 @@ $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
 	$(PIP) install -e .[dev]; 
 	@touch $(INSTALL_STAMP)
 
+install-release: clean-install-stamp $(PYTHON) $(DEP_FILES) ## Installs package for release
+	@. $(VENV_BIN)/activate;\
+	$(PIP) install .[release]
+
 install-force: clean-install-stamp install ## Force install package dependencies
 
 link-packages: ## Link local packages to virtualenv  
@@ -173,6 +177,10 @@ package: $(INSTALL_STAMP)  ## Build package distribution
 #####################
 ##@ Release Commands
 #####################
+
+dist: install-release ## Build source and wheel package
+	@. $(VENV_BIN)/activate;\
+	$(PYTHON) -m build;
 
 reinstall: obliterate install ## Recreate environment and install
 
