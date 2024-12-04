@@ -1,6 +1,6 @@
 # Contributing to `aibs-informatics-core`
 
-Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
+Contributions are welcome and appreciated!
 
 ## Types of Contributions
 

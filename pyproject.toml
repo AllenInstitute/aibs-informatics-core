@@ -53,10 +53,11 @@ where = ["src"]
 version = {attr = "aibs_informatics_core._version.__version__"}
 
 [project.urls]
-Documentation = "https://.github.io/CAVEclient/"
-Homepage = "https://caveconnectome.github.io/CAVEclient/"
-Issues = "https://github.com/CAVEconnectome/CAVEclient/issues"
-Repository = "https://github.com/CAVEconnectome/CAVEclient/"
+Documentation = "https://.github.io/aibs-informatics-core/"
+Homepage = "https://github.com/AllenInstitute/aibs-informatics-core/"
+Issues = "https://github.com/AllenInstitute/aibs-informatics-core/issues"
+Repository = "https://github.com/AllenInstitute/aibs-informatics-core/"
+
 
 # -----------------------------------------------------------------------------
 ##  Pyright Configurations
