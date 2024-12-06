@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "aibs-informatics-test-resources",
+    "aibs-informatics-test-resources[all]",
 ]
 release = [
     "build",
