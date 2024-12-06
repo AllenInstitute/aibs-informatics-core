@@ -34,10 +34,13 @@ jobs:
       MAJOR_VERSION: ${{ steps.get-version-and-commit-sha.outputs.MAJOR_VERSION }}
       MINOR_VERSION: ${{ steps.get-version-and-commit-sha.outputs.MINOR_VERSION }}
       PATCH_VERSION: ${{ steps.get-version-and-commit-sha.outputs.PATCH_VERSION }}
+      VERSION_TAG: ${{ steps.get-version-and-commit-sha.outputs.VERSION_TAG }}
       COMMIT_SHA: ${{ steps.get-version-and-commit-sha.outputs.COMMIT_SHA }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
       - name: Set up Python ${{ github.event.inputs.python-version }}
         uses: actions/setup-python@v4        
         with:
@@ -80,7 +83,8 @@ jobs:
           echo "PATCH_VERSION=$patch_version" >> $GITHUB_OUTPUT
           short_version="$major_version.$minor_version"
           echo "SHORT_VERSION=$short_version" >> $GITHUB_OUTPUT
-          commit_sha=$(git rev-parse $latest_tag)
+          echo "VERSION_TAG=$latest_tag" >> $GITHUB_OUTPUT
+          commit_sha=$(git rev-list -n 1 $latest_tag)
           echo "COMMIT_SHA=$commit_sha" >> $GITHUB_OUTPUT
       - name: Show version
         run: |
@@ -89,6 +93,7 @@ jobs:
           echo MAJOR_VERSION: ${{ steps.get-version-and-commit-sha.outputs.MAJOR_VERSION }}
           echo MINOR_VERSION: ${{ steps.get-version-and-commit-sha.outputs.MINOR_VERSION }}
           echo PATCH_VERSION: ${{ steps.get-version-and-commit-sha.outputs.PATCH_VERSION }}
+          echo VERSION_TAG: ${{ steps.get-version-and-commit-sha.outputs.VERSION_TAG }}
           echo COMMIT_SHA: ${{ steps.get-version-and-commit-sha.outputs.COMMIT_SHA }}
 
   build:
@@ -99,7 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.bump.outputs.COMMIT_SHA }}
+          ref: ${{ needs.bump.outputs.VERSION_TAG }}
       - name: Set up Python ${{ github.event.inputs.python-version }}
         uses: actions/setup-python@v4        
         with:
