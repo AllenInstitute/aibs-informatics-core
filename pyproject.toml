@@ -33,11 +33,29 @@ dependencies = [
 dev = [
     "aibs-informatics-test-resources",
 ]
+
+# [dependency-groups]
 release = [
     "build",
     "bump-my-version",
     "twine",
     "wheel",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-autorefs",
+    "mkdocs-git-authors-plugin",
+    "mkdocs-git-committers-plugin-2",
+    "mkdocs-git-revision-date-localized-plugin",
+    "mkdocs-include-markdown-plugin",
+    "mkdocs-jupyter",
+    "mkdocs-macros-plugin",
+    "mkdocs-material",
+    "mkdocs-material-extensions",
+    "mkdocs-section-index",
+    "mkdocstrings[crystal,python]",
+    "mknotebooks",
+    "pymdown-extensions",
 ]
 
 [project.scripts]

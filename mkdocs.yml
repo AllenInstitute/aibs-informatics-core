@@ -1,0 +1,26 @@
+site_name: AIBS Informatics Core Library Documentation
+nav:
+  - Home: index.md
+  - Reference: reference.md
+theme:
+  name: material
+  features:
+    - navigation.indexes
+    - navigation.instant
+    - navigation.footer
+    # - navigation.path
+    - navigation.prune
+    # - navigation.sections # toggle to have sections in side nav
+    - navigation.tabs # toggle to mainly use top nav
+    - navigation.tabs.sticky
+    - content.action.edit
+    - content.action.view
+    - toc.integrate # whether to include the toc in the main nav bar to the left
+    - toc.follow
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+plugins:
+  - search
+  - mkdocstrings

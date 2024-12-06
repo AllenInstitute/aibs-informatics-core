@@ -76,6 +76,21 @@ $(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
 	$(PIP) install -e .[dev]; 
 	@touch $(INSTALL_STAMP)
 
+
+install-docs: $(INSTALL_STAMP).docs  ## Install documentation dependencies
+$(INSTALL_STAMP).docs: $(PYTHON) $(DEP_FILES)
+	@. $(VENV_BIN)/activate;\
+	$(PIP) install -e .[docs]; 
+	@touch $(INSTALL_STAMP).docs
+
+# DEP_GROUP := dev
+
+# install-$(DEP_GROUP): $(INSTALL_STAMP).$(DEP_GROUP)  ## Install dependencies matching pattern $(PATTERN)
+# $(INSTALL_STAMP).$(DEP_GROUP):
+# 	@. $(VENV_BIN)/activate; \
+# 	$(PIP) install -e .[$(DEP_GROUP)];
+# 	@touch $(INSTALL_STAMP).$(DEP_GROUP)
+
 install-release: clean-install-stamp $(PYTHON) $(DEP_FILES) ## Installs package for release
 	@. $(VENV_BIN)/activate;\
 	$(PIP) install .[release]
