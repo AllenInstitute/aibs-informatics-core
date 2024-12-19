@@ -89,15 +89,17 @@ def validate_url(
         validate_url = mm_validate.Regexp(regex=_S3URI_PATTERN, error=error_msg)
         validate_interpolation = mm.validate.ContainsNoneOf("{}", error=error_msg)
 
-        validate = mm_validate.And(
+        s3_validate = mm_validate.And(
             validate_url,
             validate_interpolation,
         )
-        validate(candidate_url)  # raises marshmallow.ValidationError if invalid
+        s3_validate(candidate_url)  # raises marshmallow.ValidationError if invalid
 
-        bucket_match = re.match(_S3URI_PATTERN, candidate_url).group(1)
-        validate_bucket_characters = mm_validate.ContainsNoneOf("_ ", error=error_msg)
-        validate_bucket_characters(bucket_match)
+        bucket_match = re.match(_S3URI_PATTERN, candidate_url)
+        if bucket_match:
+            bucket_group = bucket_match.group(1)
+            validate_bucket_characters = mm_validate.ContainsNoneOf("_ ", error=error_msg)
+            validate_bucket_characters(bucket_group)
 
     else:
         validate = mm_validate.URL(
