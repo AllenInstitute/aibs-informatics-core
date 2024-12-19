@@ -61,6 +61,10 @@ else:
     S3_Object = object
 
 
+_DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
+_S3URI_PATTERN = re.compile(r"^s3:\/\/([^\/]+)\/?(.*)")
+
+
 def validate_url(
     candidate_url: str,
     valid_url_schemes: Set[str] = {"http", "https", "ftp", "ftps", "file", "s3"},
@@ -78,8 +82,28 @@ def validate_url(
         error_msg (str, optional): Error message for if validation fails.
             Defaults to: "`{input}` is not a valid URL!"
     """
-    validate = mm_validate.URL(schemes=valid_url_schemes, error=error_msg, require_tld=require_tld)
-    validate(candidate_url)  # raises marshmallow.ValidationError if invalid
+
+    # S3 URIs can contain spaces, but regular URLs cannot, which is why we need separate
+    # logic for S3 URIs as we cannot configure mm_validate.URL to allow spaces
+    if candidate_url.startswith("s3") and "s3" in valid_url_schemes:
+        validate_url = mm_validate.Regexp(regex=_S3URI_PATTERN, error=error_msg)
+        validate_interpolation = mm.validate.ContainsNoneOf("{}", error=error_msg)
+
+        validate = mm_validate.And(
+            validate_url,
+            validate_interpolation,
+        )
+        validate(candidate_url)  # raises marshmallow.ValidationError if invalid
+
+        bucket_match = re.match(_S3URI_PATTERN, candidate_url).group(1)
+        validate_bucket_characters = mm_validate.ContainsNoneOf("_ ", error=error_msg)
+        validate_bucket_characters(bucket_match)
+
+    else:
+        validate = mm_validate.URL(
+            schemes=valid_url_schemes, error=error_msg, require_tld=require_tld
+        )
+        validate(candidate_url)  # raises marshmallow.ValidationError if invalid
 
 
 if sys.version_info >= (3, 11):
@@ -163,10 +187,6 @@ class S3Key(ValidatedStr):
 # https://stackoverflow.com/questions/58712045/regular-expression-for-amazon-s3-object-name
 class S3KeyPrefix(S3Key):
     regex_pattern: ClassVar[Pattern] = re.compile(r"[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]*)*")
-
-
-_DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
-_S3URI_PATTERN = re.compile(r"^s3:\/\/([^\/]+)\/?(.*)")
 
 
 class S3Path(str):

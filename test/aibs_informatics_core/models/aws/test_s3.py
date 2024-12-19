@@ -118,6 +118,22 @@ def test__S3PathStats__getitem__works():
         ),
         pytest.param(
             # test_input
+            "s3://genomics-file-store-us-west-2-076747868072/file with space.gz",
+            # full_validate
+            True,
+            # expected
+            {
+                "bucket": "genomics-file-store-us-west-2-076747868072",
+                "key": "file with space.gz",
+                "name": "file with space.gz",
+                "parent": "s3://genomics-file-store-us-west-2-076747868072/",
+            },
+            # raise_expectation
+            does_not_raise(),
+            id="Realistic uri (representing s3 prefix) input with spaces in filename",
+        ),
+        pytest.param(
+            # test_input
             "s3://genomics-file-store//36f41033//64a1//4038//8fd2//f3c5c8c53698",
             # full_validate
             True,
@@ -161,12 +177,35 @@ def test__S3PathStats__getitem__works():
         ),
         pytest.param(
             # test_input
+            "s3://bucket/key/${param_no_ref}_bar",
+            # full_validate,
+            False,
+            # expected
+            {
+                "bucket": "bucket",
+                "key": "key/${param_no_ref}_bar",
+            },
+            does_not_raise(),
+            id="URI with env_var interpolation succeeds with full_validate=False",
+        ),
+        pytest.param(
+            # test_input
             "s3://${MY_ENV_VAR}/key-name",
             # full_validate
             True,
             # expected
             None,
             # raise_expectation
+            pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
+            id="URI with env_var interpolation fails with full_validate=True",
+        ),
+        pytest.param(
+            # test_input
+            "s3://bucket/key/${param_no_ref}_bar",
+            # full_validate,
+            True,
+            # expected
+            None,
             pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
             id="URI with env_var interpolation fails with full_validate=True",
         ),
@@ -202,6 +241,17 @@ def test__S3PathStats__getitem__works():
             # raise_expectation
             pytest.raises(mm.ValidationError, match="S3Path should start with 's3://'"),
             id="Incorrectly capitalized S3 URI scheme",
+        ),
+        pytest.param(
+            # test_input
+            "s3://genomics file store-us-west-2-076747868072/file with space.gz",
+            # full_validate
+            True,
+            # expected
+            None,
+            # raise_expectation
+            pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
+            id="Invalid uri (representing s3 prefix) input with spaces in bucket",
         ),
     ],
 )
