@@ -101,10 +101,15 @@ class ValidatedStr(str):
         else:
             cls._regex_pattern_provided = True
 
-    def __new__(cls, value):
+    def __new__(cls, value, *args, **kwargs):
+        value = cls._sanitize(value, *args, **kwargs)
         obj = super().__new__(cls, value)
         obj._validate()
         return obj
+
+    @classmethod
+    def _sanitize(cls, value: str, *args, **kwargs) -> str:
+        return value
 
     def _validate(self):
         value = self
@@ -276,7 +281,6 @@ class PostInitMixin:
 
 
 class BaseEnumMeta(EnumMeta):
-
     """Metaclass for BaseEnum type"""
 
     def __contains__(self, item):
@@ -288,7 +292,6 @@ class BaseEnumMeta(EnumMeta):
 
 
 class BaseEnum(Enum, metaclass=BaseEnumMeta):
-
     """
     Enum extension class that makes string comparisons easier
     >>> class MyEnum(BaseEnum):

@@ -39,7 +39,6 @@ class Version:
 
 
 class VersionStr(ValidatedStr):
-
     """Version String
 
     Version String      Major   Minor   Revision

@@ -51,9 +51,11 @@ def parallel_starmap(
         starmap_arguments = zip(
             repeat(callable),
             arguments,
-            repeat(keyword_arguments or {})
-            if not isinstance(keyword_arguments, Sequence)
-            else keyword_arguments,
+            (
+                repeat(keyword_arguments or {})
+                if not isinstance(keyword_arguments, Sequence)
+                else keyword_arguments
+            ),
         )
 
         async_results = [
