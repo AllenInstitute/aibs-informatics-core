@@ -111,9 +111,20 @@ class S3PathStats:
         return super().__getattribute__(key)
 
 
+
+S3_BUCKET_NAME_PATTERN_STR = r"(?:[A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])"
+S3_KEY_PATTERN_STR         = r"[a-zA-Z0-9!_.*'()-]+(?:/[a-zA-Z0-9!_.*'()-]+)*"
+S3_KEY_PREFIX_PATTERN_STR  = r"[a-zA-Z0-9!_.*'()-]+(?:/[a-zA-Z0-9!_.*'()-]*)*"
+
+PLACEHOLDER_PATTERN = r"(?:\$\{[^}]+\})"
+S3_BUCKET_NAME_PATTERN_WITH_VARS = rf"(?:[A-Za-z0-9.\-]|{PLACEHOLDER_PATTERN})+"
+S3_KEY_PATTERN_WITH_VARS         = rf"(?:[a-zA-Z0-9!_.*'()\-]|{PLACEHOLDER_PATTERN})+(?:/(?:[a-zA-Z0-9!_.*'()\-]|{PLACEHOLDER_PATTERN})+)*"
+
+
+
 # https://stackoverflow.com/a/58248645/4544508
 class S3BucketName(ValidatedStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(r"([A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])")
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR)
 
     def __truediv__(self, __other: str) -> "S3Path":
         """Creates a S3Path
@@ -138,7 +149,7 @@ class S3BucketName(ValidatedStr):
 
 
 class S3Key(ValidatedStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(r"[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]+)*")
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR)
 
     @property
     def components(self) -> List[str]:
@@ -161,11 +172,46 @@ class S3Key(ValidatedStr):
 
 # https://stackoverflow.com/questions/58712045/regular-expression-for-amazon-s3-object-name
 class S3KeyPrefix(S3Key):
-    regex_pattern: ClassVar[Pattern] = re.compile(r"[a-zA-Z0-9!_.*'()-]+(/[a-zA-Z0-9!_.*'()-]*)*")
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PREFIX_PATTERN_STR)
 
 
 _DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
 _S3URI_PATTERN = re.compile(r"^s3:\/\/([^\/]+)\/?(.*)")
+
+
+class S3PathNew(ValidatedStr):
+    regex_pattern: ClassVar[Pattern] = re.compile(
+        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR})\/?({S3_KEY_PATTERN_STR})?"
+    )
+
+    def __new__(cls, value, *args, full_validation: bool = True, auto_encode: bool = True, **kwargs):
+        return super().__new__(cls, value, *args, full_validation=full_validation, auto_encode=auto_encode, **kwargs)
+
+    @classmethod
+    def _sanitize(cls, value: str, *args, auto_encode: bool = True, **kwargs) -> str:
+        value = value[:5] + _DOUBLE_SLASH_PATTERN.sub(r"\1", value[5:])
+        if auto_encode:
+            from urllib.parse import quote
+            value = value[:5] + quote(value[5:], safe='/')
+        return value
+
+    @property
+    def bucket(self) -> S3BucketName:
+        return S3BucketName(self.get_match_groups()[0])
+    
+    @property
+    def bucket_name(self) -> str:
+        """Alias for bucket property"""
+        return self.bucket
+
+    @property
+    def key(self) -> S3Key:
+        if key := self.get_match_groups()[1]:
+            return S3Key(key)
+        return S3Key("")
+
+
+
 
 
 class S3Path(str):
