@@ -1,10 +1,10 @@
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Union
 
 import marshmallow as mm
 import pytest
-from pathlib import Path
 
 from aibs_informatics_core.models.aws.s3 import (
     S3BucketName,
@@ -236,6 +236,22 @@ def test__S3URI__init(test_input, full_validate, expected, raise_expectation):
     if expected:
         for k, v in expected.items():
             assert v == getattr(obt, k)
+
+
+
+
+def test__S3PathNew__():
+    
+    from aibs_informatics_core.models.aws.s3 import S3PathNew
+    
+    pairs = [
+        ("s3://genomics-file-store//36f41033//64a1//4038//8fd2//f3c5c8c53698", "s3://genomics-file-store/36f41033/64a1/4038/8fd2/f3c5c8c53698")
+    ]
+    
+    for inp, exp in pairs:
+        act = S3PathNew(inp)
+        assert exp == act
+
 
 
 @pytest.mark.parametrize(

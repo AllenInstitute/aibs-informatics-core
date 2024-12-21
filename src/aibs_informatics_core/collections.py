@@ -117,10 +117,15 @@ class ValidatedStr(str, PydanticStrMixin):
         else:
             cls._regex_pattern_provided = True
 
-    def __new__(cls, value):
+    def __new__(cls, value, *args, **kwargs):
+        value = cls._sanitize(value, *args, **kwargs)
         obj = super().__new__(cls, value)
         obj._validate()
         return obj
+
+    @classmethod
+    def _sanitize(cls, value: str, *args, **kwargs) -> str:
+        return value
 
     def _validate(self):
         value = self
