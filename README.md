@@ -1,6 +1,7 @@
 # AIBS Informatics Core
 
 [![Build Status](https://github.com/AllenInstitute/aibs-informatics-core/actions/workflows/build.yml/badge.svg)](https://github.com/AllenInstitute/aibs-informatics-core/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/AllenInstitute/aibs-informatics-core/graph/badge.svg?token=X66KBYWELP)](https://codecov.io/gh/AllenInstitute/aibs-informatics-core)
 
 ---
 
