@@ -205,9 +205,12 @@ def test__S3PathStats__getitem__works():
             # full_validate,
             True,
             # expected
-            None,
-            pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
-            id="URI with env_var interpolation fails with full_validate=True",
+            {
+                "bucket": "bucket",
+                "key": "key/${param_no_ref}_bar",
+            },
+            does_not_raise(),
+            id="URI with env_var interpolation in prefix succeeds with full_validate=True",
         ),
         pytest.param(
             # test_input
@@ -218,7 +221,18 @@ def test__S3PathStats__getitem__works():
             None,
             # raise_expectation
             does_not_raise(),
-            id="URI with env_var interpolation succeeds with full_validate=False",
+            id="URI with env_var interpolation in bucket succeeds with full_validate=False",
+        ),
+        pytest.param(
+            # test_input
+            "s3://${MY-ENV-VAR}/key-name",
+            # full_validate
+            True,
+            # expected
+            None,
+            # raise_expectation
+            pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
+            id="URI with env_var interpolation in bucket fails with full_validate=True",
         ),
         pytest.param(
             # test_input

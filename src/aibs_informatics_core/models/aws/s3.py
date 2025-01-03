@@ -87,19 +87,16 @@ def validate_url(
     # logic for S3 URIs as we cannot configure mm_validate.URL to allow spaces
     if candidate_url.startswith("s3") and "s3" in valid_url_schemes:
         validate_url = mm_validate.Regexp(regex=_S3URI_PATTERN, error=error_msg)
-        validate_interpolation = mm.validate.ContainsNoneOf("{}", error=error_msg)
 
-        s3_validate = mm_validate.And(
-            validate_url,
-            validate_interpolation,
-        )
-        s3_validate(candidate_url)  # raises marshmallow.ValidationError if invalid
+        validate_url(candidate_url)  # raises marshmallow.ValidationError if invalid
 
         bucket_match = re.match(_S3URI_PATTERN, candidate_url)
         if bucket_match:
             bucket_group = bucket_match.group(1)
             validate_bucket_characters = mm_validate.ContainsNoneOf("_ ", error=error_msg)
             validate_bucket_characters(bucket_group)
+            validate_interpolation = mm.validate.ContainsNoneOf("{}", error=error_msg)
+            validate_interpolation(bucket_group)
 
     else:
         validate = mm_validate.URL(
