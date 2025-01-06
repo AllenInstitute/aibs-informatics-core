@@ -361,7 +361,9 @@ class DemandExecutionParameters(SchemaModel):
                 raise ValueError(
                     f"{str_uploadable} has no destination specified and no output prefix provided"
                 )
-            remote_value = str_uploadable.remote or S3URI(f"{self.output_s3_prefix}/{v}")
+            remote_value = str_uploadable.remote or S3URI(
+                f"{self.output_s3_prefix}/{v}", allow_placeholders=True
+            )
             return UploadableJobParam(k, str_uploadable.local, remote_value)
         else:
             # Only create default remote if value is str and not a stringified uploadable reference

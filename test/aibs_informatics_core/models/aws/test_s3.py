@@ -6,6 +6,7 @@ from typing import Union
 import marshmallow as mm
 import pytest
 
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import (
     S3BucketName,
     S3CopyRequest,
@@ -34,29 +35,23 @@ def test__S3PathStats__getitem__works():
 
 
 @pytest.mark.parametrize(
-    "test_input, full_validate, expected, raise_expectation",
+    "string_input, allow_placeholders, expected, raise_expectation",
     [
         pytest.param(
-            # test_input
             "s3://bucket-name/",
-            # full_validate
-            True,
-            # expected
+            False,
             {
                 "bucket": "bucket-name",
                 "key": "",
                 "name": "",
                 "parent": "s3://bucket-name/",
             },
-            # raise_expectation
             does_not_raise(),
-            id="Basic mock uri input bucket only (no key)",
+            id="Basic s3 path input bucket only (no key)",
         ),
         pytest.param(
-            # test_input
             "s3://bucket-name",
-            # full_validate
-            True,
+            False,
             # expected
             {
                 "bucket": "bucket-name",
@@ -66,71 +61,67 @@ def test__S3PathStats__getitem__works():
             },
             # raise_expectation
             does_not_raise(),
-            id="Basic mock uri input bucket only (no key) and no trailing slash",
+            id="Basic s3 path input bucket only (no key) and no trailing slash",
         ),
         pytest.param(
-            # test_input
             "s3://bucket-name/key-name",
-            # full_validate
-            True,
-            # expected
+            False,
             {
                 "bucket": "bucket-name",
                 "key": "key-name",
                 "name": "key-name",
                 "parent": "s3://bucket-name/",
             },
-            # raise_expectation
             does_not_raise(),
-            id="Basic mock uri input",
+            id="Basic s3 path input",
         ),
         pytest.param(
-            # test_input
             "s3://genomics-file-store-us-west-2-076747868072/TESTSAMPLE_S01_L003_I1_001.fastq.gz",
-            # full_validate
-            True,
-            # expected
+            False,
             {
                 "bucket": "genomics-file-store-us-west-2-076747868072",
                 "key": "TESTSAMPLE_S01_L003_I1_001.fastq.gz",
                 "name": "TESTSAMPLE_S01_L003_I1_001.fastq.gz",
                 "parent": "s3://genomics-file-store-us-west-2-076747868072/",
             },
-            # raise_expectation
             does_not_raise(),
-            id="Realistic uri (representing s3 object) input",
+            id="project s3 path input",
         ),
         pytest.param(
-            # test_input
             "s3://genomics-file-store-us-west-2-076747868072/36f41033-64a1-4038-8fd2-f3c5c8c53698",
-            # full_validate
-            True,
-            # expected
+            False,
             {
                 "bucket": "genomics-file-store-us-west-2-076747868072",
                 "key": "36f41033-64a1-4038-8fd2-f3c5c8c53698",
                 "name": "36f41033-64a1-4038-8fd2-f3c5c8c53698",
                 "parent": "s3://genomics-file-store-us-west-2-076747868072/",
             },
-            # raise_expectation
             does_not_raise(),
-            id="Realistic uri (representing s3 prefix) input",
+            id="S3 path prefix input no trailing slash",
         ),
         pytest.param(
-            # test_input
+            "s3://genomics-file-store-us-west-2-076747868072/36f41033-64a1-4038-8fd2-f3c5c8c53698/",
+            False,
+            {
+                "bucket": "genomics-file-store-us-west-2-076747868072",
+                "key": "36f41033-64a1-4038-8fd2-f3c5c8c53698/",
+                "name": "36f41033-64a1-4038-8fd2-f3c5c8c53698",
+                "parent": "s3://genomics-file-store-us-west-2-076747868072/",
+            },
+            does_not_raise(),
+            id="S3 path prefix input with trailing slash",
+        ),
+        pytest.param(
             "s3://genomics-file-store//36f41033//64a1//4038//8fd2//f3c5c8c53698",
-            # full_validate
-            True,
-            # expected
+            False,
             {
                 "bucket": "genomics-file-store",
                 "key": "36f41033/64a1/4038/8fd2/f3c5c8c53698",
                 "name": "f3c5c8c53698",
                 "parent": "s3://genomics-file-store/36f41033/64a1/4038/8fd2/",
             },
-            # raise_expectation
             does_not_raise(),
-            id="URI with redundant slashes in key",
+            id="URI with redundant slashes in key are removed",
         ),
         pytest.param(
             "s3://bucket-name/",
@@ -159,99 +150,75 @@ def test__S3PathStats__getitem__works():
         pytest.param(
             # test_input
             "s3:///genomics-file-store/test-path",
-            # full_validate
-            True,
-            # expected
+            False,
             {
                 "bucket": "genomics-file-store",
                 "key": "test-path",
             },
-            # raise_expectation
             does_not_raise(),
-            id="URI with redundant slashes after host",
+            id="S3 path with redundant slashes after host",
         ),
         pytest.param(
-            # test_input
             "s3://${Token[detail-requestParameters-bucketName.2805]}/${Token[detail-requestParameters-key.2806]}",
-            # full_validate,
-            False,
-            # expected
+            True,
             {
                 "bucket": "${Token[detail-requestParameters-bucketName.2805]}",
                 "key": "${Token[detail-requestParameters-key.2806]}",
             },
             does_not_raise(),
-            id="URI with env_var interpolation and periods/dashes succeeds with full_validate=False",  # noqa: E501
+            id="S3 path with cdk-style placeholders succeeds with allow_placeholders=True",
         ),
         pytest.param(
-            # test_input
-            "s3://${MY_ENV_VAR}/key-name",
-            # full_validate
-            True,
-            # expected
-            None,
-            # raise_expectation
-            pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
-            id="URI with env_var interpolation fails with full_validate=True",
-        ),
-        pytest.param(
-            # test_input
-            "s3://${MY_ENV_VAR}/key-name",
-            # full_validate
+            "s3://${Token[detail-requestParameters-bucketName.2805]}/${Token[detail-requestParameters-key.2806]}",
             False,
-            # expected
             None,
-            # raise_expectation
+            pytest.raises(ValidationError),
+            id="S3 path with cdk-style placeholders fails with allow_placeholders=False - (fail)",
+        ),
+        pytest.param(
+            "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/key-name",
+            True,
+            {
+                "bucket": "${MY_ENV_VAR}",
+                "key": "keyprefix/${MY_ENV_VAR2}/key-name",
+                "parent": "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/",
+            },
             does_not_raise(),
-            id="URI with env_var interpolation succeeds with full_validate=False",
+            id="S3 path with simple env_var interpolation succeeds with allow_placeholders=True",
         ),
         pytest.param(
-            # test_input
+            "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/key-name",
+            False,
+            None,
+            pytest.raises(ValidationError),
+            id="S3 path with simple env_var interpolation fails with allow_placeholders=False - (fail)",
+        ),
+        pytest.param(
             "s3://bucket_name/key-name",
-            # full_validate
-            True,
-            # expected
+            False,
             None,
-            # raise_expectation
-            pytest.raises(mm.ValidationError, match="is not a valid internal style 's3://' URI!"),
-            id="Invalid URI (contains '_') is rejected",
+            pytest.raises(ValidationError),
+            id="Invalid s3 bucket name (contains '_') is rejected - (fail)",
         ),
         pytest.param(
-            # test_input
             "S3://bucket-name/key-name",
-            # full_validate
-            True,
-            # expected
+            False,
             None,
-            # raise_expectation
-            pytest.raises(mm.ValidationError, match="S3Path should start with 's3://'"),
-            id="Incorrectly capitalized S3 URI scheme",
+            pytest.raises(ValidationError),
+            id="Incorrectly capitalized S3 URI scheme - (fail)",
         ),
     ],
 )
-def test__S3URI__init(test_input, full_validate, expected, raise_expectation):
+def test__S3Path__init(string_input, allow_placeholders, expected, raise_expectation):
     with raise_expectation:
-        obt = S3Path(test_input, full_validate=full_validate)
+        s3_path = S3Path(string_input, allow_placeholders=allow_placeholders)
 
     if expected:
         for k, v in expected.items():
-            assert v == getattr(obt, k)
-
-
-
-
-def test__S3PathNew__():
-    
-    from aibs_informatics_core.models.aws.s3 import S3PathNew
-    
-    pairs = [
-        ("s3://genomics-file-store//36f41033//64a1//4038//8fd2//f3c5c8c53698", "s3://genomics-file-store/36f41033/64a1/4038/8fd2/f3c5c8c53698")
-    ]
-    
-    for inp, exp in pairs:
-        act = S3PathNew(inp)
-        assert exp == act
-
+            assert v == getattr(
+                s3_path, k
+            ), f"Expected {k} to be {v}, but got {getattr(s3_path, k)}"
+        assert s3_path.allow_placeholders == allow_placeholders
 
 
 @pytest.mark.parametrize(
@@ -292,7 +259,7 @@ def test__S3URI__build(input_bucket, input_key, expected):
             "us-west-2",
             # expected
             "https://my-bucket.s3.us-west-2.amazonaws.com/my-key",
-            id="Test S3Path.as_hosted_s3_url basic case",
+            id="basic case",
         ),
         pytest.param(
             # current_uri
@@ -301,14 +268,150 @@ def test__S3URI__build(input_bucket, input_key, expected):
             "us-east-1",
             # expected
             "https://my-bucket.s3.us-east-1.amazonaws.com/my-key",
-            id="Test creation with another region",
+            id="handles another region",
+        ),
+        pytest.param(
+            # current_uri
+            "s3://my-bucket/my-key/with space",
+            # aws_region
+            "us-west-2",
+            # expected
+            "https://my-bucket.s3.us-west-2.amazonaws.com/my-key/with%20space",
+            id="encodes spaces in key",
         ),
     ],
 )
-def test__S3URI__as_hosted_s3_url(current_uri, aws_region, expected):
+def test__S3Path__as_hosted_s3_url(current_uri, aws_region, expected):
     s3_uri = S3Path(current_uri)
     obt = s3_uri.as_hosted_s3_url(aws_region=aws_region)
     assert expected == obt
+
+
+@pytest.mark.parametrize(
+    "value, raise_expectation",
+    [
+        pytest.param("mybucket", does_not_raise(), id="(o) basic case"),
+        pytest.param("abc", does_not_raise(), id="(o) minimum length"),
+        pytest.param("a" * 63, does_not_raise(), id="(o) maximum length"),
+        pytest.param("my-bucket-name", does_not_raise(), id="(o) hyphenated in middle"),
+        pytest.param("my.bucket.name", does_not_raise(), id="(o) dotted in middle"),
+        # invalid cases
+        pytest.param("my", pytest.raises(ValidationError), id="(x) too short"),
+        pytest.param("a" * 64, pytest.raises(ValidationError), id="(x) too long"),
+        pytest.param("my${bucket}", pytest.raises(ValidationError), id="(x) contains placeholder"),
+        pytest.param(
+            "my_bucket_name", pytest.raises(ValidationError), id="(x) contains underscore"
+        ),
+        pytest.param("my-bucket-name-", pytest.raises(ValidationError), id="(x) trailing hyphen"),
+        pytest.param("-my-bucket-name", pytest.raises(ValidationError), id="(x) leading hyphen"),
+        pytest.param("my-bucket-name.", pytest.raises(ValidationError), id="(x) trailing period"),
+        pytest.param(".my-bucket-name", pytest.raises(ValidationError), id="(x) leading period"),
+        pytest.param("${token}", pytest.raises(ValidationError), id="(x) is placeholder"),
+    ],
+)
+def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
+    with raise_expectation:
+        actual = S3BucketName(value, allow_placeholders=False)
+
+
+@pytest.mark.parametrize(
+    "value, raise_expectation",
+    [
+        pytest.param("mybucket", does_not_raise(), id="(o) basic case"),
+        pytest.param("abc", does_not_raise(), id="(o) minimum length"),
+        pytest.param("a" * 63, does_not_raise(), id="(o) maximum length"),
+        pytest.param("my-bucket-name", does_not_raise(), id="(o) hyphenated in middle"),
+        pytest.param("my.bucket.name", does_not_raise(), id="(o) dotted in middle"),
+        pytest.param("${bucket}", does_not_raise(), id="(o) placeholder"),
+        pytest.param("m${bucket}", does_not_raise(), id="(o) trailing placeholder"),
+        pytest.param("${bucket}m", does_not_raise(), id="(o) leading placeholder"),
+        pytest.param("${bucket}${bucket}", does_not_raise(), id="(o) multiple placeholders"),
+        pytest.param(
+            "my.${bucket}.name${bucket}", does_not_raise(), id="(o) multiple placeholders and dots"
+        ),
+        # invalid cases
+        pytest.param("my", pytest.raises(ValidationError), id="(x) too short"),
+        pytest.param("a" * 64, pytest.raises(ValidationError), id="(x) too long"),
+        pytest.param(
+            "my_bucket_name", pytest.raises(ValidationError), id="(x) contains underscore"
+        ),
+        pytest.param("my-bucket-name-", pytest.raises(ValidationError), id="(x) trailing hyphen"),
+        pytest.param("-my-bucket-name", pytest.raises(ValidationError), id="(x) leading hyphen"),
+        pytest.param("my-bucket-name.", pytest.raises(ValidationError), id="(x) trailing period"),
+        pytest.param(".my-bucket-name", pytest.raises(ValidationError), id="(x) leading period"),
+        pytest.param(
+            "-${token}", pytest.raises(ValidationError), id="(x) leading hyphen before placeholder"
+        ),
+        pytest.param(
+            "${token}-", pytest.raises(ValidationError), id="(x) trailing hyphen after placeholder"
+        ),
+    ],
+)
+def test__S3BucketName__init_allow_placeholders(value: str, raise_expectation):
+    with raise_expectation:
+        actual = S3BucketName(value, allow_placeholders=True)
+
+
+@pytest.mark.parametrize(
+    "value, raise_expectation",
+    [
+        pytest.param("key", does_not_raise(), id="(o) basic case"),
+        pytest.param("a/b/c", does_not_raise(), id="(o) multiple slashes"),
+        pytest.param("a/b/c/", does_not_raise(), id="(o) trailing slash"),
+        pytest.param("", does_not_raise(), id="(o) minimum length"),
+        pytest.param("a&$@=;:/+ ,?", does_not_raise(), id="(o) special characters"),
+        # invalid cases
+        pytest.param("${token}", pytest.raises(ValidationError), id="(x) placeholder"),
+        pytest.param("a%23", pytest.raises(ValidationError), id="(x) percent encoded"),
+        pytest.param("a\\c", pytest.raises(ValidationError), id="(x) backslash"),
+        pytest.param("a{b", pytest.raises(ValidationError), id="(x) open brace"),
+        pytest.param("a}b", pytest.raises(ValidationError), id="(x) close brace"),
+        pytest.param("a|b", pytest.raises(ValidationError), id="(x) pipe"),
+        pytest.param("a[b", pytest.raises(ValidationError), id="(x) open bracket"),
+        pytest.param("a]b", pytest.raises(ValidationError), id="(x) close bracket"),
+        pytest.param("a^b", pytest.raises(ValidationError), id="(x) caret"),
+        pytest.param("a`b", pytest.raises(ValidationError), id="(x) backtick"),
+        pytest.param("a~b", pytest.raises(ValidationError), id="(x) tilde"),
+        pytest.param("a<>b", pytest.raises(ValidationError), id="(x) less / greater than"),
+        pytest.param("a#b", pytest.raises(ValidationError), id="(x) pound"),
+    ],
+)
+def test__S3Key__init_no_placeholders(value: str, raise_expectation):
+    with raise_expectation:
+        actual = S3Key(value, allow_placeholders=False)
+
+
+@pytest.mark.parametrize(
+    "value, raise_expectation",
+    [
+        pytest.param("key", does_not_raise(), id="(o) basic case"),
+        pytest.param("a/b/c", does_not_raise(), id="(o) multiple slashes"),
+        pytest.param("a/b/c/", does_not_raise(), id="(o) trailing slash"),
+        pytest.param("", does_not_raise(), id="(o) minimum length"),
+        pytest.param("a&$@=;:/+ ,?", does_not_raise(), id="(o) special characters"),
+        pytest.param("${key}", does_not_raise(), id="(o) placeholder"),
+        pytest.param("abc/${key}", does_not_raise(), id="(o) trailing placeholder"),
+        pytest.param("${key}key/key", does_not_raise(), id="(o) leading placeholder"),
+        pytest.param("${key1}${key2}", does_not_raise(), id="(o) multiple placeholders"),
+        pytest.param("${key1}/${key2}", does_not_raise(), id="(o) multiple placeholders with /"),
+        # invalid cases
+        pytest.param("a%23", pytest.raises(ValidationError), id="(x) percent encoded"),
+        pytest.param("a\\c", pytest.raises(ValidationError), id="(x) backslash"),
+        pytest.param("a{b", pytest.raises(ValidationError), id="(x) open brace"),
+        pytest.param("a}b", pytest.raises(ValidationError), id="(x) close brace"),
+        pytest.param("a|b", pytest.raises(ValidationError), id="(x) pipe"),
+        pytest.param("a[b", pytest.raises(ValidationError), id="(x) open bracket"),
+        pytest.param("a]b", pytest.raises(ValidationError), id="(x) close bracket"),
+        pytest.param("a^b", pytest.raises(ValidationError), id="(x) caret"),
+        pytest.param("a`b", pytest.raises(ValidationError), id="(x) backtick"),
+        pytest.param("a~b", pytest.raises(ValidationError), id="(x) tilde"),
+        pytest.param("a<>b", pytest.raises(ValidationError), id="(x) less / greater than"),
+        pytest.param("a#b", pytest.raises(ValidationError), id="(x) pound"),
+    ],
+)
+def test__S3Key__init_allow_placeholders(value: str, raise_expectation):
+    with raise_expectation:
+        actual = S3Key(value, allow_placeholders=True)
 
 
 @pytest.mark.parametrize(

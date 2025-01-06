@@ -22,7 +22,9 @@ import re
 import sys
 from dataclasses import dataclass
 from datetime import datetime
+from functools import cached_property
 from pathlib import Path
+from sre_parse import SPECIAL_CHARS
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -39,10 +41,12 @@ from typing import (
     TypeVar,
     Union,
 )
+from urllib.parse import quote
+
+from aibs_informatics_core.exceptions import ValidationError
 
 if sys.version_info >= (3, 11):
     from typing import NotRequired
-
 
 import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
@@ -58,27 +62,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 else:
     S3_Object = object
-
-
-def validate_url(
-    candidate_url: str,
-    valid_url_schemes: Set[str] = {"http", "https", "ftp", "ftps", "file", "s3"},
-    require_tld: bool = True,
-    error_msg: str = "`{input}` is not a valid URL!",  # validate.URL will auto-interpolate {input}
-):
-    """Validate whether a string is a valid URL or not.
-
-    Args:
-        candidate_url (str): Candidate url string to validate
-        valid_url_schemes (Set[str], optional): Which URL schemes to consider valid.
-            Should be all lowercase. Defaults to {"http", "https", "ftp", "ftps", "file", "s3"}.
-        require_tld (bool, optional): Whether the hostname needs to be a
-            Fully Qualified Domain Name to pass validation. Defaults to True.
-        error_msg (str, optional): Error message for if validation fails.
-            Defaults to: "`{input}` is not a valid URL!"
-    """
-    validate = mm_validate.URL(schemes=valid_url_schemes, error=error_msg, require_tld=require_tld)
-    validate(candidate_url)  # raises marshmallow.ValidationError if invalid
 
 
 if sys.version_info >= (3, 11):
@@ -111,19 +94,66 @@ class S3PathStats:
         return super().__getattribute__(key)
 
 
+PLACEHOLDER_PATTERN = r"(?:\$\{[\w\-\\[\]._^}]+\})"
+KEY_CHARS = r"[\w.\-/$@=;:+,?%& ]"
 
-S3_BUCKET_NAME_PATTERN_STR = r"(?:[A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])"
-S3_KEY_PATTERN_STR         = r"[a-zA-Z0-9!_.*'()-]+(?:/[a-zA-Z0-9!_.*'()-]+)*"
-S3_KEY_PREFIX_PATTERN_STR  = r"[a-zA-Z0-9!_.*'()-]+(?:/[a-zA-Z0-9!_.*'()-]*)*"
+# S3 Bucket Name Pattern
+S3_BUCKET_NAME_PATTERN_STR_NO_VARS = r"(?:[A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])"
+S3_BUCKET_NAME_PATTERN_WITH_VARS = (
+    rf"(?=.*{PLACEHOLDER_PATTERN}.*)"
+    rf"(?![A-Za-z0-9.\-]+$)"
+    rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9])"
+    rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9.\-])*"
+    rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9])"
+)
+S3_BUCKET_NAME_PATTERN_STR = rf"(?:{S3_BUCKET_NAME_PATTERN_STR_NO_VARS}|{S3_BUCKET_NAME_PATTERN_WITH_VARS}|{PLACEHOLDER_PATTERN})"
 
-PLACEHOLDER_PATTERN = r"(?:\$\{[^}]+\})"
-S3_BUCKET_NAME_PATTERN_WITH_VARS = rf"(?:[A-Za-z0-9.\-]|{PLACEHOLDER_PATTERN})+"
-S3_KEY_PATTERN_WITH_VARS         = rf"(?:[a-zA-Z0-9!_.*'()\-]|{PLACEHOLDER_PATTERN})+(?:/(?:[a-zA-Z0-9!_.*'()\-]|{PLACEHOLDER_PATTERN})+)*"
+# S3 Key Pattern
+NORMAL_CHARS = "a-zA-Z0-9!_.*'()\-"
+SPECIAL_CHARS = "&$@=;:+,? "
+S3_KEY_PATTERN_STR_NO_VARS = (
+    rf"[{NORMAL_CHARS}{SPECIAL_CHARS}]+(?:/[{NORMAL_CHARS}{SPECIAL_CHARS}]+)*"
+)
+S3_KEY_PATTERN_WITH_VARS = rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*(?:/(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*)*"
+S3_KEY_PATTERN_STR = (
+    rf"(?:{S3_KEY_PATTERN_STR_NO_VARS}|{S3_KEY_PATTERN_WITH_VARS}|{PLACEHOLDER_PATTERN})"
+)
 
+
+class PlaceholderMixins:
+    _placeholder_pattern: ClassVar[Pattern] = re.compile(PLACEHOLDER_PATTERN)
+
+    @cached_property
+    def has_placeholder(self) -> bool:
+        return bool(self._placeholder_pattern.search(self))
+
+
+class ConditionalPlaceholderStr(ValidatedStr, PlaceholderMixins):
+    def __new__(cls, value, *args, allow_placeholders: bool = False, **kwargs):
+        return super().__new__(cls, value, *args, **kwargs)
+
+    def __init__(self, *args, allow_placeholders: bool = False, **kwargs):
+        self._allow_placeholders = allow_placeholders
+        # TODO: This is to ensure backwards compatibility with the old `full_validate` kwarg
+        #       Please remove this in the next major release
+        if "full_validate" in kwargs:
+            self._allow_placeholders = not kwargs.pop("full_validate")
+
+    def _validate(self):
+        super()._validate()
+        if not self.allow_placeholders:
+            if self.has_placeholder:
+                raise ValidationError(
+                    f"Placeholders are not allowed in {self} ({type(self)}) with allow_placeholders={self.allow_placeholders}"
+                )
+
+    @property
+    def allow_placeholders(self) -> bool:
+        return self._allow_placeholders
 
 
 # https://stackoverflow.com/a/58248645/4544508
-class S3BucketName(ValidatedStr):
+class S3BucketName(ConditionalPlaceholderStr):
     regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR)
 
     def __truediv__(self, __other: str) -> "S3Path":
@@ -148,7 +178,7 @@ class S3BucketName(ValidatedStr):
         return S3Path.build(bucket_name=self, key=__other)
 
 
-class S3Key(ValidatedStr):
+class S3Key(ConditionalPlaceholderStr):
     regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR)
 
     @property
@@ -171,137 +201,39 @@ class S3Key(ValidatedStr):
 
 
 # https://stackoverflow.com/questions/58712045/regular-expression-for-amazon-s3-object-name
+# NOTE: For now, this is is the same as S3Key. We made S3Key regex support an empty string
+#       which was the only difference between the two.
 class S3KeyPrefix(S3Key):
-    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PREFIX_PATTERN_STR)
+    pass
 
 
 _DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
-_S3URI_PATTERN = re.compile(r"^s3:\/\/([^\/]+)\/?(.*)")
 
 
-class S3PathNew(ValidatedStr):
+class S3Path(ConditionalPlaceholderStr):
     regex_pattern: ClassVar[Pattern] = re.compile(
-        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR})\/?({S3_KEY_PATTERN_STR})?"
+        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR})(?:\/({S3_KEY_PATTERN_STR}))?"
     )
 
-    def __new__(cls, value, *args, full_validation: bool = True, auto_encode: bool = True, **kwargs):
-        return super().__new__(cls, value, *args, full_validation=full_validation, auto_encode=auto_encode, **kwargs)
-
     @classmethod
-    def _sanitize(cls, value: str, *args, auto_encode: bool = True, **kwargs) -> str:
-        value = value[:5] + _DOUBLE_SLASH_PATTERN.sub(r"\1", value[5:])
-        if auto_encode:
-            from urllib.parse import quote
-            value = value[:5] + quote(value[5:], safe='/')
+    def _sanitize(cls, value: str, *args, **kwargs) -> str:
+        value = value[:3] + _DOUBLE_SLASH_PATTERN.sub(r"\1", value[3:])
         return value
 
-    @property
+    @cached_property
     def bucket(self) -> S3BucketName:
-        return S3BucketName(self.get_match_groups()[0])
-    
+        return S3BucketName(self.get_match_groups()[0], allow_placeholders=self.allow_placeholders)
+
     @property
     def bucket_name(self) -> str:
         """Alias for bucket property"""
         return self.bucket
 
-    @property
+    @cached_property
     def key(self) -> S3Key:
         if key := self.get_match_groups()[1]:
-            return S3Key(key)
+            return S3Key(key, allow_placeholders=self.allow_placeholders)
         return S3Key("")
-
-
-
-
-
-class S3Path(str):
-    """An augmented `str` class intended to represent an aws internal `s3://` style URI.
-    Has useful properties to get bucket, key, and a method to generate an S3 virtual-hosted-style
-    URL if provided a region.
-
-    For details on AWS S3 URL/URI formats see:
-    https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-bucket-intro.html
-
-
-    NOTE: `s3://` URI format looks like:
-          s3://{bucket-name}/{key-name}
-
-          The lowercase 's' in `s3://` is important, some services are case sensitive
-
-    NOTE: S3 virtual-hosted-style URL format looks like:
-          https://{bucket-name}.s3.{region}.amazonaws.com/{key-name}
-    """
-
-    def __new__(cls, *args, full_validate: bool = True, **kwargs):
-        value = args[0]
-        assert isinstance(value, str)
-        value = cls.sanitize(value)
-        cls.validate(value, full_validate=full_validate)
-        return str.__new__(cls, *(value,), **kwargs)
-
-    def __init__(self, *args, full_validate: bool = True, **kwargs):
-        bucket, s3path = _S3URI_PATTERN.fullmatch(self).groups()  # type: ignore  # this will always match because validation happens in __new__
-        self._bucket: str = bucket
-        self._path: str = s3path
-        self._full_validate = full_validate
-
-    @classmethod
-    def sanitize(cls, value: str) -> str:
-        """
-        Sanitize s3 uri inputs to make more compliant. Current steps:
-            1. remove double slashes except after a colon
-        """
-        return _DOUBLE_SLASH_PATTERN.sub(r"\1", value)
-
-    @classmethod
-    def validate(cls, value: str, full_validate: bool):
-        if not value.startswith("s3://"):
-            raise mm.ValidationError(
-                f"S3Path should start with 's3://' (case sensitive). "
-                f"The provided tentative S3Path ({value}) does not!"
-            )
-
-        if full_validate:
-            # `S3://` style URIs lack a Top Level Domain
-            # So require_tld should be false for validation purposes
-            escaped_self = value.replace("{", "{{").replace("}", "}}")
-            validate_url(
-                candidate_url=value,
-                valid_url_schemes={"s3"},
-                require_tld=False,
-                error_msg=f"`{escaped_self} is not a valid internal style 's3://' URI!",
-            )
-
-    @classmethod
-    def is_valid(cls, value: str, full_validate: bool = True) -> bool:
-        try:
-            cls.validate(value=value, full_validate=full_validate)
-        except Exception:
-            return False
-        return True
-
-    @classmethod
-    def build(cls, bucket_name: str, key: str = "", full_validate: bool = True) -> "S3Path":
-        """Build an `s3://` style URI given a bucket_name and key.
-
-        There may be cases where the bucket_name or key is a placeholder
-        (e.g. "${FILL_WITH_SOME_ENV_VAR}") in which case full validation can be
-        skipped by setting full_validate=False
-        """
-        return cls(f"s3://{bucket_name}/{key.lstrip('/')}", full_validate=full_validate)
-
-    @property
-    def bucket(self) -> str:
-        return self._bucket
-
-    @property
-    def bucket_name(self) -> str:
-        """Alias for bucket property"""
-        return self.bucket
-
-    @property
-    def key(self) -> str:
-        return self._path.lstrip("/")
 
     @property
     def key_with_folder_suffix(self) -> str:
@@ -326,7 +258,7 @@ class S3Path(str):
         return S3Path.build(
             bucket_name=self.bucket_name,
             key=self.key_with_folder_suffix,
-            full_validate=self._full_validate,
+            allow_placeholders=self.allow_placeholders,
         )
 
     def has_folder_suffix(self) -> bool:
@@ -336,12 +268,25 @@ class S3Path(str):
         return BucketAndKey(Bucket=self.bucket, Key=self.key)
 
     def as_hosted_s3_url(self, aws_region: str) -> str:
-        hosted_s3_url = f"https://{self.bucket}.s3.{aws_region}.amazonaws.com/{self.key}"
+        # TODO: need to encode special characters in key
+        encoded_key = quote(self.key, safe="/")
+        hosted_s3_url = f"https://{self.bucket}.s3.{aws_region}.amazonaws.com/{encoded_key}"
         return hosted_s3_url
 
     @classmethod
     def as_mm_field(cls) -> mm.fields.Field:
         return CustomStringField(S3Path)
+
+    @classmethod
+    def build(cls, bucket_name: str, key: str = "", allow_placeholders: bool = False) -> "S3Path":
+        """Build an `s3://` style URI given a bucket_name and key.
+
+        There may be cases where the bucket_name or key is a placeholder
+        (e.g. "${FILL_WITH_SOME_ENV_VAR}") in which case you must set allow_placeholders=True
+        """
+        bucket = S3BucketName(bucket_name, allow_placeholders=allow_placeholders)
+        key = S3Key(key, allow_placeholders=allow_placeholders)
+        return cls(f"s3://{bucket}/{key}", allow_placeholders=allow_placeholders)
 
     def __add__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Appends a string or S3Path key to the end of this S3Path
@@ -361,7 +306,7 @@ class S3Path(str):
         """
         if isinstance(__other, S3Path):
             __other = __other.key
-        return S3Path(f"{self}{__other}", full_validate=self._full_validate)
+        return S3Path(f"{self}{__other}", allow_placeholders=self.allow_placeholders)
 
     def __truediv__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Appends a string or S3Path key to the end of this S3Path using the `/` operator
@@ -381,7 +326,7 @@ class S3Path(str):
         """
         if isinstance(__other, S3Path):
             __other = __other.key
-        return S3Path(f"{self}/{__other}", full_validate=self._full_validate)
+        return S3Path(f"{self}/{__other}", allow_placeholders=self.allow_placeholders)
 
     def __rtruediv__(self, __other: Union[str, S3BucketName]) -> "S3Path":
         """Creates a new S3Path by constructing a str or S3Path key with this key
@@ -401,7 +346,9 @@ class S3Path(str):
         """
         if S3Path.is_valid(__other):
             __other = S3Path(__other).bucket_name
-        return S3Path.build(bucket_name=__other, key=self.key, full_validate=self._full_validate)
+        return S3Path.build(
+            bucket_name=__other, key=self.key, allow_placeholders=self.allow_placeholders
+        )
 
     def __floordiv__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Creates a new S3Path by constructing a str or S3Path key with this bucket
@@ -422,7 +369,7 @@ class S3Path(str):
         if isinstance(__other, S3Path):
             __other = __other.key
         return S3Path.build(
-            bucket_name=self.bucket, key=__other, full_validate=self._full_validate
+            bucket_name=self.bucket, key=__other, allow_placeholders=self.allow_placeholders
         )
 
 
