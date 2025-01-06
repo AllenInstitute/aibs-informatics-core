@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from sre_parse import SPECIAL_CHARS
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -95,7 +94,6 @@ class S3PathStats:
 
 
 PLACEHOLDER_PATTERN = r"(?:\$\{[\w\-\\[\]._^}]+\})"
-KEY_CHARS = r"[\w.\-/$@=;:+,?%& ]"
 
 # S3 Bucket Name Pattern
 S3_BUCKET_NAME_PATTERN_STR_NO_VARS = r"(?:[A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])"
