@@ -49,7 +49,6 @@ if sys.version_info >= (3, 11):
 
 import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
-from marshmallow import validate as mm_validate
 
 from aibs_informatics_core.collections import OrderedStrEnum, ValidatedStr
 from aibs_informatics_core.models.base import CustomStringField, EnumField
@@ -276,15 +275,17 @@ class S3Path(ConditionalPlaceholderStr):
         return CustomStringField(S3Path)
 
     @classmethod
-    def build(cls, bucket_name: str, key: str = "", allow_placeholders: bool = False) -> "S3Path":
+    def build(
+        cls, bucket_name: str, key: str = "", allow_placeholders: bool = False, **kwargs
+    ) -> "S3Path":
         """Build an `s3://` style URI given a bucket_name and key.
 
         There may be cases where the bucket_name or key is a placeholder
         (e.g. "${FILL_WITH_SOME_ENV_VAR}") in which case you must set allow_placeholders=True
         """
-        bucket = S3BucketName(bucket_name, allow_placeholders=allow_placeholders)
-        key = S3Key(key, allow_placeholders=allow_placeholders)
-        return cls(f"s3://{bucket}/{key}", allow_placeholders=allow_placeholders)
+        bucket = S3BucketName(bucket_name, allow_placeholders=allow_placeholders, **kwargs)
+        key = S3Key(key, allow_placeholders=allow_placeholders, **kwargs)
+        return cls(f"s3://{bucket}/{key}", allow_placeholders=allow_placeholders, **kwargs)
 
     def __add__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Appends a string or S3Path key to the end of this S3Path

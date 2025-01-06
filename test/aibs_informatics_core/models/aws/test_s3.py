@@ -221,6 +221,21 @@ def test__S3Path__init(string_input, allow_placeholders, expected, raise_expecta
         assert s3_path.allow_placeholders == allow_placeholders
 
 
+def test__S3Path__full_validate__backwards_compatibility():
+    # NOTE: This should be removed in the future
+    with pytest.raises(ValidationError):
+        S3Path("s3://bucket-name/${key-name}", full_validate=True)
+
+    with does_not_raise():
+        S3Path("s3://bucket-name/${key-name}", full_validate=False)
+
+    with pytest.raises(ValidationError):
+        S3Path.build("bucket-name", "${key-name}", full_validate=True)
+
+    with does_not_raise():
+        S3Path.build("bucket-name", "${key-name}", full_validate=False)
+
+
 @pytest.mark.parametrize(
     "input_bucket, input_key, expected",
     [
