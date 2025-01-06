@@ -68,19 +68,25 @@ SM = TypeVar("SM", bound="SchemaModel")
 @runtime_checkable
 class ModelProtocol(Protocol):
     @classmethod
-    def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T: ...  # pragma: no cover
+    def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T:
+        ...  # pragma: no cover
 
-    def to_dict(self, **kwargs) -> JSONObject: ...  # pragma: no cover
-
-    @classmethod
-    def from_json(cls: Type[T], data: str, **kwargs) -> T: ...  # pragma: no cover
-
-    def to_json(self, **kwargs) -> str: ...  # pragma: no cover
+    def to_dict(self, **kwargs) -> JSONObject:
+        ...  # pragma: no cover
 
     @classmethod
-    def from_path(cls: Type[T], path: Path, **kwargs) -> T: ...  # pragma: no cover
+    def from_json(cls: Type[T], data: str, **kwargs) -> T:
+        ...  # pragma: no cover
 
-    def to_path(self, path: Path, **kwargs): ...  # pragma: no cover
+    def to_json(self, **kwargs) -> str:
+        ...  # pragma: no cover
+
+    @classmethod
+    def from_path(cls: Type[T], path: Path, **kwargs) -> T:
+        ...  # pragma: no cover
+
+    def to_path(self, path: Path, **kwargs):
+        ...  # pragma: no cover
 
 
 # --------------------------------------------------------------
@@ -367,13 +373,13 @@ class SchemaModel(DataClassModel):
 
 
 class ModelSchemaMethod(Protocol):
-    def __call__(
-        self, cls: Type[SM], partial: bool, **kwargs
-    ) -> mm.Schema: ...  # pragma: no cover
+    def __call__(self, cls: Type[SM], partial: bool, **kwargs) -> mm.Schema:
+        ...  # pragma: no cover
 
 
 class ModelClassMethod(Protocol):
-    def __call__(*args, **kwargs) -> Any: ...  # pragma: no cover
+    def __call__(*args, **kwargs) -> Any:
+        ...  # pragma: no cover
 
 
 def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = True):  # noqa: C901
