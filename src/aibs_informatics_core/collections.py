@@ -100,7 +100,78 @@ KT = TypeVar("KT", bound=Hashable)
 VT = TypeVar("VT")
 
 
-class ValidatedStr(str, PydanticStrMixin):
+class Tree(dict[KT, "Tree"], Generic[KT]):
+    def add_sequence(self: "Tree[KT]", *keys: KT):
+        __self = self
+        for key in keys:
+            if key not in __self:
+                __self[key] = self.__class__()
+            __self = __self[key]  # type: ignore
+
+    def to_sequences(self: "Tree[KT]") -> List[Tuple[KT, ...]]:
+        sequences: List[Tuple[KT, ...]] = []
+        for key in self.keys():
+            sub_sequences: List[Tuple[KT, ...]] = self[key].to_sequences()  # type: ignore
+            if not sub_sequences:
+                sequences.append((key,))
+            else:
+                for sub_sequence in sub_sequences:
+                    sequences.append((key, *sub_sequence))
+        return sequences
+
+    def has_sequence(self: "Tree[KT]", *keys: KT) -> bool:
+        return self.get_sequence(*keys) is not None
+
+    def get_sequence(self: "Tree[KT]", *keys: KT) -> Optional["Tree[KT]"]:
+        __self = self
+        for key in keys:
+            if key not in __self:
+                return None
+            __self = __self[key]  # type: ignore
+        return __self  # type: ignore
+
+
+class PostInitMixin:
+    def __init_subclass__(cls, add_hook: bool = False, **kwargs) -> None:
+        """Adds a __post_init__ method to the subclass if it does not already have one.
+
+        If add_hook is True, then the __init__ method is wrapped to call __post_init__ after
+
+        Args:
+            add_hook (bool, optional): add hook to init method. Defaults to True.
+        """
+        super().__init_subclass__(**kwargs)
+
+        if add_hook:
+            original_post_init = cls.__post_init__
+            original_init = cls.__init__
+
+            @wraps(original_post_init)
+            def wrapped_post_init(self, *_args, **_kwargs):
+                if not hasattr(self, "__post_init_called__"):
+                    original_post_init(self, *_args, **_kwargs)
+                    self.__post_init_called__ = True
+
+            @wraps(original_init)
+            def wrapped_init(self, *args, **kwargs):
+                original_init(self, *args, **kwargs)
+                self.__post_init__()
+
+            cls.__init__ = wrapped_init  # type: ignore[assignment]
+            cls.__post_init__ = wrapped_post_init  # type: ignore[assignment]
+
+    def __post_init__(self, *args, **kwargs):
+        """Default __post_init__ method. Safe parent __post_init__ method calls"""
+
+        try:
+            post_init = super().__post_init__  # type: ignore[misc]
+        except AttributeError:
+            pass
+        else:
+            post_init(*args, **kwargs)
+
+
+class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
     regex_pattern: ClassVar[Pattern]
     min_len: ClassVar[Optional[int]] = None
     max_len: ClassVar[Optional[int]] = None
@@ -108,7 +179,7 @@ class ValidatedStr(str, PydanticStrMixin):
     _regex_pattern_provided: ClassVar[bool] = False
 
     def __init_subclass__(cls) -> None:
-        super().__init_subclass__()
+        super().__init_subclass__(add_hook=True)
         if not hasattr(cls, "regex_pattern"):
             cls.regex_pattern = regex_compile(r"(.*)")
         elif isinstance(cls.regex_pattern, str):
@@ -120,8 +191,15 @@ class ValidatedStr(str, PydanticStrMixin):
     def __new__(cls, value, *args, **kwargs):
         value = cls._sanitize(value, *args, **kwargs)
         obj = super().__new__(cls, value)
-        obj._validate()
         return obj
+
+    def __init__(self, *args, **kwargs):
+        """Placeholder for subclass to override"""
+        super().__init__()
+
+    def __post_init__(self, *args, **kwargs):
+        super().__post_init__(*args, **kwargs)
+        self._validate()
 
     @classmethod
     def _sanitize(cls, value: str, *args, **kwargs) -> str:
@@ -131,7 +209,8 @@ class ValidatedStr(str, PydanticStrMixin):
         value = self
         if self.has_regex_pattern() and not regex_fullmatch(self.regex_pattern, value) is not None:
             raise ValidationError(
-                f"{value} did not satisfy {self.regex_pattern} pattern validation statement."
+                f"{value} did not satisfy {self.regex_pattern} pattern validation statement. "
+                f"type: {type(self)}"
             )
         if (self.min_len and (len(value) < self.min_len)) or (
             self.max_len and (len(value) > self.max_len)
@@ -223,77 +302,6 @@ class ValidatedStr(str, PydanticStrMixin):
             if raise_error:
                 raise ValidationError(msg)
             logger.warning(msg)
-
-
-class Tree(dict[KT, "Tree"], Generic[KT]):
-    def add_sequence(self: "Tree[KT]", *keys: KT):
-        __self = self
-        for key in keys:
-            if key not in __self:
-                __self[key] = self.__class__()
-            __self = __self[key]  # type: ignore
-
-    def to_sequences(self: "Tree[KT]") -> List[Tuple[KT, ...]]:
-        sequences: List[Tuple[KT, ...]] = []
-        for key in self.keys():
-            sub_sequences: List[Tuple[KT, ...]] = self[key].to_sequences()  # type: ignore
-            if not sub_sequences:
-                sequences.append((key,))
-            else:
-                for sub_sequence in sub_sequences:
-                    sequences.append((key, *sub_sequence))
-        return sequences
-
-    def has_sequence(self: "Tree[KT]", *keys: KT) -> bool:
-        return self.get_sequence(*keys) is not None
-
-    def get_sequence(self: "Tree[KT]", *keys: KT) -> Optional["Tree[KT]"]:
-        __self = self
-        for key in keys:
-            if key not in __self:
-                return None
-            __self = __self[key]  # type: ignore
-        return __self  # type: ignore
-
-
-class PostInitMixin:
-    def __init_subclass__(cls, add_hook: bool = False, **kwargs) -> None:
-        """Adds a __post_init__ method to the subclass if it does not already have one.
-
-        If add_hook is True, then the __init__ method is wrapped to call __post_init__ after
-
-        Args:
-            add_hook (bool, optional): add hook to init method. Defaults to True.
-        """
-        super().__init_subclass__(**kwargs)
-
-        if add_hook:
-            original_post_init = cls.__post_init__
-            original_init = cls.__init__
-
-            @wraps(original_post_init)
-            def wrapped_post_init(self, *args, **_kwargs):
-                if not hasattr(self, "__post_init_called__"):
-                    original_post_init(self, *args, **_kwargs)
-                    self.__post_init_called__ = True
-
-            @wraps(original_init)
-            def wrapped_init(self, *args, **kwargs):
-                original_init(self, *args, **kwargs)
-                self.__post_init__()
-
-            cls.__init__ = wrapped_init  # type: ignore[assignment]
-            cls.__post_init__ = wrapped_post_init  # type: ignore[assignment]
-
-    def __post_init__(self, *args, **kwargs):
-        """Default __post_init__ method. Safe parent __post_init__ method calls"""
-
-        try:
-            post_init = super().__post_init__  # type: ignore[misc]
-        except AttributeError:
-            pass
-        else:
-            post_init(*args, **kwargs)
 
 
 class BaseEnumMeta(EnumMeta):
