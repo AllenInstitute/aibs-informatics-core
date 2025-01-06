@@ -21,13 +21,13 @@ def as_module_type(package: Union[str, ModuleType]) -> ModuleType:
 
 
 @overload
-def load_type_from_qualified_name(qualified_name: str, expected_type: Type[T]) -> T: ...
+def load_type_from_qualified_name(qualified_name: str, expected_type: Type[T]) -> T:
+    ...
 
 
 @overload
-def load_type_from_qualified_name(
-    qualified_name: str, expected_type: Literal[None] = None
-) -> Any: ...
+def load_type_from_qualified_name(qualified_name: str, expected_type: Literal[None] = None) -> Any:
+    ...
 
 
 def load_type_from_qualified_name(
