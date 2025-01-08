@@ -77,15 +77,15 @@ class EnvBaseTests(BaseTest):
 
     def test__suffixed__does_not_suffix_if_already_suffixed(self):
         self.assertEqual(
-            self.env_base.suffixed(f"construct", f"x-{self.env_base}", delim="/"),
+            self.env_base.suffixed("construct", f"x-{self.env_base}", delim="/"),
             "construct/x-prod-marmot/prod-marmot",
         )
         self.assertEqual(
-            self.env_base.suffixed(f"construct", f"x-{self.env_base}", delim="-"),
+            self.env_base.suffixed("construct", f"x-{self.env_base}", delim="-"),
             "construct-x-prod-marmot",
         )
         self.assertEqual(
-            self.env_base.suffixed(f"construct", f"x{self.env_base}", delim="-"),
+            self.env_base.suffixed("construct", f"x{self.env_base}", delim="-"),
             "construct-xprod-marmot-prod-marmot",
         )
         self.assertEqual(

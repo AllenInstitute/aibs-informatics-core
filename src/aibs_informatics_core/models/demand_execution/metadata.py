@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from aibs_informatics_core.models.aws.sfn import ExecutionArn
 from aibs_informatics_core.models.base import SchemaModel, custom_field
@@ -10,7 +10,6 @@ from aibs_informatics_core.models.base.custom_fields import (
     EnumField,
     ListField,
     StringField,
-    UnionField,
 )
 from aibs_informatics_core.models.status import Status
 

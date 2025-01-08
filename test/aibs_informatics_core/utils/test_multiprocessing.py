@@ -1,6 +1,6 @@
 import multiprocessing
 
-from aibs_informatics_core.utils.multiprocessing import *
+from aibs_informatics_core.utils.multiprocessing import parallel_starmap, starmap_with_kwargs
 
 
 def fn(x, y):

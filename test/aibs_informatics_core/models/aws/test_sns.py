@@ -46,4 +46,4 @@ def test__SNSTopicArn__validates(
     raise_expectation,
 ):
     with raise_expectation:
-        actual = SNSTopicArn(value)
+        SNSTopicArn(value)

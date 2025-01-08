@@ -63,14 +63,14 @@ class ArchiveType(Enum):
     def is_archive_type(self, path: Path) -> bool:
         try:
             return self == self.from_path(path)
-        except:
+        except Exception:
             return False
 
     @classmethod
     def is_archive(cls, path: Path) -> bool:
         try:
             cls.from_path(path)
-        except:
+        except Exception:
             return False
         else:
             return True
@@ -92,7 +92,7 @@ class ArchiveType(Enum):
         elif zipfile.is_zipfile(path):
             return ArchiveType.ZIP
         else:
-            raise ValueError(f"Cannot infer type")
+            raise ValueError("Cannot infer type")
 
     @classmethod
     def _get_compression_type(cls, path: Path) -> Optional[Literal["gz", "bz", "xz", "zip"]]:
@@ -353,7 +353,7 @@ def find_paths(
 
 
 def get_path_with_root(path: Union[str, Path], root: Union[str, Path]) -> str:
-    orig_path, orig_root = path, root
+    orig_path = path
     root = Path(root)
     path = Path(path)
     if path.is_relative_to(root):
@@ -427,7 +427,7 @@ class PathLock:
         self.release()
 
     def acquire(self):
-        logger.info(f"Acquiring lock...")
+        logger.info("Acquiring lock...")
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
             self._lock_file = open(self._lock_path, "w")
@@ -436,14 +436,14 @@ class PathLock:
                 op |= fcntl.LOCK_NB
             fcntl.flock(self._lock_file, op)
             self._lock_file.write(f"{datetime.now().timestamp()}")
-            logger.info(f"Lock acquired!")
+            logger.info("Lock acquired!")
         except Exception as e:
             msg = f"Could not acquire lock! Reason: {e}"
             logger.error(msg)
             raise CannotAcquirePathLockError(msg) from e
 
     def release(self):
-        logger.info(f"Releasing lock...")
+        logger.info("Releasing lock...")
 
         if self._lock_file and not self._lock_file.closed:
             try:

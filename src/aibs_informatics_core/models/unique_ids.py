@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, ClassVar, List, Optional, Type, TypeVar, Union
+from typing import ClassVar, List, Optional, Type, TypeVar, Union
 
 import marshmallow as mm
 

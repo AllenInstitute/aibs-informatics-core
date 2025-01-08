@@ -17,13 +17,11 @@ from functools import cached_property, total_ordering, wraps
 from re import compile as regex_compile
 from re import finditer as regex_finditer
 from re import fullmatch as regex_fullmatch
-from re import search as regex_search
 from re import sub as regex_sub
 from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
     Generic,
     Hashable,
     List,
@@ -276,7 +274,6 @@ class PostInitMixin:
 
 
 class BaseEnumMeta(EnumMeta):
-
     """Metaclass for BaseEnum type"""
 
     def __contains__(self, item):
@@ -288,7 +285,6 @@ class BaseEnumMeta(EnumMeta):
 
 
 class BaseEnum(Enum, metaclass=BaseEnumMeta):
-
     """
     Enum extension class that makes string comparisons easier
     >>> class MyEnum(BaseEnum):
@@ -313,7 +309,7 @@ class OrderedEnum(BaseEnum):
             return self.__name_order__ < other.__name_order__
         try:
             return self.__name_order__ < self.__class__(other).__name_order__
-        except:
+        except Exception:
             return NotImplemented
 
     @cached_property

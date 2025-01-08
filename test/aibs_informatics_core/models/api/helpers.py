@@ -23,7 +23,7 @@ class BaseResponse(SchemaModel):
 class GetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
     @classmethod
     def route_rule(cls) -> str:
-        return f"/test/resource"
+        return "/test/resource"
 
     @classmethod
     def route_method(cls) -> str:
@@ -33,7 +33,7 @@ class GetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
 class DynamicGetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
     @classmethod
     def route_rule(cls) -> str:
-        return f"/test/<id_str>/resource"
+        return "/test/<id_str>/resource"
 
     @classmethod
     def route_method(cls) -> str:
@@ -43,7 +43,7 @@ class DynamicGetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
 class PostResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
     @classmethod
     def route_rule(cls) -> str:
-        return f"/test/resource"
+        return "/test/resource"
 
     @classmethod
     def route_method(cls) -> str:
@@ -53,7 +53,7 @@ class PostResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
 class DynamicPostResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
     @classmethod
     def route_rule(cls) -> str:
-        return f"/test/<id_str>/resource"
+        return "/test/<id_str>/resource"
 
     @classmethod
     def route_method(cls) -> str:

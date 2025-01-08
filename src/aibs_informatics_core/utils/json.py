@@ -13,7 +13,7 @@ __all__ = [
 import decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Protocol, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Protocol, Type, Union, cast
 
 # TODO: Figure out better JSON typing. mypy doesn't like
 JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
@@ -49,7 +49,7 @@ def is_json_str(data: Any) -> bool:
     try:
         assert isinstance(data, str)
         json.loads(data)
-    except:
+    except Exception:
         return False
     return True
 

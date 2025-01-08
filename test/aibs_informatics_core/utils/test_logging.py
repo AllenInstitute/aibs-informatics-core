@@ -34,8 +34,8 @@ def test__check_formatter_equality__works():
 
 def test__enable_stdout_logging__works():
     logger1 = enable_stdout_logging("test", level="INFO")
-    logger2 = enable_stdout_logging("test", level="DEBUG")
-    logger3 = enable_stdout_logging("test", format="%(message)s", level="INFO")
+    enable_stdout_logging("test", level="DEBUG")
+    enable_stdout_logging("test", format="%(message)s", level="INFO")
     assert len(logger1.handlers) == 3
 
 
@@ -46,9 +46,9 @@ class DummyClass(LoggingMixin):
 class LoggingMixinTests(unittest.TestCase):
     def test__logger__provides_a_logger(self):
         dummy_class = DummyClass()
-        logger1 = dummy_class.log.info("info")
-        logger1 = dummy_class.log.warning("info")
-        logger1 = dummy_class.logger.error("info")
+        dummy_class.log.info("info")
+        dummy_class.log.warning("info")
+        dummy_class.logger.error("info")
 
     def test__log_stacktrace__works(self):
         dummy_class = DummyClass()

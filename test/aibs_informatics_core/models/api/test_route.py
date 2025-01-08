@@ -238,7 +238,7 @@ def test__get_http_request__works(route: ApiRoute, input, expected):
 
 class ApiRequestConfigTests(BaseTest):
     def test__build__creates_from_nothing(self):
-        expected_client_version = VersionStr("0.*")
+        # expected_client_version = VersionStr("0.*")
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
         config1 = ApiRequestConfig.build()
 
@@ -317,7 +317,7 @@ class ApiRouteTests(BaseTest):
         class InvalidGetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
             @classmethod
             def route_rule(cls) -> str:
-                return f"/test/<c>"
+                return "/test/<c>"
 
             @classmethod
             def route_method(cls) -> str:

@@ -71,7 +71,7 @@ def check_formatter_equality(
 
 
 def check_handler_equality(this: logging.Handler, other: logging.Handler) -> bool:
-    if type(this) != type(other):
+    if type(this) is not type(other):
         return False
     if this.level != other.level:
         return False

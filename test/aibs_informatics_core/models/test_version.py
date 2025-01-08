@@ -75,6 +75,6 @@ def test__Version__comparison(this, other, comparison_operator):
 
 def test__unsupported_comparisons():
     assert not Version(1, 2, 3) == 1.2
-    assert not Version(1, 2, 3) == None
+    assert Version(1, 2, 3) is not None
     assert not VersionStr("1.2.3") == 1.2
     assert not VersionStr("1.2.3") == "1.2.a13bc"

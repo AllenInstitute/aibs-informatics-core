@@ -4,7 +4,7 @@ from typing import Union
 
 import marshmallow as mm
 import pytest
-from click import Path
+from pathlib import Path
 
 from aibs_informatics_core.models.aws.s3 import (
     S3BucketName,

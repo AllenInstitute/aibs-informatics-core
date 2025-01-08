@@ -9,7 +9,7 @@ from aibs_informatics_core.collections import ValidatedStr
 
 class GCSPath(ValidatedStr):
     regex_pattern: ClassVar[re.Pattern] = re.compile(
-        rf"gs:\/\/([a-zA-Z0-9\-\_\.]+)\/([a-zA-Z0-9\-\_\.\/\%]+)"
+        r"gs:\/\/([a-zA-Z0-9\-\_\.]+)\/([a-zA-Z0-9\-\_\.\/\%]+)"
     )
 
     @property
