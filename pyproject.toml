@@ -31,12 +31,35 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "aibs-informatics-test-resources[all]~=0.0.4",
+    "aibs-informatics-test-resources~=0.1",
 ]
+
+[dependency-groups]
+
+dev = [
+    { include-group = 'linting' },
+    { include-group = 'typing' },
+]
+
 release = [
+    { include-group = 'bump' },
+    { include-group = 'build' }    
+]
+
+linting = [
+    "ruff",
+]
+
+typing = [
+    "mypy~=1.13",
+]   
+
+bump = [
+    "bumpversion",
+]
+
+build = [
     "build",
-    "bump-my-version",
-    "twine",
     "wheel",
 ]
 
@@ -57,6 +80,13 @@ Documentation = "https://.github.io/aibs-informatics-core/"
 Homepage = "https://github.com/AllenInstitute/aibs-informatics-core/"
 Issues = "https://github.com/AllenInstitute/aibs-informatics-core/issues"
 Repository = "https://github.com/AllenInstitute/aibs-informatics-core/"
+
+# -----------------------------------------------------------------------------
+##  astral-uv Configurations
+#   https://docs.astral.sh/uv/getting-started/
+# -----------------------------------------------------------------------------
+
+[tool.uv]
 
 
 # -----------------------------------------------------------------------------
@@ -200,25 +230,20 @@ ignore_errors = false
 
 
 # -----------------------------------------------------------------------------
-##  Black Configurations
-#   https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#what-on-earth-is-a-pyproject-toml-file
+##  ruff Configurations
+#   https://beta.ruff.rs/docs/configuration/
 # -----------------------------------------------------------------------------
 
-
-[tool.black]
+[tool.ruff]
 line-length = 99
-include = '\.pyi?$'
+src = ["src", "test"]
 
-# -----------------------------------------------------------------------------
-##  isort Configurations
-#   https://pycqa.github.io/isort/docs/configuration/config_files.html
-# -----------------------------------------------------------------------------
+[tool.ruff.lint]
+select = ["E", "F", "W", "C90"]
+ignore = ["E501"]
 
-[tool.isort]
-# required for compatibility with black:
-line_length = 99
-profile = "black"
-src_paths = ["src", "test"]
+[tool.ruff.lint.per-file-ignores]
+"test/**" = ["F401"]
 
 # -----------------------------------------------------------------------------
 ##  bumpversion Configurations

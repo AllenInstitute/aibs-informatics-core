@@ -21,13 +21,18 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        uv-resolution: ["highest", "lowest"]
+        exclude:
+          - python-version: "3.10"
+            uv-resolution: "lowest"
+          - python-version: "3.11"
+            uv-resolution: "lowest"
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4        
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          python-version: ${{ github.event.inputs.python-version }}
       - name: Set up AllenInstitute Repo Authorization
         uses: ./.github/actions/configure-org-repo-authorization
         with:
@@ -35,7 +40,19 @@ jobs:
           ssh_private_key: ${{ secrets.AIBSGITHUB_PRIVATE_KEY }}
       - name: Run Release
         run: |
-          make release
+          if [ ${{ matrix.uv-resolution }} == "highest" ]; then
+            make release            
+          else
+            # Install dependencies
+            uv sync --frozen --group all --all-extras --resolution ${{ matrix.uv-resolution }}
+            
+            # Linting 
+            uv run ruff check
+            uv run mypy ./
+
+            # Testing
+            uv run pytest -vv --durations=10
+          fi
         shell: bash
       - name: Upload coverage reports
         if: |
