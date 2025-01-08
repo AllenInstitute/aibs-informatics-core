@@ -3,7 +3,6 @@ from typing import Tuple
 
 from pytest import mark, param, raises
 
-from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.sfn import ExecutionArn, StateMachineArn
 
 

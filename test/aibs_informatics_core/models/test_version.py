@@ -1,5 +1,3 @@
-import re
-from math import e
 from test.base import does_not_raise
 from typing import Optional
 

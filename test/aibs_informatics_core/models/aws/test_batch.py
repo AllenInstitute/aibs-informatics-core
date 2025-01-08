@@ -1,5 +1,3 @@
-from re import S
-
 from marshmallow import ValidationError
 from pytest import raises
 

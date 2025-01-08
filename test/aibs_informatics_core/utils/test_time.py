@@ -4,7 +4,7 @@ from typing import Optional
 
 from pytest import mark, param, raises
 
-from aibs_informatics_core.utils.time import from_isoformat_8601, get_duration_in_secs
+from aibs_informatics_core.utils.time import from_isoformat_8601
 
 
 @mark.parametrize(
