@@ -157,7 +157,7 @@ def test__S3PathStats__getitem__works():
                 "key": "${Token[detail-requestParameters-key.2806]}",
             },
             does_not_raise(),
-            id="URI with env_var interpolation and periods/dashes succeeds with full_validate=False",
+            id="URI with env_var interpolation and periods/dashes succeeds with full_validate=False",  # noqa: E501
         ),
         pytest.param(
             # test_input

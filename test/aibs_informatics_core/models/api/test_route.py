@@ -164,7 +164,7 @@ DEFAULT_BASE_URL = "https://fake-api.com"
                 method="GET",
                 url=f"{DEFAULT_BASE_URL}/test/resource",
                 params={
-                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifSwgImlkX3N0ciI6ICJpbWFuaWQifQ=="
+                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifSwgImlkX3N0ciI6ICJpbWFuaWQifQ=="  # noqa: E501
                 },
             ),
             id="GET Route with list and dict fields converted",
@@ -180,7 +180,7 @@ DEFAULT_BASE_URL = "https://fake-api.com"
                 method="GET",
                 url=f"{DEFAULT_BASE_URL}/test/imanid/resource",
                 params={
-                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifX0="
+                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifX0="  # noqa: E501
                 },
             ),
             id="(Dynamic) GET Route with list and dict fields converted",
@@ -291,7 +291,8 @@ class ApiRequestConfigTests(BaseTest):
         # client_version_default takes precedence over client_version_package_name_default
         self.assertEqual(TestApiRequestConfig.build__client_version(), VersionStr("1.2.3"))
 
-        # client_version_package takes precedence over client_version_default when set in env vars / kwargs
+        # client_version_package takes precedence over client_version_default when
+        # set in env vars / kwargs
         self.assertEqual(
             TestApiRequestConfig.build__client_version(client_version_package_name=PACKAGE_B),
             VersionStr("2.2.2"),

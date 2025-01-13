@@ -223,7 +223,8 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
 
         Args:
             input (JSON): input to executor
-            output_location (Optional[str], optional): Optional output location to write response to. Defaults to None.
+            output_location (Optional[str], optional): Optional output location to write
+                response to. Defaults to None.
         """
         executor = cls.build_from_env(**kwargs)
 

@@ -365,7 +365,7 @@ class DemandExecutionParameters(SchemaModel):
             remote_value = str_uploadable.remote or S3URI(f"{self.output_s3_prefix}/{v}")
             return UploadableJobParam(k, str_uploadable.local, remote_value)
         else:
-            # Only create default remote if value is string and not a stringified uploadable reference
+            # Only create default remote if value is str and not a stringified uploadable reference
             default_remote = (
                 S3URI(f"{self.output_s3_prefix}/{v}")
                 if isinstance(v, str) and self.output_s3_prefix

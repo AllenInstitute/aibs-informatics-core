@@ -118,12 +118,6 @@ class EFSPath(ValidatedStr):
     """
 
     regex_pattern: ClassVar[re.Pattern] = re.compile(
-        # rf"""
-        # (?:efs:\/\/(?!.*:\/)|(?:(?:efs:\/\/)?(?=.*:\/)))
-        # (?:({FILE_SYSTEM_ID_PATTERN})\.efs\.{AWS_REGION_PATTERN}\.amazonaws\.com|({FILE_SYSTEM_ID_PATTERN}))
-        # :?
-        # ({PATH_PATTERN})
-        # """
         rf"""
         (?:
             (?:efs://)(?:({FILE_SYSTEM_ID_PATTERN})\.efs\.{AWS_REGION_PATTERN}\.amazonaws\.com|({FILE_SYSTEM_ID_PATTERN})):?

@@ -50,7 +50,7 @@ class ConditionBaseExpression(SchemaModel):
 
 class ConditionBaseExpressionString(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(
-        r"([\w\.]+)(?:( begins_with | contains | NOT | IN |=|<>|<|<=|>|>=)(.+)|( attribute_exists))"
+        r"([\w\.]+)(?:( begins_with | contains | NOT | IN |=|<>|<|<=|>|>=)(.+)|( attribute_exists))"  # noqa: E501
     )
 
     @property

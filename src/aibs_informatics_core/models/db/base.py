@@ -163,7 +163,8 @@ class DBIndex(StrEnum):
 
         Args:
             partition_value (DynamoDBItemValue): Partition key value
-            sort_value (Optional[DynamoDBItemValue], optional): Optional sort key value. Defaults to None.
+            sort_value (Optional[DynamoDBItemValue], optional): Optional sort key value.
+                Defaults to None.
 
         Returns:
             DynamoDBKey: A DynamoDBKey mapping that maps partition and sort key names to values
@@ -198,7 +199,7 @@ class DBIndex(StrEnum):
 
         Returns:
             DynamoDBKey: A DynamoDBKey mapping that maps partition and sort key names to values
-        """
+        """  # noqa: E501
         if self.key_name is None:
             raise ValueError(f"'{self}' has no key name.")
         db_key = {self.key_name: partition_value}

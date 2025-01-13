@@ -54,7 +54,8 @@ class ParamPair(SchemaModel):
 class ParamSetPair(SchemaModel):
     """SchemaModel for a set of input and output parameter pairs as described in demand execution
 
-    The values for inputs and outputs should correspond to the parameter keys in the demand execution
+    The values for inputs and outputs should correspond to the parameter keys in the
+    demand execution.
 
     Scenarios:
         1. inputs and outputs are not empty
@@ -120,8 +121,9 @@ class ParamSetPair(SchemaModel):
 class JobParamPair:
     """models an input and output resolved parameter pair as described in demand execution
 
-    The values for input and outputs should account for both the parameter name and the remote location
-    of the parameter value. The remote location can be a S3URI or other remote location.
+    The values for input and outputs should account for both the parameter name and the
+    remote location of the parameter value. The remote location can be a S3URI or other
+    remote location.
 
     This captures all information about a parameter
 
@@ -134,7 +136,7 @@ class JobParamPair:
             This is used to represent a single job that has only outputs
         4. input is not None and output is None (input only)
             This is used to represent a single job that has only inputs
-    """
+    """  # noqa: E501
 
     input: Optional[ResolvableJobParam] = None
     output: Optional[ResolvableJobParam] = None
@@ -174,7 +176,7 @@ class JobParamSetPair:
             This is used to represent a single job that has only outputs
         4. inputs is not empty and outputs is empty
             This is used to represent a single job that has only inputs
-    """
+    """  # noqa: E501
 
     inputs: FrozenSet[ResolvableJobParam] = field(default_factory=frozenset)
     outputs: FrozenSet[ResolvableJobParam] = field(default_factory=frozenset)
@@ -236,7 +238,7 @@ class ResolvedParamSetPair(SchemaModel):
 
     This only captures the remote location of a parameter. It does not capture the parameter name.
 
-    """
+    """  # noqa: E501
 
     inputs: FrozenSet[ResolvableID] = custom_field(
         mm_field=FrozenSetField(

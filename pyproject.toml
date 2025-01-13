@@ -240,7 +240,7 @@ src = ["src", "test"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90"]
-ignore = ["E501"]
+# ignore = ["E501"]
 
 # -----------------------------------------------------------------------------
 ##  bumpversion Configurations

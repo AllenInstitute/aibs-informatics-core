@@ -401,7 +401,7 @@ class PathLock:
             lock file will be created in this directory with the name of the hash of the path.
             Otherwise, a lock file with the same name as the path and a .lock extension
             will be created. Defaults to None.
-    """
+    """  # noqa: E501
 
     path: Union[str, Path]
     lock_root: Optional[Union[str, Path]] = None
