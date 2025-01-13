@@ -27,7 +27,6 @@ dependencies = [
     "pyyaml~=6.0",
     "requests",
     "typing_inspect",
-    "aibs-informatics-test-resources",
 ]
 
 [project.optional-dependencies]
@@ -88,9 +87,6 @@ Repository = "https://github.com/AllenInstitute/aibs-informatics-core/"
 # -----------------------------------------------------------------------------
 
 [tool.uv]
-
-[tool.uv.sources]
-aibs-informatics-test-resources = { path = "../aibs-informatics-test-resources", editable = true }
 
 
 # -----------------------------------------------------------------------------
