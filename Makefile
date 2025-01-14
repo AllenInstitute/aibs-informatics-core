@@ -160,6 +160,20 @@ coverage-server: $(INSTALL_STAMP) ## Run coverage server
 
 .PHONY: coverage-server
 
+
+#####################
+##@ Docker Commands
+#####################
+
+docker-build: ## Build docker image
+	@docker build 									\
+		--ssh default 								\
+		--platform linux/amd64  					\
+		--tag aibs-informatics-core:latest			\
+		--file $(PACKAGE_DIR)/docker/Dockerfile		\
+		$(PACKAGE_DIR)
+
+
 #####################
 ##@ Release Commands
 #####################
