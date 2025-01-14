@@ -92,7 +92,7 @@ link-packages: ## Link local packages to virtualenv
 		for dependency in $$dependencies; do \
 			if [ $$local_package == $$dependency ]; then \
 				echo "Reinstalling $$local_package dependency to local override"; \
-				uv add -v --editable --frozen $$parent_dir/$$local_package; \
+				uv pip install -e $$parent_dir/$$local_package; \
 			fi \
 		done; \
 	done
@@ -109,7 +109,6 @@ unlink-packages: ## Unlink local packages from virtualenv
 		for dependency in $$dependencies; do \
 			if [ $$local_package == $$dependency ] && [ $$local_package != $$this_package ]; then \
 				is_found=1; \
-				uv remove --frozen $$local_package; \
 			fi; \
 		done \
 	done; \
