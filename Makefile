@@ -68,21 +68,18 @@ obliterate: clean-venv clean  ## alias to clean, clean-venv
 .uv: ## Check that uv is installed
 	@uv -V || echo 'Please install uv: https://docs.astral.sh/uv/getting-started/installation/'
 
-.PHONY: .uv
 
 install: .uv  ## Installs package dependencies
 	uv sync --frozen --all-extras
 
-.PHONY: install
 
 rebuild-lockfile: .uv  ## Rebuilds the lockfile
 	uv lock --upgrade
 
-.PHONY: rebuild-lockfiles
 
 make install-release: .uv  ## Installs package dependencies
 	uv sync --frozen --group release
-.PHONY: install-release
+
 
 link-packages: ## Link local packages to virtualenv  
 	@parent_dir=$$(dirname $$(pwd)); \
@@ -97,7 +94,6 @@ link-packages: ## Link local packages to virtualenv
 		done; \
 	done
 
-.PHONY: link-packages
 
 unlink-packages: ## Unlink local packages from virtualenv
 	@parent_dir=$$(dirname $$(pwd)); \
@@ -160,7 +156,6 @@ coverage-server: $(INSTALL_STAMP) ## Run coverage server
 
 .PHONY: coverage-server
 
-
 #####################
 ##@ Docker Commands
 #####################
@@ -173,6 +168,7 @@ docker-build: ## Build docker image
 		--file $(PACKAGE_DIR)/docker/Dockerfile		\
 		$(PACKAGE_DIR)
 
+.PHONY: docker-build
 
 #####################
 ##@ Release Commands

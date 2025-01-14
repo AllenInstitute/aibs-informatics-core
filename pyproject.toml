@@ -47,7 +47,7 @@ release = [
 ]
 
 linting = [
-    "ruff",
+    "ruff~=0.9",
 ]
 
 typing = [
