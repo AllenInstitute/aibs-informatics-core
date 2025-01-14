@@ -239,7 +239,6 @@ class ApiRequestConfigTests(BaseTest):
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, "INFO"))
         config2 = ApiRequestConfig.build()
 
-        # TODO: This is failing for unknown reasons in github actions
         expected_client_version = VersionStr("1.*")
         assert config1.client_version < expected_client_version
         assert config2.client_version < expected_client_version
