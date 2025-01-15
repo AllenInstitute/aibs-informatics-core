@@ -79,18 +79,15 @@ def find_all_paths(
 
 
 @overload
-def get_env_var(*keys: str) -> Optional[str]:
-    ...  # pragma: no cover
+def get_env_var(*keys: str) -> Optional[str]: ...  # pragma: no cover
 
 
 @overload
-def get_env_var(*keys: str, default_value: Literal[None]) -> Optional[str]:
-    ...  # pragma: no cover
+def get_env_var(*keys: str, default_value: Literal[None]) -> Optional[str]: ...  # pragma: no cover
 
 
 @overload
-def get_env_var(*keys: str, default_value: str) -> str:
-    ...  # pragma: no cover
+def get_env_var(*keys: str, default_value: str) -> str: ...  # pragma: no cover
 
 
 def get_env_var(*keys: str, default_value: Optional[str] = None) -> Optional[str]:
@@ -135,12 +132,10 @@ class EnvVarItem:
     value: str
 
     @overload
-    def to_dict(self, lower: Literal[False] = False) -> EnvVarDictItemUpper:
-        ...
+    def to_dict(self, lower: Literal[False] = False) -> EnvVarDictItemUpper: ...
 
     @overload
-    def to_dict(self, lower: Literal[True]) -> EnvVarDictItemLower:
-        ...
+    def to_dict(self, lower: Literal[True]) -> EnvVarDictItemLower: ...
 
     def to_dict(self, lower: bool = False) -> Union[EnvVarDictItemUpper, EnvVarDictItemLower]:
         if lower:
@@ -212,36 +207,31 @@ def to_env_var_dict(env_vars: EnvVarCollection) -> Dict[str, str]:
 
 
 @overload
-def to_env_var_list(env_vars: EnvVarCollection) -> List[EnvVarTupleItem]:
-    ...
+def to_env_var_list(env_vars: EnvVarCollection) -> List[EnvVarTupleItem]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.TUPLE]
-) -> List[EnvVarTupleItem]:
-    ...
+) -> List[EnvVarTupleItem]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.OBJECT]
-) -> List[EnvVarItem]:
-    ...
+) -> List[EnvVarItem]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_LOWER]
-) -> List[EnvVarDictItemLower]:
-    ...
+) -> List[EnvVarDictItemLower]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_UPPER]
-) -> List[EnvVarDictItemUpper]:
-    ...
+) -> List[EnvVarDictItemUpper]: ...
 
 
 def to_env_var_list(
@@ -270,29 +260,25 @@ def to_env_var_list(
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.OBJECT]
-) -> List[EnvVarItem]:
-    ...
+) -> List[EnvVarItem]: ...
 
 
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.TUPLE]
-) -> List[EnvVarTupleItem]:
-    ...
+) -> List[EnvVarTupleItem]: ...
 
 
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_LOWER]
-) -> List[EnvVarDictItemLower]:
-    ...
+) -> List[EnvVarDictItemLower]: ...
 
 
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_UPPER]
-) -> List[EnvVarDictItemUpper]:
-    ...
+) -> List[EnvVarDictItemUpper]: ...
 
 
 def order_env_vars(

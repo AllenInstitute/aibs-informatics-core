@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Union
 
-import marshmallow as mm
 import pytest
 
 from aibs_informatics_core.exceptions import ValidationError
@@ -191,7 +190,7 @@ def test__S3PathStats__getitem__works():
             False,
             None,
             pytest.raises(ValidationError),
-            id="S3 path with simple env_var interpolation fails with allow_placeholders=False - (fail)",
+            id="S3 path with simple env_var interpolation fails with allow_placeholders=False - (fail)",  # noqa: E501
         ),
         pytest.param(
             "s3://bucket_name/key-name",
@@ -215,9 +214,9 @@ def test__S3Path__init(string_input, allow_placeholders, expected, raise_expecta
 
     if expected:
         for k, v in expected.items():
-            assert v == getattr(
-                s3_path, k
-            ), f"Expected {k} to be {v}, but got {getattr(s3_path, k)}"
+            assert v == getattr(s3_path, k), (
+                f"Expected {k} to be {v}, but got {getattr(s3_path, k)}"
+            )
         assert s3_path.allow_placeholders == allow_placeholders
 
 
@@ -326,7 +325,7 @@ def test__S3Path__as_hosted_s3_url(current_uri, aws_region, expected):
 )
 def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        actual = S3BucketName(value, allow_placeholders=False)
+        S3BucketName(value, allow_placeholders=False)
 
 
 @pytest.mark.parametrize(
@@ -364,7 +363,7 @@ def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
 )
 def test__S3BucketName__init_allow_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        actual = S3BucketName(value, allow_placeholders=True)
+        S3BucketName(value, allow_placeholders=True)
 
 
 @pytest.mark.parametrize(
@@ -393,7 +392,7 @@ def test__S3BucketName__init_allow_placeholders(value: str, raise_expectation):
 )
 def test__S3Key__init_no_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        actual = S3Key(value, allow_placeholders=False)
+        S3Key(value, allow_placeholders=False)
 
 
 @pytest.mark.parametrize(
@@ -426,7 +425,7 @@ def test__S3Key__init_no_placeholders(value: str, raise_expectation):
 )
 def test__S3Key__init_allow_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        actual = S3Key(value, allow_placeholders=True)
+        S3Key(value, allow_placeholders=True)
 
 
 @pytest.mark.parametrize(
