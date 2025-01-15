@@ -8,11 +8,14 @@ import pytest
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import (
     S3BucketName,
+    S3BucketNamePlaceholder,
     S3CopyRequest,
     S3CopyResponse,
     S3Key,
+    S3KeyPlaceholder,
     S3KeyPrefix,
     S3Path,
+    S3PathPlaceholder,
     S3PathStats,
     S3RestoreStatus,
     S3RestoreStatusEnum,
@@ -210,29 +213,35 @@ def test__S3PathStats__getitem__works():
 )
 def test__S3Path__init(string_input, allow_placeholders, expected, raise_expectation):
     with raise_expectation:
-        s3_path = S3Path(string_input, allow_placeholders=allow_placeholders)
+        s3_path = S3Path(string_input)
+        s3_path_placeholder = S3PathPlaceholder(
+            string_input, allow_placeholders=allow_placeholders
+        )
 
     if expected:
         for k, v in expected.items():
             assert v == getattr(s3_path, k), (
                 f"Expected {k} to be {v}, but got {getattr(s3_path, k)}"
             )
-        assert s3_path.allow_placeholders == allow_placeholders
+            assert v == getattr(s3_path_placeholder, k), (
+                f"Expected {k} to be {v}, but got {getattr(s3_path, k)}"
+            )
+        assert s3_path_placeholder.allow_placeholders == allow_placeholders
 
 
-def test__S3Path__full_validate__backwards_compatibility():
+def test__S3PathPlaceholder__full_validate__backwards_compatibility():
     # NOTE: This should be removed in the future
     with pytest.raises(ValidationError):
-        S3Path("s3://bucket-name/${key-name}", full_validate=True)
+        S3PathPlaceholder("s3://bucket-name/${key-name}", full_validate=True)
 
     with does_not_raise():
-        S3Path("s3://bucket-name/${key-name}", full_validate=False)
+        S3PathPlaceholder("s3://bucket-name/${key-name}", full_validate=False)
 
     with pytest.raises(ValidationError):
-        S3Path.build("bucket-name", "${key-name}", full_validate=True)
+        S3PathPlaceholder.build("bucket-name", "${key-name}", full_validate=True)
 
     with does_not_raise():
-        S3Path.build("bucket-name", "${key-name}", full_validate=False)
+        S3PathPlaceholder.build("bucket-name", "${key-name}", full_validate=False)
 
 
 @pytest.mark.parametrize(
@@ -325,7 +334,8 @@ def test__S3Path__as_hosted_s3_url(current_uri, aws_region, expected):
 )
 def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        S3BucketName(value, allow_placeholders=False)
+        S3BucketName(value)
+        S3BucketNamePlaceholder(value, allow_placeholders=False)
 
 
 @pytest.mark.parametrize(
@@ -363,7 +373,7 @@ def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
 )
 def test__S3BucketName__init_allow_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        S3BucketName(value, allow_placeholders=True)
+        S3BucketNamePlaceholder(value, allow_placeholders=True)
 
 
 @pytest.mark.parametrize(
@@ -392,7 +402,8 @@ def test__S3BucketName__init_allow_placeholders(value: str, raise_expectation):
 )
 def test__S3Key__init_no_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        S3Key(value, allow_placeholders=False)
+        S3Key(value)
+        S3KeyPlaceholder(value, allow_placeholders=False)
 
 
 @pytest.mark.parametrize(
@@ -425,7 +436,7 @@ def test__S3Key__init_no_placeholders(value: str, raise_expectation):
 )
 def test__S3Key__init_allow_placeholders(value: str, raise_expectation):
     with raise_expectation:
-        S3Key(value, allow_placeholders=True)
+        S3KeyPlaceholder(value, allow_placeholders=True)
 
 
 @pytest.mark.parametrize(

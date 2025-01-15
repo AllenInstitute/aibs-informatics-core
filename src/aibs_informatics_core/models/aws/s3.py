@@ -1,10 +1,13 @@
 __all__ = [
     "S3PathStats",
     "S3Path",
+    "S3PathPlaceholder",
     "S3URI",
     "S3BucketName",
+    "S3BucketNamePlaceholder",
     "S3KeyPrefix",
     "S3Key",
+    "S3KeyPlaceholder",
     "S3StorageClass",
     "S3StorageClassStr",
     "S3TransferRequest",
@@ -123,42 +126,9 @@ S3_KEY_PATTERN_STR = (
 )
 
 
-class PlaceholderMixins:
-    _placeholder_pattern: ClassVar[Pattern] = re.compile(PLACEHOLDER_PATTERN)
-
-    @cached_property
-    def has_placeholder(self) -> bool:
-        return bool(self._placeholder_pattern.search(self))
-
-
-class ConditionalPlaceholderStr(ValidatedStr, PlaceholderMixins):
-    def __new__(cls, value, *args, allow_placeholders: bool = False, **kwargs):
-        return super().__new__(cls, value, *args, **kwargs)
-
-    def __init__(self, *args, allow_placeholders: bool = False, **kwargs):
-        self._allow_placeholders = allow_placeholders
-        # TODO: This is to ensure backwards compatibility with the old `full_validate` kwarg
-        #       Please remove this in the next major release
-        if "full_validate" in kwargs:
-            self._allow_placeholders = not kwargs.pop("full_validate")
-
-    def _validate(self):
-        super()._validate()
-        if not self.allow_placeholders:
-            if self.has_placeholder:
-                raise ValidationError(
-                    f"Placeholders are not allowed in {self} ({type(self)})"
-                    f"with allow_placeholders={self.allow_placeholders}"
-                )
-
-    @property
-    def allow_placeholders(self) -> bool:
-        return self._allow_placeholders
-
-
 # https://stackoverflow.com/a/58248645/4544508
-class S3BucketName(ConditionalPlaceholderStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR)
+class S3BucketName(ValidatedStr):
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR_NO_VARS)
 
     def __truediv__(self, __other: str) -> "S3Path":
         """Creates a S3Path
@@ -182,7 +152,7 @@ class S3BucketName(ConditionalPlaceholderStr):
         return S3Path.build(bucket_name=self, key=__other)
 
 
-class S3Key(ConditionalPlaceholderStr):
+class S3Key(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR)
 
     @property
@@ -214,9 +184,9 @@ class S3KeyPrefix(S3Key):
 _DOUBLE_SLASH_PATTERN = re.compile(r"([^:]/)(/)+")
 
 
-class S3Path(ConditionalPlaceholderStr):
+class S3Path(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(
-        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR})(?:\/({S3_KEY_PATTERN_STR}))?"
+        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR_NO_VARS})(?:\/({S3_KEY_PATTERN_STR_NO_VARS}))?"
     )
 
     @classmethod
@@ -226,7 +196,7 @@ class S3Path(ConditionalPlaceholderStr):
 
     @cached_property
     def bucket(self) -> S3BucketName:
-        return S3BucketName(self.get_match_groups()[0], allow_placeholders=self.allow_placeholders)
+        return S3BucketName(self.get_match_groups()[0])
 
     @property
     def bucket_name(self) -> str:
@@ -236,7 +206,7 @@ class S3Path(ConditionalPlaceholderStr):
     @cached_property
     def key(self) -> S3Key:
         if key := self.get_match_groups()[1]:
-            return S3Key(key, allow_placeholders=self.allow_placeholders)
+            return S3Key(key)
         return S3Key("")
 
     @property
@@ -259,11 +229,7 @@ class S3Path(ConditionalPlaceholderStr):
 
     @property
     def with_folder_suffix(self) -> "S3Path":
-        return S3Path.build(
-            bucket_name=self.bucket_name,
-            key=self.key_with_folder_suffix,
-            allow_placeholders=self.allow_placeholders,
-        )
+        return S3Path.build(bucket_name=self.bucket_name, key=self.key_with_folder_suffix)
 
     def has_folder_suffix(self) -> bool:
         return self.key.endswith("/")
@@ -282,17 +248,15 @@ class S3Path(ConditionalPlaceholderStr):
         return CustomStringField(S3Path)
 
     @classmethod
-    def build(
-        cls, bucket_name: str, key: str = "", allow_placeholders: bool = False, **kwargs
-    ) -> "S3Path":
+    def build(cls, bucket_name: str, key: str = "", **kwargs) -> "S3Path":
         """Build an `s3://` style URI given a bucket_name and key.
 
         There may be cases where the bucket_name or key is a placeholder
         (e.g. "${FILL_WITH_SOME_ENV_VAR}") in which case you must set allow_placeholders=True
         """
-        bucket = S3BucketName(bucket_name, allow_placeholders=allow_placeholders, **kwargs)
-        key = S3Key(key, allow_placeholders=allow_placeholders, **kwargs)
-        return cls(f"s3://{bucket}/{key}", allow_placeholders=allow_placeholders, **kwargs)
+        bucket = S3BucketName(bucket_name, **kwargs)
+        key = S3Key(key, **kwargs)
+        return cls(f"s3://{bucket}/{key}", **kwargs)
 
     def __add__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Appends a string or S3Path key to the end of this S3Path
@@ -312,7 +276,7 @@ class S3Path(ConditionalPlaceholderStr):
         """
         if isinstance(__other, S3Path):
             __other = __other.key
-        return S3Path(f"{self}{__other}", allow_placeholders=self.allow_placeholders)
+        return S3Path(f"{self}{__other}")
 
     def __truediv__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Appends a string or S3Path key to the end of this S3Path using the `/` operator
@@ -332,29 +296,7 @@ class S3Path(ConditionalPlaceholderStr):
         """
         if isinstance(__other, S3Path):
             __other = __other.key
-        return S3Path(f"{self}/{__other}", allow_placeholders=self.allow_placeholders)
-
-    def __rtruediv__(self, __other: Union[str, S3BucketName]) -> "S3Path":
-        """Creates a new S3Path by constructing a str or S3Path key with this key
-
-        Examples:
-            >>> s3_uri = S3Path("s3://my-bucket/my-key") / "my-other-key"
-            >>> assert s3_uri == "s3://my-bucket/my-other-key"
-
-            >>> another_s3_uri = S3Path("s3://bucket1/key1") / S3Path("s3://bucket2/key2")
-            >>> assert another_s3_uri == "s3://bucket1/key2"
-
-        Args:
-            __other (Union[str, S3Path]): The key to append to the end of this S3Path
-
-        Returns:
-            S3Path: a new S3Path with a new key
-        """
-        if S3Path.is_valid(__other):
-            __other = S3Path(__other).bucket_name
-        return S3Path.build(
-            bucket_name=__other, key=self.key, allow_placeholders=self.allow_placeholders
-        )
+        return S3Path(f"{self}/{__other}")
 
     def __floordiv__(self, __other: Union[str, "S3Path"]) -> "S3Path":
         """Creates a new S3Path by constructing a str or S3Path key with this bucket
@@ -374,12 +316,237 @@ class S3Path(ConditionalPlaceholderStr):
         """
         if isinstance(__other, S3Path):
             __other = __other.key
-        return S3Path.build(
+        return S3Path.build(bucket_name=self.bucket, key=__other)
+
+
+# Ensure backwards compatibility with old S3URI class name
+S3URI = S3Path
+
+
+class ConditionalPlaceholderStr(ValidatedStr):
+    _placeholder_pattern: ClassVar[Pattern] = re.compile(PLACEHOLDER_PATTERN)
+
+    def __new__(cls, value, *args, allow_placeholders: bool = False, **kwargs):
+        return super().__new__(cls, value, *args, **kwargs)
+
+    def __init__(self, *args, allow_placeholders: bool = False, **kwargs):
+        self._allow_placeholders = allow_placeholders
+        # TODO: This is to ensure backwards compatibility with the old `full_validate` kwarg
+        #       Please remove this in the next major release
+        if "full_validate" in kwargs:
+            self._allow_placeholders = not kwargs.pop("full_validate")
+
+    def _validate(self):
+        super()._validate()
+        if not self.allow_placeholders:
+            if self.has_placeholder:
+                raise ValidationError(
+                    f"Placeholders are not allowed in {self} ({type(self)})"
+                    f"with allow_placeholders={self.allow_placeholders}"
+                )
+
+    @property
+    def allow_placeholders(self) -> bool:
+        return self._allow_placeholders
+
+    @cached_property
+    def has_placeholder(self) -> bool:
+        return bool(self._placeholder_pattern.search(self))
+
+
+# https://stackoverflow.com/a/58248645/4544508
+class S3BucketNamePlaceholder(ConditionalPlaceholderStr):
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR)
+
+    def __truediv__(self, __other: str) -> "S3PathPlaceholder":
+        """Creates a S3PathProxy
+
+        Examples:
+            >>> s3_uri = S3BucketName("my-bucket") / "my-key"
+            >>> assert s3_uri == "s3://my-bucket/my-key"
+
+            >>> another_s3_uri = S3BucketName("bucket1") / S3Path("s3://bucket2/key2")
+            >>> assert another_s3_uri == "s3://bucket1/key2"
+
+        Args:
+            __other (Union[str, S3Path]): The key or key of path to use for the S3Path
+
+        Returns:
+            S3Path: a new S3Path with the appended key using the `/` operator
+        """
+
+        if S3PathPlaceholder.is_valid(__other):
+            __other = S3PathPlaceholder(__other).key
+        return S3PathPlaceholder.build(bucket_name=self, key=__other)
+
+
+class S3KeyPlaceholder(ConditionalPlaceholderStr):
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR)
+
+    @property
+    def components(self) -> List[str]:
+        return self.split("/")
+
+    def __rtruediv__(self, __other: str) -> "S3KeyPlaceholder":
+        """Creates a new S3 Key
+
+        Args:
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
+
+        Returns:
+            S3Path: a new S3Path with a new key
+        """
+        if isinstance(__other, str):
+            prefix = __other.rstrip("/")
+            return S3KeyPlaceholder((prefix + "/" if prefix else "") + self)
+        raise TypeError(f"{type(__other)} not supported for / operations with {type(self)}")
+
+
+class S3PathPlaceholder(ConditionalPlaceholderStr):
+    regex_pattern: ClassVar[Pattern] = re.compile(
+        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR})(?:\/({S3_KEY_PATTERN_STR}))?"
+    )
+
+    @classmethod
+    def _sanitize(cls, value: str, *args, **kwargs) -> str:
+        value = value[:3] + _DOUBLE_SLASH_PATTERN.sub(r"\1", value[3:])
+        return value
+
+    @cached_property
+    def bucket(self) -> S3BucketNamePlaceholder:
+        return S3BucketNamePlaceholder(
+            self.get_match_groups()[0], allow_placeholders=self.allow_placeholders
+        )
+
+    @property
+    def bucket_name(self) -> str:
+        """Alias for bucket property"""
+        return self.bucket
+
+    @cached_property
+    def key(self) -> S3KeyPlaceholder:
+        if key := self.get_match_groups()[1]:
+            return S3KeyPlaceholder(key, allow_placeholders=self.allow_placeholders)
+        return S3KeyPlaceholder("")
+
+    @property
+    def key_with_folder_suffix(self) -> str:
+        return str(Path(self.key)) + "/"
+
+    @property
+    def name(self) -> str:
+        return Path(self.key).name if self.key else ""
+
+    @property
+    def parent(self) -> "S3PathPlaceholder":
+        parent_key = "/".join(self.key.rstrip("/").split("/")[:-1]).rstrip("/") + "/"
+        return S3PathPlaceholder.build(
+            bucket_name=self.bucket_name,
+            key=parent_key,
+            allow_placeholders=self.allow_placeholders,
+        )
+
+    @property
+    def with_folder_suffix(self) -> "S3PathPlaceholder":
+        return S3PathPlaceholder.build(
+            bucket_name=self.bucket_name,
+            key=self.key_with_folder_suffix,
+            allow_placeholders=self.allow_placeholders,
+        )
+
+    def has_folder_suffix(self) -> bool:
+        return self.key.endswith("/")
+
+    def as_dict(self) -> BucketAndKey:
+        return BucketAndKey(Bucket=self.bucket, Key=self.key)
+
+    def as_hosted_s3_url(self, aws_region: str) -> str:
+        # TODO: need to encode special characters in key
+        encoded_key = quote(self.key, safe="/")
+        hosted_s3_url = f"https://{self.bucket}.s3.{aws_region}.amazonaws.com/{encoded_key}"
+        return hosted_s3_url
+
+    @classmethod
+    def as_mm_field(cls) -> mm.fields.Field:
+        return CustomStringField(S3PathPlaceholder)
+
+    @classmethod
+    def build(
+        cls, bucket_name: str, key: str = "", allow_placeholders: bool = False, **kwargs
+    ) -> "S3PathPlaceholder":
+        """Build an `s3://` style URI given a bucket_name and key.
+
+        There may be cases where the bucket_name or key is a placeholder
+        (e.g. "${FILL_WITH_SOME_ENV_VAR}") in which case you must set allow_placeholders=True
+        """
+        bucket = S3BucketName(bucket_name, allow_placeholders=allow_placeholders, **kwargs)
+        key = S3Key(key, allow_placeholders=allow_placeholders, **kwargs)
+        return cls(f"s3://{bucket}/{key}", allow_placeholders=allow_placeholders, **kwargs)
+
+    def __add__(self, __other: Union[str, "S3PathPlaceholder", S3Path]) -> "S3PathPlaceholder":
+        """Appends a string or S3Path key to the end of this S3Path
+
+        Examples:
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") + "-my-other-key"
+            >>> assert s3_uri == "s3://my-bucket/my-key-my-other-key"
+
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") + S3Path("s3://bucket2/key2")
+            >>> assert another_s3_uri == "s3://bucket1/key1key2"
+
+        Args:
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
+
+        Returns:
+            S3Path: a new S3Path with the appended key
+        """
+        if isinstance(__other, (S3PathPlaceholder, S3Path)):
+            __other = __other.key
+        return S3PathPlaceholder(f"{self}{__other}", allow_placeholders=self.allow_placeholders)
+
+    def __truediv__(self, __other: Union[str, S3Path, "S3PathPlaceholder"]) -> "S3PathPlaceholder":
+        """Appends a string or S3Path key to the end of this S3Path using the `/` operator
+
+        Examples:
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") / "my-other-key"
+            >>> assert s3_uri == "s3://my-bucket/my-key/my-other-key"
+
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") / S3Path("s3://bucket2/key2")
+            >>> assert another_s3_uri == "s3://bucket1/key1/key2"
+
+        Args:
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
+
+        Returns:
+            S3Path: a new S3Path with the appended key using the `/` operator
+        """
+        if isinstance(__other, (S3Path, S3PathPlaceholder)):
+            __other = __other.key
+        return S3PathPlaceholder(f"{self}/{__other}", allow_placeholders=self.allow_placeholders)
+
+    def __floordiv__(
+        self, __other: Union[str, S3Path, "S3PathPlaceholder"]
+    ) -> "S3PathPlaceholder":
+        """Creates a new S3Path by constructing a str or S3Path key with this bucket
+
+        Examples:
+            >>> s3_uri = S3Path("s3://my-bucket/my-key") // "my-other-key"
+            >>> assert s3_uri == "s3://my-bucket/my-other-key"
+
+            >>> another_s3_uri = S3Path("s3://bucket1/key1") // S3Path("s3://bucket2/key2")
+            >>> assert another_s3_uri == "s3://bucket1/key2"
+
+        Args:
+            __other (Union[str, S3Path]): The key to append to the end of this S3Path
+
+        Returns:
+            S3Path: a new S3Path with a new key
+        """
+        if isinstance(__other, (S3Path, S3PathPlaceholder)):
+            __other = __other.key
+        return S3PathPlaceholder.build(
             bucket_name=self.bucket, key=__other, allow_placeholders=self.allow_placeholders
         )
 
-
-S3URI = S3Path
 
 T = TypeVar("T", S3Path, Path)
 U = TypeVar("U", S3Path, Path)
