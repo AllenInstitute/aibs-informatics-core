@@ -65,41 +65,41 @@ obliterate: clean-venv clean  ## alias to clean, clean-venv
 ##@ Installation Commands
 #########################
 
-create-venv: $(PYTHON)  ## Creates virtualenv
-$(PYTHON):
-	python3 -m venv $(VENV) --prompt $(shell basename $(PACKAGE_DIR))
-	$(PYTHON) -m pip install --upgrade pip
+.uv: ## Check that uv is installed
+	@uv -V || echo 'Please install uv: https://docs.astral.sh/uv/getting-started/installation/'
 
-install: $(INSTALL_STAMP) ## Installs package dependencies
-$(INSTALL_STAMP): $(PYTHON) $(DEP_FILES)
-	@. $(VENV_BIN)/activate;\
-	$(PIP) install -e .[dev]; 
-	@touch $(INSTALL_STAMP)
 
-install-release: clean-install-stamp $(PYTHON) $(DEP_FILES) ## Installs package for release
-	@. $(VENV_BIN)/activate;\
-	$(PIP) install .[release]
+install: .uv  ## Installs package dependencies
+	uv sync --frozen --all-extras
 
-install-force: clean-install-stamp install ## Force install package dependencies
+
+rebuild-lockfile: .uv  ## Rebuilds the lockfile
+	uv lock --upgrade
+
+
+make install-release: .uv  ## Installs package dependencies
+	uv sync --frozen --group release
+
 
 link-packages: ## Link local packages to virtualenv  
 	@parent_dir=$$(dirname $$(pwd)); \
 	local_packages=$$(ls $$parent_dir); \
-	dependencies=$$($(PIP) list --format freeze --exclude-editable | awk -F '==' '{print $$1}');\
+	dependencies=$$(uv pip list --format freeze --exclude-editable | awk -F '==' '{print $$1}');\
 	for local_package in $$local_packages; do \
 		for dependency in $$dependencies; do \
 			if [ $$local_package == $$dependency ]; then \
 				echo "Reinstalling $$local_package dependency to local override"; \
-				$(PIP) install -e $$parent_dir/$$local_package --no-deps; \
+				uv pip install -e $$parent_dir/$$local_package; \
 			fi \
 		done; \
 	done
+
 
 unlink-packages: ## Unlink local packages from virtualenv
 	@parent_dir=$$(dirname $$(pwd)); \
 	this_package=$$(basename $$(pwd)); \
 	local_packages=$$(ls $$parent_dir); \
-	dependencies=$$($(PIP) list --format freeze --editable | awk -F '==' '{print $$1}');\
+	dependencies=$$(uv pip list --format freeze --editable | awk -F '==' '{print $$1}');\
 	is_found=0; \
 	for local_package in $$local_packages; do \
 		for dependency in $$dependencies; do \
@@ -110,53 +110,42 @@ unlink-packages: ## Unlink local packages from virtualenv
 	done; \
 	if [ $$is_found == 1 ]; then \
 		echo "Found dependencies installed locally, reinstalling..."; \
-		make clean-install-stamp install; \
+		make install; \
 	fi
 
-.PHONY: create-venv install install-force link-packages unlink-packages
+.PHONY: .uv install install-release rebuild-lockfile link-packages unlink-packages
 
 #######################
 ##@ Formatting Commands
 #######################
 
-lint-black: $(INSTALL_STAMP) ## Run black (check only)
-	$(VENV_BIN)/black ./ --check
+lint-ruff: .uv ## Run ruff checker
+	uv run ruff check
 
-lint-isort: $(INSTALL_STAMP) ## Run isort (check only) 
-	$(VENV_BIN)/isort ./ --check
+lint-mypy: .uv ## Run mypy
+	uv run mypy ./
 
-lint-mypy: $(INSTALL_STAMP) ## Run mypy
-	$(VENV_BIN)/mypy ./
-
-
-lint: lint-isort lint-black lint-mypy  ## Run all lint targets (black, isort, mypy)
+lint: lint-ruff lint-mypy  ## Run all lint targets (ruff, mypy)
 
 
-format-black: $(INSTALL_STAMP) ## Format code using black
-	$(VENV_BIN)/black ./
+format-ruff: .uv ## Run ruff formatter 
+	uv run ruff check --fix
+	uv run ruff format
 
-format-isort: $(INSTALL_STAMP) ## Format code using isort
-	$(VENV_BIN)/isort ./
+format: format-ruff  ## Run all formatters (ruff) 
 
-
-format: format-isort format-black  ## Run all formatters (black, isort) 
-
-.PHONY: lint-isort lint-black lint-mypy lint format-lint format-black format-mypy format
+.PHONY: lint-ruff lint-mypy lint format-ruff format-mypy format
 
 #####################
 ##@ Testing Commands
 #####################
 
-pytest: $(INSTALL_STAMP)  ## Run test (pytest)
-	$(VENV_BIN)/pytest -vv --durations=10
-
-tox: $(INSTALL_STAMP)  ## Run Test in tox environment
-	$(VENV_BIN)/tox
+pytest: install  ## Run test (pytest)
+	uv run pytest -vv --durations=10
 
 test: pytest  ## Run Standard Tests
 
-.PHONY: pytest tox test
-
+.PHONY: pytest test
 
 #####################
 ##@ Inspect Commands
@@ -165,22 +154,28 @@ test: pytest  ## Run Standard Tests
 coverage-server: $(INSTALL_STAMP) ## Run coverage server
 	$(PYTHON) -m http.server $(COVERAGE_SERVER_PORT) -d $(COVERAGE_DIR)
 
+.PHONY: coverage-server
 
 #####################
-##@ Packaging Commands
+##@ Docker Commands
 #####################
 
-package: $(INSTALL_STAMP)  ## Build package distribution
-	$(PIP) install -U build
-	$(PYTHON) -m build
+docker-build: ## Build docker image
+	@docker build 									\
+		--ssh default 								\
+		--platform linux/amd64  					\
+		--tag aibs-informatics-core:latest			\
+		--file $(PACKAGE_DIR)/docker/Dockerfile		\
+		$(PACKAGE_DIR)
+
+.PHONY: docker-build
 
 #####################
 ##@ Release Commands
 #####################
 
 dist: install-release ## Build source and wheel package
-	@. $(VENV_BIN)/activate;\
-	$(PYTHON) -m build;
+	uv build
 
 reinstall: obliterate install ## Recreate environment and install
 
@@ -190,4 +185,5 @@ post-build: lint test  ## Run linters and tests
 release: pre-build build post-build  ## Runs pre-build, build, post-build
 run: release
 
-.PHONY: reinstall pre-build build post-build release run
+.PHONY: dist reinstall pre-build build post-build release run
+

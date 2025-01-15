@@ -165,7 +165,7 @@ class EnvBase(ValidatedStr):
             try:
                 env_type = cls.load_env_type__from_env()
                 env_label = cls.load_env_label__from_env()
-            except:
+            except Exception:
                 raise ApplicationException("Could not resolve Env Base or Env Type from env")
 
             env_base = cls.from_type_and_label(EnvType(env_type), env_label=env_label)
@@ -253,38 +253,31 @@ class ResourceNameBaseEnum(str, EnvBaseEnumMixins, Enum):
 
 
 @overload
-def get_env_base() -> EnvBase:
-    ...
+def get_env_base() -> EnvBase: ...
 
 
 @overload
-def get_env_base(env_base: Union[str, EnvBase]) -> EnvBase:
-    ...
+def get_env_base(env_base: Union[str, EnvBase]) -> EnvBase: ...
 
 
 @overload
-def get_env_base(env_base: Literal[None]) -> EnvBase:
-    ...
+def get_env_base(env_base: Literal[None]) -> EnvBase: ...
 
 
 @overload
-def get_env_base(env_base: Literal[None], env_base_class: Literal[None]) -> EnvBase:
-    ...
+def get_env_base(env_base: Literal[None], env_base_class: Literal[None]) -> EnvBase: ...
 
 
 @overload
-def get_env_base(env_base: Literal[None], env_base_class: Type[E]) -> E:
-    ...
+def get_env_base(env_base: Literal[None], env_base_class: Type[E]) -> E: ...
 
 
 @overload
-def get_env_base(env_base: Union[str, E], env_base_class: Type[E]) -> E:
-    ...
+def get_env_base(env_base: Union[str, E], env_base_class: Type[E]) -> E: ...
 
 
 @overload
-def get_env_base(env_base: Union[str, E], env_base_class: Literal[None]) -> EnvBase:
-    ...
+def get_env_base(env_base: Union[str, E], env_base_class: Literal[None]) -> EnvBase: ...
 
 
 def get_env_base(
@@ -347,7 +340,7 @@ def get_env_label(
         try:
             # First check if EnvBase exists and
             return env_base_cls.from_env().env_label
-        except:
+        except Exception:
             # next check for env label.
             return env_base_cls.load_env_label__from_env()
     # Right now env label regex is only baked into EnvBase, so let's

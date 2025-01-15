@@ -116,7 +116,7 @@ def test__LambdaFunctionName__validation(
 
 
 @mark.parametrize(
-    "value, expected_url_id, expected_region, expected_url, expected_path, expected_query, raise_expectation",
+    "value, expected_url_id, expected_region, expected_url, expected_path, expected_query, raise_expectation",  # noqa: E501
     [
         param(
             "https://abcd1234.lambda-url.us-west-2.on.aws/",

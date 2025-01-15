@@ -5,11 +5,9 @@ from pathlib import Path
 
 import marshmallow as mm
 import pytest
-from marshmallow import ValidationError
 from marshmallow.exceptions import ValidationError
 
 from aibs_informatics_core.models.aws.s3 import S3URI
-from aibs_informatics_core.models.base import CustomAwareDateTime, CustomStringField
 from aibs_informatics_core.models.base.custom_fields import (
     CustomAwareDateTime,
     CustomStringField,
@@ -38,7 +36,7 @@ def test__CustomStringField__serialize_works():
     with pytest.raises(ValidationError):
         CustomStringField(CustomString, strict_mode=True).serialize("attr", data)
 
-    assert CustomStringField(CustomString).serialize("another_attr", data) == None
+    assert CustomStringField(CustomString).serialize("another_attr", data) is None
 
 
 def test__CustomAwareDateTime__deserialize_works():
@@ -62,7 +60,7 @@ def test__UnionField__deserialize_tests():
 
     data = dict(my_str="abc", my_int=123, my_bool=True)
 
-    assert uf.deserialize(None, "my_optional", data) == None
+    assert uf.deserialize(None, "my_optional", data) is None
     assert uf.deserialize(data["my_int"], "my_int", data) == 123
     assert uf.deserialize(data["my_int"], "my_int", data) == 123
     with pytest.raises(ValidationError):
@@ -74,7 +72,7 @@ def test__UnionField__serialize():
 
     data = dict(my_str="abc", my_int=123, my_list=[], my_optional=None)
 
-    assert uf.serialize("my_optional", data) == None
+    assert uf.serialize("my_optional", data) is None
     assert uf.serialize("my_str", data) == "abc"
     assert uf.serialize("my_int", data) == 123
 
@@ -94,7 +92,7 @@ def test__EnumField__serialize():
     data = dict(my_enum=ClassEnum.FOO, my_str="foo", missing=None)
 
     assert ef.serialize("my_enum", data) == "foo"
-    assert ef.serialize("missing", data) == None
+    assert ef.serialize("missing", data) is None
     with pytest.raises(ValidationError):
         ef.serialize("my_str", data)
     with pytest.raises(ValidationError):
@@ -108,7 +106,7 @@ def test__EnumField__deserialize():
 
     assert ef.deserialize(ClassEnum.FOO, "my_enum", data) == ClassEnum.FOO
     assert ef.deserialize("foo", "my_str", data) == ClassEnum.FOO
-    assert ef.deserialize(None, "missing", data) == None
+    assert ef.deserialize(None, "missing", data) is None
     with pytest.raises(ValidationError):
         ef.deserialize("not a valid enum", "my_enum", data)
 
@@ -117,9 +115,9 @@ def test__PathField__serialize_deserialize():
     pf = PathField(allow_none=True)
 
     assert pf.serialize("my_path", dict(my_path=Path("/tmp"))) == "/tmp"
-    assert pf.serialize("my_path", dict(my_path=None)) == None
+    assert pf.serialize("my_path", dict(my_path=None)) is None
     assert pf.deserialize("/tmp", "my_path", dict(my_path="/tmp")) == Path("/tmp")
-    assert pf.deserialize(None, "my_path", dict(my_path=None)) == None
+    assert pf.deserialize(None, "my_path", dict(my_path=None)) is None
 
 
 def test__FrozenSetField__serialize_deserialize():

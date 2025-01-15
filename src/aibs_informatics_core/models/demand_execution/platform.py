@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional, cast
+from typing import Optional
 
-from aibs_informatics_core.models.base import SchemaModel, StringField, custom_field
+from aibs_informatics_core.models.base import SchemaModel, custom_field
 
 
 @dataclass

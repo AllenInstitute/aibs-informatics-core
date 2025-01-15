@@ -9,7 +9,6 @@ from aibs_informatics_core.models.db import (
     DBIndexNameEnum,
     DBKeyNameEnum,
     DBSortKeyNameEnum,
-    DynamoDBItemKey,
     DynamoDBItemValue,
     DynamoDBKey,
 )

@@ -38,7 +38,6 @@ from typing import (
     TypedDict,
     TypeVar,
     Union,
-    overload,
 )
 
 if sys.version_info >= (3, 11):

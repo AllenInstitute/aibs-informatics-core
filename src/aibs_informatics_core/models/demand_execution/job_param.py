@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Callable, ClassVar, Dict, List, Match, Pattern, Type, TypeVar, Union
 
 from aibs_informatics_core.collections import ValidatedStr
-from aibs_informatics_core.models.demand_execution.resolvables import Resolvable, Uploadable
+from aibs_informatics_core.models.demand_execution.resolvables import Resolvable
 
 
 class JobParamEnvName(ValidatedStr):

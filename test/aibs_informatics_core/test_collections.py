@@ -16,10 +16,10 @@ from aibs_informatics_core.collections import (
 class DeepChainMapTests(unittest.TestCase):
     def test__merges_and_updates(self):
         d1 = {"a": [1, 2, 3], "b": {1: {"1": [1]}, "2": ["a"]}}
-        d2 = {"a": 1, "b": {0: False, 1: {"1": {1: 1}}, 1: ["a"]}}
+        d2 = {"a": 1, "b": {0: False, 1: {"1": {1: 1}}, 1: ["a"]}}  # noqa: F601
         merged = {
             "a": 1,
-            "b": {0: False, 1: {"1": {1: 1}}, 1: ["a"], "2": ["a"]},
+            "b": {0: False, 1: {"1": {1: 1}}, 1: ["a"], "2": ["a"]},  # noqa: F601
         }
         dcm = DeepChainMap(d2, d1)
         self.assertDictEqual(dcm.to_dict(), merged)
@@ -222,7 +222,7 @@ class PostInitMixinTests(unittest.TestCase):
                 super().__post_init__()
                 actual_call_list.append(Child)
 
-        child = Child()
+        Child()
 
         self.assertListEqual(actual_call_list, [Parent, Child])
 
@@ -237,7 +237,7 @@ class PostInitMixinTests(unittest.TestCase):
                 super().__post_init__()
                 actual_call_list.append(Child)
 
-        child = Child()
+        Child()
 
         self.assertListEqual(actual_call_list, [Child])
 
@@ -270,8 +270,8 @@ class PostInitMixinTests(unittest.TestCase):
                 super().__post_init__()
                 actual_call_list.append(Child2)
 
-        child = Child()
-        child2 = Child2()
+        Child()
+        Child2()
         self.assertListEqual(actual_call_list, [Parent, Child, Parent, Child2])
 
     def test__nested_subclass__handles_properly(self):
@@ -287,7 +287,7 @@ class PostInitMixinTests(unittest.TestCase):
                 super().__post_init__()
                 actual_call_list.append(Child)
 
-        child = Child()
+        Child()
         self.assertListEqual(actual_call_list, [Parent, Child])
 
 

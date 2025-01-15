@@ -6,6 +6,11 @@ __all__ = [
     "ExecutionPlatform",
     "JobParam",
     "JobParamRef",
+    "JobParamPair",
+    "JobParamSetPair",
+    "ParamPair",
+    "ParamSetPair",
+    "ResolvedParamSetPair",
     "ResolvableJobParam",
     "DownloadableJobParam",
     "UploadableJobParam",
@@ -25,7 +30,6 @@ from aibs_informatics_core.models.demand_execution.param_pair import (
     JobParamSetPair,
     ParamPair,
     ParamSetPair,
-    ResolvableJobParam,
     ResolvedParamSetPair,
 )
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters

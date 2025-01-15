@@ -1,24 +1,19 @@
 import json
-from dataclasses import dataclass
 from test.base import BaseTest
-from typing import Any, Dict, List, Optional
 from unittest import mock
 
 import requests
 from pytest import mark, param
 
-import aibs_informatics_core
 from aibs_informatics_core.models.api.http_parameters import HTTPParameters
 from aibs_informatics_core.models.api.route import (
     API_SERVICE_LOG_LEVEL_ENV_VAR,
     API_SERVICE_LOG_LEVEL_KEY,
-    CLIENT_VERSION_ENV_VAR,
     CLIENT_VERSION_KEY,
-    CLIENT_VERSION_PACKAGE_ENV_VAR,
     ApiRequestConfig,
     ApiRoute,
 )
-from aibs_informatics_core.models.base.model import ModelProtocol, SchemaModel
+from aibs_informatics_core.models.base.model import ModelProtocol
 from aibs_informatics_core.models.version import VersionStr
 from aibs_informatics_core.utils.version import get_version
 
@@ -169,7 +164,7 @@ DEFAULT_BASE_URL = "https://fake-api.com"
                 method="GET",
                 url=f"{DEFAULT_BASE_URL}/test/resource",
                 params={
-                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifSwgImlkX3N0ciI6ICJpbWFuaWQifQ=="
+                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifSwgImlkX3N0ciI6ICJpbWFuaWQifQ=="  # noqa: E501
                 },
             ),
             id="GET Route with list and dict fields converted",
@@ -185,7 +180,7 @@ DEFAULT_BASE_URL = "https://fake-api.com"
                 method="GET",
                 url=f"{DEFAULT_BASE_URL}/test/imanid/resource",
                 params={
-                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifX0="
+                    "data": "eyJhbnlfbGlzdCI6IFsiYSIsIDFdLCAiYW55X21hcCI6IHsiMSI6IDEsICJzdHJrZXkiOiAic3RydmFsdWUifX0="  # noqa: E501
                 },
             ),
             id="(Dynamic) GET Route with list and dict fields converted",
@@ -238,16 +233,15 @@ def test__get_http_request__works(route: ApiRoute, input, expected):
 
 class ApiRequestConfigTests(BaseTest):
     def test__build__creates_from_nothing(self):
-        expected_client_version = VersionStr("0.*")
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
         config1 = ApiRequestConfig.build()
 
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, "INFO"))
         config2 = ApiRequestConfig.build()
 
-        # TODO: This is failing for unknown reasons in github actions
-        # assert config1.client_version == expected_client_version
-        # assert config2.client_version == expected_client_version
+        expected_client_version = VersionStr("1.*")
+        assert config1.client_version < expected_client_version
+        assert config2.client_version < expected_client_version
         self.assertIsNone(config1.service_log_level)
         self.assertEqual(config2.service_log_level, "INFO")
 
@@ -296,7 +290,8 @@ class ApiRequestConfigTests(BaseTest):
         # client_version_default takes precedence over client_version_package_name_default
         self.assertEqual(TestApiRequestConfig.build__client_version(), VersionStr("1.2.3"))
 
-        # client_version_package takes precedence over client_version_default when set in env vars / kwargs
+        # client_version_package takes precedence over client_version_default when
+        # set in env vars / kwargs
         self.assertEqual(
             TestApiRequestConfig.build__client_version(client_version_package_name=PACKAGE_B),
             VersionStr("2.2.2"),
@@ -317,7 +312,7 @@ class ApiRouteTests(BaseTest):
         class InvalidGetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):
             @classmethod
             def route_rule(cls) -> str:
-                return f"/test/<c>"
+                return "/test/<c>"
 
             @classmethod
             def route_method(cls) -> str:

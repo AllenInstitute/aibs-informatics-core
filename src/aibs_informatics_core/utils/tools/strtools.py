@@ -11,7 +11,6 @@ __all__ = [
     "uppercase",
 ]
 
-import sys
 
 from dataclasses_json import stringcase
 
@@ -37,5 +36,10 @@ spinalcase = stringcase.spinalcase
 snakecase = stringcase.snakecase
 pascalcase = stringcase.pascalcase
 
-lowercase = lambda _: str(_).lower()
-uppercase = lambda _: str(_).upper()
+
+def lowercase(value: str) -> str:
+    return value.lower()
+
+
+def uppercase(value: str) -> str:
+    return value.upper()

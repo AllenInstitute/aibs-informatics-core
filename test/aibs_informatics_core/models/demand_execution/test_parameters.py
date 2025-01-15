@@ -5,7 +5,6 @@ from unittest import mock
 from pytest import fixture, mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models import demand_execution
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.demand_execution import (
     DemandExecutionParameters,
@@ -19,7 +18,6 @@ from aibs_informatics_core.models.demand_execution.param_pair import (
     ParamPair,
     ParamSetPair,
 )
-from aibs_informatics_core.models.demand_execution.parameters import refresh_params
 from aibs_informatics_core.models.demand_execution.resolvables import Resolvable
 from aibs_informatics_core.models.unique_ids import UniqueID
 

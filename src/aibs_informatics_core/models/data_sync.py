@@ -18,7 +18,6 @@ __all__ = [
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from urllib import request
 
 import marshmallow as mm
 

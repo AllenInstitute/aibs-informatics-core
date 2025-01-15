@@ -1,5 +1,3 @@
-from re import S
-
 from marshmallow import ValidationError
 from pytest import raises
 
@@ -31,9 +29,9 @@ def test__AttemptDetail__properties_work():
     assert detail.container_task_arn == "asdf2"
 
     detail2 = AttemptDetail(StartedAt=1)
-    assert detail2.duration == None
-    assert detail2.container_instance_arn == None
-    assert detail2.container_task_arn == None
+    assert detail2.duration is None
+    assert detail2.container_instance_arn is None
+    assert detail2.container_task_arn is None
 
 
 def test__BatchJobDetail__properties_work():
@@ -79,12 +77,12 @@ def test__BatchJobDetail__properties_work():
         StartedAt=1,
     )
 
-    assert detail2.duration == None
-    assert detail2.container_instance_arn == None
+    assert detail2.duration is None
+    assert detail2.container_instance_arn is None
     assert detail2.container_name_and_tag == ("NotAvailable", None)
-    assert detail2.container_tag == None
+    assert detail2.container_tag is None
     assert detail2.container_instance_arns == []
-    assert detail2.container_task_arn == None
+    assert detail2.container_task_arn is None
     assert detail2.container_environment == {}
 
 

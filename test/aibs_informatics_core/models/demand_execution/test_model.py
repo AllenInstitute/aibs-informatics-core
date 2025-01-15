@@ -1,7 +1,6 @@
 import unittest
 
-import marshmallow as mm
-from pytest import mark, param, raises
+from pytest import mark, param
 
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata

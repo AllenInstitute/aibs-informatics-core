@@ -181,6 +181,7 @@ class ArchiveTests(FileOperationsBaseTest):
         self.create_dir(dir_path, paths)
         archive_path = make_archive(dir_path)
         actual_dir_path = extract_archive(archive_path, destination_path=new_dir_path)
+        self.assertEqual(new_dir_path, actual_dir_path)
         self.assertDirectoryContents(new_dir_path, paths)
 
     def test__make_archive__fails_for_bad_path(self):
@@ -393,9 +394,9 @@ class FileOperationsTests(FileOperationsBaseTest):
 
     def test__PathLock__fails_if_lock_aquired(self):
         path = self.tmp_path()
-        with PathLock(path) as lock:
+        with PathLock(path):
             with self.assertRaises(Exception):
-                with PathLock(path, raise_if_locked=True) as lock2:
+                with PathLock(path, raise_if_locked=True):
                     pass
 
     def test__PathLock__blocks_if_lock_already_acquired(self):

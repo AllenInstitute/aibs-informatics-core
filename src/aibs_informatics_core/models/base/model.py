@@ -68,25 +68,19 @@ SM = TypeVar("SM", bound="SchemaModel")
 @runtime_checkable
 class ModelProtocol(Protocol):
     @classmethod
-    def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T:
-        ...  # pragma: no cover
+    def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T: ...  # pragma: no cover
 
-    def to_dict(self, **kwargs) -> JSONObject:
-        ...  # pragma: no cover
+    def to_dict(self, **kwargs) -> JSONObject: ...  # pragma: no cover
 
     @classmethod
-    def from_json(cls: Type[T], data: str, **kwargs) -> T:
-        ...  # pragma: no cover
+    def from_json(cls: Type[T], data: str, **kwargs) -> T: ...  # pragma: no cover
 
-    def to_json(self, **kwargs) -> str:
-        ...  # pragma: no cover
+    def to_json(self, **kwargs) -> str: ...  # pragma: no cover
 
     @classmethod
-    def from_path(cls: Type[T], path: Path, **kwargs) -> T:
-        ...  # pragma: no cover
+    def from_path(cls: Type[T], path: Path, **kwargs) -> T: ...  # pragma: no cover
 
-    def to_path(self, path: Path, **kwargs):
-        ...  # pragma: no cover
+    def to_path(self, path: Path, **kwargs): ...  # pragma: no cover
 
 
 # --------------------------------------------------------------
@@ -373,16 +367,16 @@ class SchemaModel(DataClassModel):
 
 
 class ModelSchemaMethod(Protocol):
-    def __call__(self, cls: Type[SM], partial: bool, **kwargs) -> mm.Schema:
-        ...  # pragma: no cover
+    def __call__(
+        self, cls: Type[SM], partial: bool, **kwargs
+    ) -> mm.Schema: ...  # pragma: no cover
 
 
 class ModelClassMethod(Protocol):
-    def __call__(*args, **kwargs) -> Any:
-        ...  # pragma: no cover
+    def __call__(*args, **kwargs) -> Any: ...  # pragma: no cover
 
 
-def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = True):
+def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = True):  # noqa: C901
     """Attaches schema hooks from SchemaModel class onto the schema class
 
     Args:
@@ -446,7 +440,7 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
                         if post_load_method_name == f"_{cls.make_object.__name__}__auto":
                             continue
                         hook_attr.pop(post_load_key, None)
-                except:
+                except Exception:
                     pass
 
         class_methods = inspect.getmembers(cls, predicate=inspect.ismethod)

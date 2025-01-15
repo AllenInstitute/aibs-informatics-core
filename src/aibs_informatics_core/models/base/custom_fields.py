@@ -155,7 +155,7 @@ class CustomStringField(mm.fields.String, Generic[S]):
             return False
         try:
             self.str_cls(value)
-        except:
+        except Exception:
             return False
         return True
 

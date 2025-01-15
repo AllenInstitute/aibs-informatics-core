@@ -50,7 +50,7 @@ class ConditionBaseExpression(SchemaModel):
 
 class ConditionBaseExpressionString(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(
-        rf"([\w\.]+)(?:( begins_with | contains | NOT | IN |=|<>|<|<=|>|>=)(.+)|( attribute_exists))"
+        r"([\w\.]+)(?:( begins_with | contains | NOT | IN |=|<>|<|<=|>|>=)(.+)|( attribute_exists))"  # noqa: E501
     )
 
     @property
@@ -74,14 +74,16 @@ class ConditionBaseExpressionString(ValidatedStr):
             return "{0} {operator} {1}"
 
     @property
-    def condition_values(
+    def condition_values(  # noqa: C901
         self,
     ) -> List[Union[ConditionBaseExpression, AttributeBaseExpression, Any]]:
         condition_values = [AttributeBaseExpression("Attr", self.condition_name)]
         value = self.get_match_groups()[2]
 
+        def is_enclosed(s: str, b: str, e: str) -> bool:
+            return True if len(s) > 1 and (s[0], s[-1]) == (b, e) else False
+
         def resolve(value: Optional[str], is_iterable: bool = False) -> Any:
-            is_enclosed = lambda s, b, e: True if len(s) > 1 and (s[0], s[-1]) == (b, e) else False
             if not value:
                 if is_iterable:
                     raise ValueError(

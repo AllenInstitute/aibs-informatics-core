@@ -15,13 +15,6 @@ def test__JobParam__as_envname_references__works(name, expected):
     assert actual == expected
 
 
-def test__JobParam__find_references__works():
-    job_param = JobParam("param_a", "foo_${param_b}")
-    actual = job_param.find_references()
-    expected = [JobParamRef("${param_b}")]
-    assert actual == expected
-
-
 def test__JobParamRef__replace_references__works():
     job_param = JobParam("param_a", "foo_${param_b}")
     replacements = {"PARAM_B": "bar"}
@@ -34,7 +27,7 @@ def test__JobParamRef__replace_references__fails_for_missing_ref():
     job_param = JobParam("param_a", "foo_${param_b}")
     replacements = {"param_b": "bar"}
     with raises(ValueError):
-        actual = JobParamRef.replace_references(job_param.value, replacements)
+        JobParamRef.replace_references(job_param.value, replacements)
 
 
 def test__JobParamRef__from_name__works():

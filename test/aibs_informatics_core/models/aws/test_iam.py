@@ -70,7 +70,7 @@ def test__UserId__validates(
 
 
 @mark.parametrize(
-    "value, expected_account_id, expected_resource, expected_resource_type, expected_resource_id, expected_resource_name, expected_resource_path, raise_expectation",
+    "value, expected_account_id, expected_resource, expected_resource_type, expected_resource_id, expected_resource_name, expected_resource_path, raise_expectation",  # noqa: E501
     [
         param(
             "arn:aws:iam::123456789012:root",

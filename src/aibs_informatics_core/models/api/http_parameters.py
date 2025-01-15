@@ -6,10 +6,9 @@ import json
 import urllib.parse
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
-from typing import Dict, Optional, TypeVar
+from typing import Dict, Optional
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.base import ModelProtocol
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.logging import get_logger
 
