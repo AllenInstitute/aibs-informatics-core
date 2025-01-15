@@ -35,7 +35,6 @@ from typing import (
     Optional,
     Pattern,
     Protocol,
-    Set,
     TypedDict,
     TypeVar,
     Union,
@@ -103,15 +102,22 @@ S3_BUCKET_NAME_PATTERN_WITH_VARS = (
     rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9.\-])*"
     rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9])"
 )
-S3_BUCKET_NAME_PATTERN_STR = rf"(?:{S3_BUCKET_NAME_PATTERN_STR_NO_VARS}|{S3_BUCKET_NAME_PATTERN_WITH_VARS}|{PLACEHOLDER_PATTERN})"
+S3_BUCKET_NAME_PATTERN_STR = (
+    rf"(?:{S3_BUCKET_NAME_PATTERN_STR_NO_VARS}|"
+    rf"{S3_BUCKET_NAME_PATTERN_WITH_VARS}|"
+    rf"{PLACEHOLDER_PATTERN})"
+)
 
 # S3 Key Pattern
-NORMAL_CHARS = "a-zA-Z0-9!_.*'()\-"
+NORMAL_CHARS = r"a-zA-Z0-9!_.*'()\-"
 SPECIAL_CHARS = "&$@=;:+,? "
 S3_KEY_PATTERN_STR_NO_VARS = (
     rf"[{NORMAL_CHARS}{SPECIAL_CHARS}]+(?:/[{NORMAL_CHARS}{SPECIAL_CHARS}]+)*"
 )
-S3_KEY_PATTERN_WITH_VARS = rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*(?:/(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*)*"
+S3_KEY_PATTERN_WITH_VARS = (
+    rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*"
+    rf"(?:/(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*)*"
+)
 S3_KEY_PATTERN_STR = (
     rf"(?:{S3_KEY_PATTERN_STR_NO_VARS}|{S3_KEY_PATTERN_WITH_VARS}|{PLACEHOLDER_PATTERN})"
 )
@@ -141,7 +147,8 @@ class ConditionalPlaceholderStr(ValidatedStr, PlaceholderMixins):
         if not self.allow_placeholders:
             if self.has_placeholder:
                 raise ValidationError(
-                    f"Placeholders are not allowed in {self} ({type(self)}) with allow_placeholders={self.allow_placeholders}"
+                    f"Placeholders are not allowed in {self} ({type(self)})"
+                    f"with allow_placeholders={self.allow_placeholders}"
                 )
 
     @property

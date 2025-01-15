@@ -59,4 +59,4 @@ class DemandExecution(SchemaModel):
         The execution name is prefixed by demand Id to be more easily discoverable
 
         """
-        return f'{self.execution_id}-{get_current_time().strftime("%Y%m%dT%H%M%S")}'
+        return f"{self.execution_id}-{get_current_time().strftime('%Y%m%dT%H%M%S')}"

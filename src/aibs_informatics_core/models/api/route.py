@@ -323,32 +323,29 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
 class ApiClientInterface(Protocol):
     def call(
         self, route: ApiRoute[API_REQUEST, API_RESPONSE], request: API_REQUEST
-    ) -> API_RESPONSE:
-        ...  # pragma: no cover
+    ) -> API_RESPONSE: ...  # pragma: no cover
 
 
 # Solution for adding class methods to client class with named arguments
 # https://github.com/python/typing/discussions/1040
 class BoundClientRouteMethod(Protocol, Generic[API_REQUEST, API_RESPONSE]):  # type: ignore
-    def __call__(self, request: API_REQUEST) -> API_RESPONSE:
-        ...  # pragma: no cover
+    def __call__(self, request: API_REQUEST) -> API_RESPONSE: ...  # pragma: no cover
 
 
 class ClientRouteMethod(Protocol, Generic[API_REQUEST, API_RESPONSE]):  # type: ignore
-    def __call__(__self, self: ApiClientInterface, request: API_REQUEST) -> API_RESPONSE:
-        ...  # pragma: no cover
+    def __call__(
+        __self, self: ApiClientInterface, request: API_REQUEST
+    ) -> API_RESPONSE: ...  # pragma: no cover
 
     @overload
     def __get__(
         self, obj: ApiClientInterface, objtype: Optional[Type[ApiClientInterface]] = None
-    ) -> BoundClientRouteMethod[API_REQUEST, API_RESPONSE]:
-        ...  # pragma: no cover
+    ) -> BoundClientRouteMethod[API_REQUEST, API_RESPONSE]: ...  # pragma: no cover
 
     @overload
     def __get__(  # type: ignore[misc]
         self, obj: None, objtype: Optional[Type[ApiClientInterface]] = None
-    ) -> ClientRouteMethod[API_REQUEST, API_RESPONSE]:
-        ...  # pragma: no cover
+    ) -> ClientRouteMethod[API_REQUEST, API_RESPONSE]: ...  # pragma: no cover
 
     def __get__(
         self,
@@ -357,5 +354,4 @@ class ClientRouteMethod(Protocol, Generic[API_REQUEST, API_RESPONSE]):  # type: 
     ) -> Union[
         BoundClientRouteMethod[API_REQUEST, API_RESPONSE],
         ClientRouteMethod[API_REQUEST, API_RESPONSE],
-    ]:
-        ...  # pragma: no cover
+    ]: ...  # pragma: no cover
