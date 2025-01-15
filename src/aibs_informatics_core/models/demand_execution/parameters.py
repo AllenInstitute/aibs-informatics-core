@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union, cast
 import marshmallow as mm
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
 from aibs_informatics_core.models.base import (
     DictField,
     ListField,
@@ -361,14 +361,14 @@ class DemandExecutionParameters(SchemaModel):
                 raise ValueError(
                     f"{str_uploadable} has no destination specified and no output prefix provided"
                 )
-            remote_value = str_uploadable.remote or S3URI(
+            remote_value = str_uploadable.remote or S3PathPlaceholder(
                 f"{self.output_s3_prefix}/{v}", allow_placeholders=True
             )
             return UploadableJobParam(k, str_uploadable.local, remote_value)
         else:
             # Only create default remote if value is str and not a stringified uploadable reference
             default_remote = (
-                S3URI(f"{self.output_s3_prefix}/{v}")
+                S3PathPlaceholder(f"{self.output_s3_prefix}/{v}", allow_placeholders=True)
                 if isinstance(v, str) and self.output_s3_prefix
                 else None
             )
