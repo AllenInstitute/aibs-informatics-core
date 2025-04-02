@@ -251,13 +251,25 @@ def copy_path(source_path: Path, destination_path: Path, exists_ok: bool = False
         shutil.copytree(source_path, destination_path, dirs_exist_ok=exists_ok)
 
 
-def remove_path(path: Path):
+def remove_path(path: Path, ignore_errors: bool = True):
     """Removes the contents at the path, if it exists"""
-    if path.exists():
-        if path.is_dir():
-            shutil.rmtree(path)
+    try:
+        if path.exists():
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=ignore_errors)
+            else:
+                os.remove(path)
+    except FileNotFoundError as e:
+        # Ignore errors if requested
+        if not ignore_errors:
+            raise e
+    except OSError as ose:
+        # Ignore errors if requested
+        if not ignore_errors:
+            raise ose
         else:
-            os.remove(path)
+            logger.warning(f"Failed to remove path {path}. Reason: {ose}")
+            return
 
 
 def get_path_size_bytes(path: Path) -> int:

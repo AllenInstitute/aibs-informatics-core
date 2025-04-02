@@ -354,6 +354,21 @@ class FileOperationsTests(FileOperationsBaseTest):
         self.assertTrue(new_path.exists())
         self.assertDirectoryContents(new_path, ["a", "b"])
 
+    def test__remove_path__raises_error_when_ignore_errors_false(self):
+        path = MagicMock()
+
+        # Test for OSError
+        path.exists.side_effect = OSError()
+        remove_path(path, ignore_errors=True)
+        with self.assertRaises(OSError):
+            remove_path(path, ignore_errors=False)
+
+        # Test for FileNotFoundError
+        path.exists.side_effect = FileNotFoundError()
+        remove_path(path, ignore_errors=True)
+        with self.assertRaises(FileNotFoundError):
+            remove_path(path, ignore_errors=False)
+
     def test__remove_path__handles_file(self):
         path = self.tmp_file()
         path.write_text("_" * 5)
