@@ -1,9 +1,9 @@
 version = 1
+revision = 1
 requires-python = ">=3.9"
 
 [[package]]
 name = "aibs-informatics-core"
-version = "0.0.9"
 source = { editable = "." }
 dependencies = [
     { name = "dataclasses-json" },
@@ -57,6 +57,7 @@ requires-dist = [
     { name = "requests" },
     { name = "typing-inspect" },
 ]
+provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 build = [

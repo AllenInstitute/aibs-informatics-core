@@ -259,22 +259,31 @@ class FileOperationsTests(FileOperationsBaseTest):
     def test__get_path_size_bytes__handles_errors(self, mock_Path, mock_find_all_paths):
         mock_find_all_paths.return_value = ["a", "b"]
         path = self.tmp_path()
-        e1 = MagicMock()
-        e1.stat.side_effect = FileNotFoundError()
-        e2 = MagicMock()
+        # first constructed path outside of try-except clause
+        p1 = MagicMock()
+        p1.stat.side_effect = FileNotFoundError()
+        # second constructed path outside of try-except clause
+        # will reuse twice over
+        p2 = MagicMock()
         ose = OSError()
         ose.errno = errno.ESTALE
-        e2.stat.side_effect = ose
+        p2.stat.side_effect = ose
+        # first constructed path in except clause
+        p3 = MagicMock()
+        p3.exists.return_value = True
+        # Second constructed path in except clause
+        p4 = MagicMock()
+        # This tests the nested exception handling
+        p4.exists.side_effect = ose
 
-        e2.exists.side_effect = [True, False]
-        mock_Path.side_effect = [e1, e2, e2]
+        mock_Path.side_effect = [p1, p2, p3, p2, p4]
         self.assertEqual(get_path_size_bytes(path), 0)
 
         with self.assertRaises(OSError):
             ose.errno = errno.ETIME
-            e1.stat.side_effect = ose
+            p1.stat.side_effect = ose
             mock_find_all_paths.return_value = ["a"]
-            mock_Path.side_effect = [e1]
+            mock_Path.side_effect = [p1]
             get_path_size_bytes(path)
 
     def test__move_path__handles_file(self):
