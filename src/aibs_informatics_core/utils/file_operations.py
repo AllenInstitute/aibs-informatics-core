@@ -274,9 +274,13 @@ def get_path_size_bytes(path: Path) -> int:
         except OSError as ose:
             if ose.errno == errno.ESTALE:
                 logger.warning(f"{ose} raised for {file_path}.")
-                if path.exists():
-                    logger.warning(f"Adding {path} to end of list to check later.")
-                    file_paths.append(file_path)
+                try:
+                    if Path(str(path)).exists():
+                        logger.warning(f"Adding {path} to end of list to check later.")
+                        file_paths.append(file_path)
+                except (FileNotFoundError, OSError) as fall_back_e:
+                    logger.warning(f"Failed to check if path {path} exists: {fall_back_e}")
+                    continue
             else:
                 logger.error(f"Unexpected error raised for {path}. Reason: {ose}")
                 raise ose
