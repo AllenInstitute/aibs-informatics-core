@@ -251,13 +251,25 @@ def copy_path(source_path: Path, destination_path: Path, exists_ok: bool = False
         shutil.copytree(source_path, destination_path, dirs_exist_ok=exists_ok)
 
 
-def remove_path(path: Path):
+def remove_path(path: Path, ignore_errors: bool = True):
     """Removes the contents at the path, if it exists"""
-    if path.exists():
-        if path.is_dir():
-            shutil.rmtree(path)
+    try:
+        if path.exists():
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=ignore_errors)
+            else:
+                os.remove(path)
+    except FileNotFoundError as e:
+        # Ignore errors if requested
+        if not ignore_errors:
+            raise e
+    except OSError as ose:
+        # Ignore errors if requested
+        if not ignore_errors:
+            raise ose
         else:
-            os.remove(path)
+            logger.warning(f"Failed to remove path {path}. Reason: {ose}")
+            return
 
 
 def get_path_size_bytes(path: Path) -> int:
@@ -274,9 +286,13 @@ def get_path_size_bytes(path: Path) -> int:
         except OSError as ose:
             if ose.errno == errno.ESTALE:
                 logger.warning(f"{ose} raised for {file_path}.")
-                if path.exists():
-                    logger.warning(f"Adding {path} to end of list to check later.")
-                    file_paths.append(file_path)
+                try:
+                    if Path(str(path)).exists():
+                        logger.warning(f"Adding {path} to end of list to check later.")
+                        file_paths.append(file_path)
+                except (FileNotFoundError, OSError) as fall_back_e:
+                    logger.warning(f"Failed to check if path {path} exists: {fall_back_e}")
+                    continue
             else:
                 logger.error(f"Unexpected error raised for {path}. Reason: {ose}")
                 raise ose

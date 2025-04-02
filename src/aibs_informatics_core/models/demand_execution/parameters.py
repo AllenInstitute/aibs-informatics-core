@@ -130,8 +130,7 @@ class DemandExecutionParameters(SchemaModel):
         missing_param_envnames = set(inp_envnames).union(out_envnames).difference(param_map.keys())
         if len(missing_param_envnames) > 0:
             raise ValidationError(
-                f"Batch Job inputs/outputs not found in param envnames: "
-                f"{missing_param_envnames}"
+                f"Batch Job inputs/outputs not found in param envnames: {missing_param_envnames}"
             )
 
     def _validate_param_pairs(self):
@@ -142,7 +141,7 @@ class DemandExecutionParameters(SchemaModel):
         diff = all_input_output_set.difference(set(self.inputs).union(set(self.outputs)))
         if len(diff) > 0:
             raise ValidationError(
-                "input_output_mapping contained value(s) not found in params: " f"{diff}"
+                f"input_output_mapping contained value(s) not found in params: {diff}"
             )
 
         # Validate no duplicate output sets
@@ -155,7 +154,7 @@ class DemandExecutionParameters(SchemaModel):
                 seen.add(s.outputs)
         if len(duplicate_output_sets) > 0:
             raise ValidationError(
-                "Duplicate output set(s) in input_output_map: " f"{duplicate_output_sets}"
+                f"Duplicate output set(s) in input_output_map: {duplicate_output_sets}"
             )
 
     @refresh_params(force=False)

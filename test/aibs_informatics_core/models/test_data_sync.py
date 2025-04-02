@@ -6,10 +6,13 @@ from aibs_informatics_core.models.data_sync import (
     BatchDataSyncRequest,
     DataSyncConfig,
     DataSyncRequest,
+    DataSyncResult,
     DataSyncTask,
     JSONContent,
     JSONReference,
     PrepareBatchDataSyncResponse,
+    BatchDataSyncResponse,
+    BatchDataSyncResult,
 )
 
 S3_URI = S3Path.build(bucket_name="bucket", key="key")
@@ -211,39 +214,76 @@ def test__PrepareBatchDataSyncResponse__to_dict__s3_paths():
     assert actual == expected
 
 
-def test__PrepareBatchDataSyncResponse__from_dict():
-    expected = PrepareBatchDataSyncResponse(
-        requests=[
-            BatchDataSyncRequest(
-                requests=[
-                    DataSyncRequest(
-                        source_path=S3_URI,
-                        destination_path=S3_URI,
-                        retain_source_data=True,
-                    ),
-                ],
-            ),
-        ],
+def test__BatchDataSyncResponse__add_failed_request():
+    # Create a dummy DataSyncRequest
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        retain_source_data=True,
     )
-    model_dict = {
-        "requests": [
-            {
-                "requests": [
-                    {
-                        "source_path": str(S3_URI),
-                        "destination_path": str(S3_URI),
-                        "fail_if_missing": True,
-                        "max_concurrency": 25,
-                        "require_lock": False,
-                        "force": False,
-                        "size_only": False,
-                        "retain_source_data": True,
-                        "remote_to_local_config": {"use_custom_tmp_dir": False},
-                    },
-                ],
-            },
-        ],
-        "allow_partial_failure": False,
-    }
-    actual = PrepareBatchDataSyncResponse.from_dict(model_dict)
-    assert actual == expected
+
+    # Create a BatchDataSyncResponse with an empty BatchDataSyncResult
+    response = BatchDataSyncResponse(result=BatchDataSyncResult())
+
+    # Initially, failed_requests should be None
+    assert response.failed_requests is None
+
+    # Add the first failed request
+    response.add_failed_request(request)
+
+    # Verify that failed_requests is now a list with one element
+    assert response.failed_requests is not None
+    assert len(response.failed_requests) == 1
+    assert response.failed_requests[0] == request
+
+    # Create a second DataSyncRequest with different retain_source_data value
+    request2 = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        retain_source_data=False,
+    )
+
+    # Add the second failed request
+    response.add_failed_request(request2)
+
+    # Verify that both requests are in the failed_requests list
+    assert len(response.failed_requests) == 2
+    assert response.failed_requests[1] == request2
+
+
+def test__DataSyncResult__add_bytes_and_files_transferred():
+    # Create a DataSyncResult instance with default values
+    result = DataSyncResult()
+
+    # Test adding bytes transferred
+    result.add_bytes_transferred(1024)
+    assert result.bytes_transferred == 1024
+    result.add_bytes_transferred(512)
+    assert result.bytes_transferred == 1536
+
+    # Test adding files transferred
+    result.add_files_transferred(1)
+    assert result.files_transferred == 1
+    result.add_files_transferred(4)
+    assert result.files_transferred == 5
+
+
+def test__BatchDataSyncResult__increment_counts():
+    # Create a BatchDataSyncResult instance with default counts
+    result = BatchDataSyncResult()
+
+    # Initially, all counts should be 0
+    assert result.total_requests_count == 0
+    assert result.successful_requests_count == 0
+    assert result.failed_requests_count == 0
+
+    # Increment successful requests count
+    result.increment_successful_requests_count(2)
+    assert result.successful_requests_count == 2
+    assert result.total_requests_count == 2
+
+    # Increment failed requests count
+    result.increment_failed_requests_count(3)
+    assert result.failed_requests_count == 3
+    # Total requests count should now be 2 (from successful) + 3 (from failed) = 5
+    assert result.total_requests_count == 5

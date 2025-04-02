@@ -190,7 +190,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             local_path.parent.exists() and not os.access(local_path.parent, os.W_OK)
         ):
             raise ValueError(
-                f"local path specified {local_path} cannot be written to. " f"Must be a file "
+                f"local path specified {local_path} cannot be written to. Must be a file "
             )
         local_path.parent.mkdir(parents=True, exist_ok=True)
         local_path.write_text(json.dumps(output, sort_keys=True))

@@ -151,7 +151,7 @@ test: pytest  ## Run Standard Tests
 ##@ Inspect Commands
 #####################
 
-coverage-server: $(INSTALL_STAMP) ## Run coverage server
+coverage-server: .uv ## Run coverage server
 	$(PYTHON) -m http.server $(COVERAGE_SERVER_PORT) -d $(COVERAGE_DIR)
 
 .PHONY: coverage-server
