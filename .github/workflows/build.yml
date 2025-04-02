@@ -44,7 +44,7 @@ jobs:
             make release            
           else
             # Install dependencies
-            uv sync --frozen --group all --all-extras --resolution ${{ matrix.uv-resolution }}
+            uv sync --frozen --group dev --all-extras --resolution ${{ matrix.uv-resolution }}
             
             # Linting 
             uv run ruff check
