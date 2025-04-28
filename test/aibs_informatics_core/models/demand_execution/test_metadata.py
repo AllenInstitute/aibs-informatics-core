@@ -73,6 +73,36 @@ from aibs_informatics_core.models.status import Status
         param(
             {
                 "tag": ["key1", "key2"],
+            },
+            DemandExecutionMetadata(
+                tags={"key1": "key1", "key2": "key2"},
+            ),
+            does_not_raise(),
+            id="usage of old tag field as list",
+        ),
+        param(
+            {
+                "tag": "key1,key2",
+            },
+            DemandExecutionMetadata(
+                tags={"key1": "key1", "key2": "key2"},
+            ),
+            does_not_raise(),
+            id="usage of old tag field as str of comma separated key-only tags",
+        ),
+        param(
+            {
+                "tag": "key1,key2=value2",
+            },
+            DemandExecutionMetadata(
+                tags={"key1": "key1", "key2": "value2"},
+            ),
+            does_not_raise(),
+            id="usage of old tag field as str of comma separated key-only tags",
+        ),
+        param(
+            {
+                "tag": ["key1", "key2"],
                 "tags": {"key1": "value1", "key2": "value2"},
             },
             DemandExecutionMetadata(
@@ -83,45 +113,23 @@ from aibs_informatics_core.models.status import Status
         ),
         param(
             {
-                "tags": ["key1", "key2"],
-            },
-            DemandExecutionMetadata(
-                tags={"key1": "key1", "key2": "key2"},
-            ),
-            does_not_raise(),
-            id="tags field as list",
-        ),
-        param(
-            {
-                "tags": "key1,key2",
-            },
-            DemandExecutionMetadata(
-                tags={"key1": "key1", "key2": "key2"},
-            ),
-            does_not_raise(),
-            id="tags field as str of comma separated key-only tags",
-        ),
-        param(
-            {
-                "tags": "key1,key2=value2",
-            },
-            DemandExecutionMetadata(
-                tags={"key1": "key1", "key2": "value2"},
-            ),
-            does_not_raise(),
-            id="tags field as str of comma separated key-only tags",
-        ),
-        param(
-            {
                 "tag": ValueError("Invalid tags format: 123"),
             },
             DemandExecutionMetadata(),
             does_not_raise(),
-            id="invalid old tag field ignored",
+            id="invalid type old tag field ignored",
         ),
         param(
             {
-                "tags": ValueError("Invalid tags format: 123"),
+                "tag": ["key1", "key2", ValueError("Invalid tags format: 123")],
+            },
+            DemandExecutionMetadata(),
+            does_not_raise(),
+            id="invalid nested types of old tag field ignored",
+        ),
+        param(
+            {
+                "tags": "tag",
             },
             None,
             raises(ValueError),
