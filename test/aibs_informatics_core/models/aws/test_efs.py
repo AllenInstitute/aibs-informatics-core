@@ -5,6 +5,7 @@ from aibs_informatics_test_resources import does_not_raise
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
+from aibs_informatics_core.models.aws.core import AWSRegion
 from aibs_informatics_core.models.aws.efs import (
     AccessPointId,
     EFSPath,
@@ -154,6 +155,11 @@ def test__FileSystemDNSName__validation(value, expected_id, expected_region, rai
         assert actual.region == expected_region
 
 
+def test__FileSystemDNSName__build__works():
+    actual = FileSystemDNSName.build(FS_ID, AWSRegion("us-east-1"))
+    assert actual == FileSystemDNSName(f"{FS_ID}.efs.us-east-1.amazonaws.com")
+
+
 @mark.parametrize(
     "value, expected_file_system_id, expected_path, raise_expectation",
     [
@@ -295,6 +301,9 @@ def test__EFSPath__eq__works():
     assert p3 == p4
 
     assert p1 != EFSPath(f"efs://{ANOTHER_FS_ID}:/path/to/file.txt")
+
+    # Test different types
+    assert not p1.__eq__("123")
 
 
 @mark.parametrize(
@@ -508,3 +517,23 @@ def test__EFSPath__rtruediv__works(
 
     if expected:
         assert actual == expected
+
+
+def test__EFSPath_as_dns_uri__works():
+    path = EFSPath.build(FS_ID, "/path/to/file.txt")
+    assert path.as_dns_uri(AWSRegion("us-east-1")) == f"efs://{FS_DNS_NAME}:/path/to/file.txt"
+
+
+def test__EFSPath_build__handles_DNSName():
+    path = EFSPath.build(FileSystemDNSName(FS_DNS_NAME), "/path/to/file.txt")
+    assert path == EFSPath(f"efs://{FS_DNS_NAME}:/path/to/file.txt")
+
+
+def test__EFSPath_build__handles_FileSystemId():
+    path = EFSPath.build(FileSystemId(FS_ID), "/path/to/file.txt")
+    assert path == EFSPath(f"efs://{FS_ID}:/path/to/file.txt")
+
+
+def test__EFSPath_build__invalid_id_raises_error():
+    with raises(ValueError):
+        EFSPath.build("invalid_id", "/path/to/file.txt")

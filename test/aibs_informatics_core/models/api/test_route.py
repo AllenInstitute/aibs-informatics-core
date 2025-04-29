@@ -10,6 +10,7 @@ from aibs_informatics_core.models.api.route import (
     API_SERVICE_LOG_LEVEL_ENV_VAR,
     API_SERVICE_LOG_LEVEL_KEY,
     CLIENT_VERSION_KEY,
+    ApiClientInterface,
     ApiRequestConfig,
     ApiRoute,
 )
@@ -344,8 +345,16 @@ class ApiRouteTests(BaseTest):
         self.assertEqual(GetterResourceRoute.get_client_method_name(), "getter_resource")
 
     def test__create_client_method__works(self):
-        # just testing that I can call it without error
-        GetterResourceRoute.create_route_method()
+        class TestClient(ApiClientInterface):
+            getter_resource = GetterResourceRoute.create_route_method()
+
+            def call(self, route, request):
+                assert isinstance(request, BaseRequest)
+                response = route.get_response_cls()
+                return response.from_dict({"any_str": "response"})
+
+        response = TestClient().getter_resource(BaseRequest(id_str="imanid"))
+        self.assertEqual(response.any_str, "response")
 
     def test__repr__works(self):
         self.assertEqual(
