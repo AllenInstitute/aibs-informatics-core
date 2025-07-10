@@ -123,7 +123,7 @@ lint-ruff: .uv ## Run ruff checker
 	uv run ruff check
 
 lint-mypy: .uv ## Run mypy
-	uv run mypy ./
+	uv run mypy ./ --config pyproject.toml
 
 lint: lint-ruff lint-mypy  ## Run all lint targets (ruff, mypy)
 
