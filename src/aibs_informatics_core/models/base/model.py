@@ -6,7 +6,6 @@ __all__ = [
     "MISSING",
     "NONE",
     "SchemaModel",
-    "WithValidation",
     "post_dump",
     "pre_dump",
     "pre_load",
@@ -20,6 +19,7 @@ from dataclasses import MISSING as dataclass_MISSING
 from dataclasses import Field, dataclass, fields
 from functools import wraps
 from pathlib import Path
+import sys
 from types import MethodType
 from typing import (
     Any,
@@ -36,12 +36,19 @@ from typing import (
     runtime_checkable,
 )
 
+if sys.version_info < (3, 11):
+    from typing_extensions import Self  # type: ignore[import-untyped]
+else:
+    from typing import Self
+
 import marshmallow as mm
 import yaml  # type: ignore[import-untyped]
 from dataclasses_json import DataClassJsonMixin, Undefined, config
 from dataclasses_json.core import _ExtendedEncoder
 from marshmallow import post_dump, pre_dump, pre_load, validates_schema
 from marshmallow.decorators import POST_LOAD
+from pydantic import AliasGenerator, BaseModel as _PydanticBaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 from aibs_informatics_core.models.base.custom_fields import NestedField
 from aibs_informatics_core.models.base.field_utils import FieldProps
@@ -68,17 +75,17 @@ SM = TypeVar("SM", bound="SchemaModel")
 @runtime_checkable
 class ModelProtocol(Protocol):
     @classmethod
-    def from_dict(cls: Type[T], data: JSONObject, **kwargs) -> T: ...  # pragma: no cover
+    def from_dict(cls: Type[Self], data: JSONObject, **kwargs) -> Self: ...  # pragma: no cover
 
     def to_dict(self, **kwargs) -> JSONObject: ...  # pragma: no cover
 
     @classmethod
-    def from_json(cls: Type[T], data: str, **kwargs) -> T: ...  # pragma: no cover
+    def from_json(cls: Type[Self], data: str, **kwargs) -> Self: ...  # pragma: no cover
 
     def to_json(self, **kwargs) -> str: ...  # pragma: no cover
 
     @classmethod
-    def from_path(cls: Type[T], path: Path, **kwargs) -> T: ...  # pragma: no cover
+    def from_path(cls: Type[Self], path: Path, **kwargs) -> Self: ...  # pragma: no cover
 
     def to_path(self, path: Path, **kwargs): ...  # pragma: no cover
 
@@ -91,7 +98,7 @@ class ModelProtocol(Protocol):
 class ModelBase:
     @classmethod
     @abc.abstractmethod
-    def from_dict(cls: Type[M], data: JSONObject, **kwargs) -> M:
+    def from_dict(cls, data: JSONObject, **kwargs) -> Self:
         raise NotImplementedError(
             f"Must implement this method in {cls.__name__}"
         )  # pragma: no cover
@@ -103,14 +110,14 @@ class ModelBase:
         )  # pragma: no cover
 
     @classmethod
-    def from_json(cls: Type[M], data: str, **kwargs) -> M:
+    def from_json(cls, data: str, **kwargs) -> Self:
         return cls.from_dict(json.loads(data), **kwargs)
 
     def to_json(self, **kwargs) -> str:
         return json.dumps(self.to_dict(**kwargs), indent=4)
 
     @classmethod
-    def from_path(cls: Type[M], path: Path, **kwargs) -> M:
+    def from_path(cls, path: Path, **kwargs) -> Self:
         if path.suffix in (".yml", ".yaml"):
             path.read_text()
             with open(path, "r") as f:
@@ -135,15 +142,15 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
 
     @classmethod
     def from_dict(  # type: ignore[override]
-        cls: Type[DCM], data: JSONObject, partial: bool = DEFAULT_PARTIAL, **kwargs
-    ) -> DCM:
+        cls, data: JSONObject, partial: bool = DEFAULT_PARTIAL, **kwargs
+    ) -> Self:
         return super().from_dict(data, infer_missing=partial)
 
     def to_dict(self, partial: bool = DEFAULT_PARTIAL, **kwargs) -> JSONObject:  # type: ignore[override]
         return super().to_dict(encode_json=kwargs.get("encode_json", True))
 
     @classmethod
-    def from_json(cls: Type[DCM], data: str, **kwargs) -> DCM:  # type: ignore[override]
+    def from_json(cls, data: str, **kwargs) -> Self:  # type: ignore[override]
         return cls.from_dict(json.loads(data), **kwargs)
 
     def to_json(self, **kwargs) -> str:
@@ -181,13 +188,38 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
 MISSING = mm.missing
 
 
-class WithValidation:
-    """Provides Validations for model for (/de-)serialization"""
+# --------------------------------------------------------------
+#                     PydanticModel
+# --------------------------------------------------------------
+
+
+class PydanticBaseModel(_PydanticBaseModel, ModelBase):
+    """Base class for Pydantic models that can be serialized to/from JSON"""
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        populate_by_name=True,
+        extra="ignore",
+        alias_generator=AliasGenerator(
+            # Use custom alias generators for validation and serialization
+            # to ensure camelCase to snake_case conversion
+            # and vice versa, depending on the context.
+            validation_alias=to_camel,
+            serialization_alias=to_camel,
+        ),
+    )
 
     @classmethod
-    @abc.abstractmethod
-    def validate(cls, data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs):
-        raise NotImplementedError("Must implement")  # pragma: no cover
+    def from_dict(cls, data: JSONObject, **kwargs) -> Self:
+        return cls.model_validate(data, **kwargs)
+
+    def to_dict(self, **kwargs) -> JSONObject:
+        # Ensure None values are excluded by default to mirror DataClassJsonMixin settings
+        kwargs.setdefault("exclude_none", True)
+        return self.model_dump(**kwargs)
+
+    @classmethod
+    def from_json(cls, data: str, **kwargs) -> Self:
+        return cls.from_dict(json.loads(data), **kwargs)
 
 
 # --------------------------------------------------------------
@@ -198,29 +230,27 @@ class WithValidation:
 class SchemaModel(DataClassModel):
     _schema_config: ClassVar[Dict[str, Any]] = {}
 
-    def __init_subclass__(cls: Type[SM], **kwargs) -> None:
+    def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
         if cls._schema_config.get("attach_schema_hooks", True):
             attach_schema_hooks(cls, cls._schema_config.get("remove_post_load_hooks", True))
 
     @classmethod
     def from_dict(  # type: ignore[override]
-        cls: Type[SM], data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs
-    ) -> SM:
+        cls, data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs
+    ) -> Self:
         """deserialize JSON data (and validate)
 
         Args:
-            cls (Type[SM]): class type to construct from data
+            cls: class type to construct from data
             data (JSONObject): JSON data that will be deserialized
             partial (bool, optional): Whether to partially construct. Defaults to False.
 
         Returns:
-            SM: _description_
+            Self: An instance of the model class
         """
         # return super().from_dict(data, partial=partial, **kwargs)
-        return cast(
-            SM, cls.model_schema(partial=partial, **kwargs).load(data=data, partial=partial)
-        )
+        return cls.model_schema(partial=partial, **kwargs).load(data=data, partial=partial)  # type: ignore[return-value]
 
     def to_dict(  # type: ignore[override]
         self, partial: bool = DEFAULT_PARTIAL, validate: bool = DEFAULT_VALIDATE, **kwargs
@@ -250,7 +280,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     def validate(
-        cls: Type[SM], data: Union[Dict[str, Any], SM], partial: bool = DEFAULT_PARTIAL, **kwargs
+        cls, data: Union[Dict[str, Any], Self], partial: bool = DEFAULT_PARTIAL, **kwargs
     ):
         try:
             if isinstance(data, cls):
@@ -264,7 +294,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     def is_valid(
-        cls: Type[SM], data: Union[Dict[str, Any], SM], partial: bool = DEFAULT_PARTIAL, **kwargs
+        cls, data: Union[Dict[str, Any], Self], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> bool:
         try:
             cls.validate(data, partial=partial, **kwargs)
@@ -273,7 +303,7 @@ class SchemaModel(DataClassModel):
         return True
 
     @classmethod
-    def empty(cls: Type[SM]) -> SM:
+    def empty(cls) -> Self:
         empty: Dict[str, Any] = {}
         return cls.from_dict(empty, partial=True)
 
@@ -300,9 +330,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     @mm.post_load
-    def make_object(
-        cls: Type[T], data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs
-    ) -> T:
+    def make_object(cls, data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs) -> Self:
         """Method for defining how to make an instance based on validated data.
 
         Args:
@@ -360,7 +388,7 @@ class SchemaModel(DataClassModel):
                 return True
         return False
 
-    def copy(self: SM, partial: bool = DEFAULT_PARTIAL, **kwargs) -> SM:
+    def copy(self, partial: bool = DEFAULT_PARTIAL, **kwargs) -> Self:
         return self.from_dict(
             data=self.to_dict(partial=partial, **kwargs), partial=partial, **kwargs
         )
@@ -405,7 +433,7 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
         """Decorates a SchemaModel class method as a mm.Schema hook and attaches to the schema
 
         Args:
-            cls (Type[SM]): subclass of schema model
+            cls (Type[SchemaModelV1]): subclass of V1 schema model
             schema (mm.Schema): The schema instance of the schema model
             class_method_name (str): name of class method being decorated, attached
             class_method (ModelClassMethod): class method being decorated, attached

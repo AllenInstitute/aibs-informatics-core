@@ -13,10 +13,12 @@ dependencies = [
     { name = "dataclasses-json" },
     { name = "marshmallow" },
     { name = "pathlib-abc" },
+    { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "requests" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
     { name = "typing-inspect" },
 ]
 
@@ -35,6 +37,7 @@ bump = [
     { name = "bump-my-version" },
 ]
 dev = [
+    { name = "aibs-informatics-test-resources" },
     { name = "mypy" },
     { name = "ruff" },
 ]
@@ -57,10 +60,12 @@ requires-dist = [
     { name = "marshmallow", specifier = "~=3.22.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "~=1.15.0" },
     { name = "pathlib-abc" },
+    { name = "pydantic", specifier = ">=2.0.3,<3" },
     { name = "python-dateutil" },
     { name = "pytz" },
     { name = "pyyaml", specifier = "~=6.0" },
     { name = "requests" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'", specifier = "~=4.0" },
     { name = "typing-inspect" },
 ]
 provides-extras = ["dev"]
@@ -72,6 +77,7 @@ build = [
 ]
 bump = [{ name = "bump-my-version" }]
 dev = [
+    { name = "aibs-informatics-test-resources", specifier = "~=0.1" },
     { name = "mypy", specifier = "~=1.13" },
     { name = "ruff", specifier = "~=0.9" },
 ]

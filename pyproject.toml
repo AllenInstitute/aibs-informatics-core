@@ -19,6 +19,7 @@ license = { file = "LICENSE" }
 dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
+    "pydantic >= 2.0.3, < 3",
     "marshmallow~=3.22.0",
     "dataclasses-json~=0.6.7",
     "pathlib-abc",
@@ -27,6 +28,7 @@ dependencies = [
     "pyyaml~=6.0",
     "requests",
     "typing_inspect",
+    "typing-extensions ~= 4.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +42,7 @@ dev = [
 [dependency-groups]
 
 dev = [
+    "aibs-informatics-test-resources~=0.1",
     { include-group = 'linting' },
     { include-group = 'typing' },
 ]
@@ -240,6 +243,7 @@ ignore_errors = false
 [tool.ruff]
 line-length = 99
 src = ["src", "test"]
+cache-dir = "build/.ruff_cache"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90"]

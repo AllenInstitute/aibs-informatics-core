@@ -37,6 +37,9 @@ from typing import (
     cast,
 )
 
+from pydantic import GetCoreSchemaHandler
+from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
+
 from aibs_informatics_core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -103,6 +106,18 @@ class ValidatedStr(str):
         obj = super().__new__(cls, value)
         obj._validate()
         return obj
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source_type: Any,  # The *annotation* Pydantic is processing
+        handler: GetCoreSchemaHandler,  # Helper that builds/combines schemas
+    ) -> CoreSchema:
+        # Ask Pydantic for the *regular* `str` schema …
+        str_schema = handler(str)
+
+        # … then run our validator *after* that schema succeeds.
+        return no_info_after_validator_function(cls, str_schema)
 
     def _validate(self):
         value = self
