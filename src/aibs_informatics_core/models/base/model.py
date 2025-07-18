@@ -47,8 +47,6 @@ from dataclasses_json import DataClassJsonMixin, Undefined, config
 from dataclasses_json.core import _ExtendedEncoder
 from marshmallow import post_dump, pre_dump, pre_load, validates_schema
 from marshmallow.decorators import POST_LOAD
-from pydantic import AliasGenerator, BaseModel as _PydanticBaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from aibs_informatics_core.models.base.custom_fields import NestedField
 from aibs_informatics_core.models.base.field_utils import FieldProps
@@ -186,40 +184,6 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
 
 
 MISSING = mm.missing
-
-
-# --------------------------------------------------------------
-#                     PydanticModel
-# --------------------------------------------------------------
-
-
-class PydanticBaseModel(_PydanticBaseModel, ModelBase):
-    """Base class for Pydantic models that can be serialized to/from JSON"""
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
-        extra="ignore",
-        alias_generator=AliasGenerator(
-            # Use custom alias generators for validation and serialization
-            # to ensure camelCase to snake_case conversion
-            # and vice versa, depending on the context.
-            validation_alias=to_camel,
-            serialization_alias=to_camel,
-        ),
-    )
-
-    @classmethod
-    def from_dict(cls, data: JSONObject, **kwargs) -> Self:
-        return cls.model_validate(data, **kwargs)
-
-    def to_dict(self, **kwargs) -> JSONObject:
-        # Ensure None values are excluded by default to mirror DataClassJsonMixin settings
-        kwargs.setdefault("exclude_none", True)
-        return self.model_dump(**kwargs)
-
-    @classmethod
-    def from_json(cls, data: str, **kwargs) -> Self:
-        return cls.from_dict(json.loads(data), **kwargs)
 
 
 # --------------------------------------------------------------

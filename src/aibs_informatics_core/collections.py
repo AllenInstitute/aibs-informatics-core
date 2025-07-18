@@ -37,8 +37,23 @@ from typing import (
     cast,
 )
 
-from pydantic import GetCoreSchemaHandler
-from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
+try:
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
+
+    class PydanticStrMixin:  # type: ignore  # Complains about duplicate class definition, but this is intentional
+        """Mixin for Pydantic models that provides a custom CoreSchema for string validation."""
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls, source_type: object, handler: GetCoreSchemaHandler
+        ) -> CoreSchema:
+            return no_info_after_validator_function(cls, handler(str))
+except ModuleNotFoundError:  # pragma: no cover
+
+    class PydanticStrMixin:  # type: ignore  # Stub for PydanticStrMixin when Pydantic is not available
+        pass
+
 
 from aibs_informatics_core.exceptions import ValidationError
 
@@ -85,7 +100,7 @@ KT = TypeVar("KT", bound=Hashable)
 VT = TypeVar("VT")
 
 
-class ValidatedStr(str):
+class ValidatedStr(str, PydanticStrMixin):
     regex_pattern: ClassVar[Pattern]
     min_len: ClassVar[Optional[int]] = None
     max_len: ClassVar[Optional[int]] = None
@@ -106,18 +121,6 @@ class ValidatedStr(str):
         obj = super().__new__(cls, value)
         obj._validate()
         return obj
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls,
-        source_type: Any,  # The *annotation* Pydantic is processing
-        handler: GetCoreSchemaHandler,  # Helper that builds/combines schemas
-    ) -> CoreSchema:
-        # Ask Pydantic for the *regular* `str` schema …
-        str_schema = handler(str)
-
-        # … then run our validator *after* that schema succeeds.
-        return no_info_after_validator_function(cls, str_schema)
 
     def _validate(self):
         value = self
