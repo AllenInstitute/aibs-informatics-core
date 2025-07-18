@@ -4,12 +4,12 @@ from typing import Annotated
 
 import sys
 
-from pydantic import PlainSerializer
+# Line removed; moved inside the try block.
 
 from aibs_informatics_core.utils.time import from_isoformat_8601
 
 try:
-    from pydantic import BeforeValidator
+    from pydantic import BeforeValidator, PlainSerializer
 
 except ModuleNotFoundError:  # pragma: no cover
     import types
