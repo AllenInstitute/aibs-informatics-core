@@ -19,7 +19,7 @@ license = { file = "LICENSE" }
 dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
-    "pydantic >= 2.0.3, < 3",
+    # "pydantic >= 2.0.3, < 3",
     "marshmallow~=3.22.0",
     "dataclasses-json~=0.6.7",
     "pathlib-abc",
@@ -32,7 +32,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+pydantic = [
+    "pydantic >= 2.0.3, < 3",
+]
 dev = [
+    "aibs-informatics-core[pydantic]",
     "aibs-informatics-test-resources~=0.1",
     # Cannot use 1.16.*/1.17.0 due to bug introduced (https://github.com/python/mypy/issues/19483). 
     # Must wait for 1.17.1 or later.

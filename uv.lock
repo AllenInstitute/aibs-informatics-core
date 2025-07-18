@@ -13,7 +13,6 @@ dependencies = [
     { name = "dataclasses-json" },
     { name = "marshmallow" },
     { name = "pathlib-abc" },
-    { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pytz" },
     { name = "pyyaml" },
@@ -25,7 +24,14 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "aibs-informatics-test-resources" },
+<<<<<<< HEAD
     { name = "mypy" },
+=======
+    { name = "pydantic" },
+]
+pydantic = [
+    { name = "pydantic" },
+>>>>>>> 4948361 (make pydantic optional dependency, isolate pydantic imports)
 ]
 
 [package.dev-dependencies]
@@ -55,12 +61,13 @@ typing = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aibs-informatics-core", extras = ["pydantic"], marker = "extra == 'dev'" },
     { name = "aibs-informatics-test-resources", marker = "extra == 'dev'", specifier = "~=0.1" },
     { name = "dataclasses-json", specifier = "~=0.6.7" },
     { name = "marshmallow", specifier = "~=3.22.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = "~=1.15.0" },
     { name = "pathlib-abc" },
-    { name = "pydantic", specifier = ">=2.0.3,<3" },
+    { name = "pydantic", marker = "extra == 'pydantic'", specifier = ">=2.0.3,<3" },
     { name = "python-dateutil" },
     { name = "pytz" },
     { name = "pyyaml", specifier = "~=6.0" },
@@ -68,7 +75,7 @@ requires-dist = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'", specifier = "~=4.0" },
     { name = "typing-inspect" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["pydantic", "dev"]
 
 [package.metadata.requires-dev]
 build = [
