@@ -4,8 +4,6 @@ from typing import Annotated
 
 import sys
 
-# Line removed; moved inside the try block.
-
 from aibs_informatics_core.utils.time import from_isoformat_8601
 
 try:
