@@ -670,7 +670,7 @@ class SimpleCollection(SchemaModel):
 class Complex(SchemaModel):
     uuid_value: uuid.UUID = field(metadata=field_metadata(mm_field=UUIDField()))
     dt_value: dt.datetime = field(
-        metadata=field_metadata(mm_field=CustomAwareDateTime(format="", required=True))
+        metadata=field_metadata(mm_field=CustomAwareDateTime(format="iso8601", required=True))
     )
     alternate_dt_value: dt.datetime = field(
         metadata=field_metadata(encoder=dt.datetime.isoformat, decoder=dt.datetime.fromisoformat)

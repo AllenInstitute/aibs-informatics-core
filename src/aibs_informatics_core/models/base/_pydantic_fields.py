@@ -8,12 +8,6 @@ from pydantic import PlainSerializer
 
 from aibs_informatics_core.utils.time import from_isoformat_8601
 
-
-if sys.version_info < (3, 11):
-    pass  # type: ignore[import-untyped]
-else:
-    pass
-
 try:
     from pydantic import BeforeValidator
 
@@ -47,15 +41,10 @@ else:
 
         # Clean up iso‑format strings that may include a fractional component like ".0"
         if isinstance(v, str):
-            return datetime.datetime.fromisoformat(v)
             return from_isoformat_8601(v)  # This will raise ValueError if the format is incorrect
 
         # Already a datetime instance → return unchanged
         return v
-
-    # https://stackoverflow.com/a/27596917
-    def is_aware(datetime: datetime.datetime) -> bool:
-        return datetime.tzinfo is not None and datetime.tzinfo.utcoffset(datetime) is not None
 
     def _parse_epoch(v: str | int | float | datetime.datetime) -> datetime.datetime:
         """Handle epoch milliseconds and plain `datetime` values."""
