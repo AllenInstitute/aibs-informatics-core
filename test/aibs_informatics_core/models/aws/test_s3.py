@@ -133,6 +133,30 @@ def test__S3PathStats__getitem__works():
             id="URI with redundant slashes in key",
         ),
         pytest.param(
+            "s3://bucket-name/",
+            True,
+            {
+                "bucket": "bucket-name",
+                "key": "",
+                "name": "",
+                "parent": "s3://bucket-name/",
+            },
+            does_not_raise(),
+            id="S3Path with empty key (just bucket name) and full_validate=True",
+        ),
+        pytest.param(
+            "s3://bucket-name/folder1/folder2/",
+            True,
+            {
+                "bucket": "bucket-name",
+                "key": "folder1/folder2/",
+                "name": "folder2",
+                "parent": "s3://bucket-name/folder1/",
+            },
+            does_not_raise(),
+            id="S3Path with empty key (just bucket name) and full_validate=True",
+        ),
+        pytest.param(
             # test_input
             "s3:///genomics-file-store/test-path",
             # full_validate
@@ -623,3 +647,17 @@ def test__S3TransferResponse__fails_if_no_reason():
             failed=True,
             reason=None,
         )
+
+
+def test__S3Path__parent__works():
+    # Test with a key
+    path = S3Path("s3://my-bucket/my-key")
+    assert path.parent == S3Path("s3://my-bucket/")
+
+    # Test with a key prefix
+    path = S3Path("s3://my-bucket/my-prefix/")
+    assert path.parent == S3Path("s3://my-bucket/my-prefix/")
+
+    # Test with just the bucket
+    path = S3Path("s3://my-bucket/")
+    assert path.parent == S3Path("s3://my-bucket/")  # Parent of bucket is itself
