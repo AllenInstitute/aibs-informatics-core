@@ -267,7 +267,12 @@ class S3Path(str):
 
     @property
     def parent(self) -> "S3Path":
-        parent_key = "/".join(self.key.split("/")[:-1]).rstrip("/") + "/"
+        # Handle root-level (just the bucket)
+        if not self.key or self.key == "/":
+            return S3Path.build(bucket_name=self.bucket_name, key="")
+
+        # Strip trailing slash before splitting
+        parent_key = "/".join(self.key.rstrip("/").split("/")[:-1]).rstrip("/") + "/"
         return S3Path.build(bucket_name=self.bucket_name, key=parent_key)
 
     @property
