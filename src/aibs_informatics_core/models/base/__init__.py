@@ -33,7 +33,7 @@ __all__ = [
     "validates_schema",
     "PydanticBaseModel",
     "IsoDateTime",
-    "DateOrStr",
+    "IsoDate",
     "EpochDatetime",
 ]
 
@@ -82,7 +82,7 @@ try:
     from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
     from aibs_informatics_core.models.base._pydantic_fields import (
         IsoDateTime,
-        DateOrStr,
+        IsoDate,
         EpochDatetime,
     )
 except ModuleNotFoundError:

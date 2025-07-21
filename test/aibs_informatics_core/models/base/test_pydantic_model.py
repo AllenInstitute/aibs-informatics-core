@@ -111,7 +111,7 @@ class ComplexNested(PydanticBaseModel):
         ),
     ],
 )
-def test__PydanticModel__to_dict(model, expected_json, raise_exception):
+def test__PydanticBaseModel__to_dict(model, expected_json, raise_exception):
     with raise_exception:
         actual_json = model.to_dict()
 
@@ -228,14 +228,14 @@ def test__PydanticModel__to_dict(model, expected_json, raise_exception):
         ),
     ],
 )
-def test__SchemaModel__from_dict(model_cls, model_json, expected_model, raise_exception):
+def test__PydanticBaseModel__from_dict(model_cls, model_json, expected_model, raise_exception):
     with raise_exception:
         actual_model = model_cls.from_dict(model_json)
     if expected_model:
         assert actual_model == expected_model
 
 
-def test__SchemaModel__from_path__json_file():
+def test__PydanticBaseModel__from_path__json_file():
     model = Simple(int_value=1, str_value="s")
     model_dict = model.to_dict()
     with TemporaryDirectory("w") as tmpdir:
@@ -246,7 +246,7 @@ def test__SchemaModel__from_path__json_file():
     assert new_model == model
 
 
-def test__SchemaModel__from_path__yaml_file():
+def test__PydanticBaseModel__from_path__yaml_file():
     model = Simple(int_value=1, str_value="s")
     model_dict = model.to_dict()
     with TemporaryDirectory("w") as tmpdir:
@@ -257,7 +257,7 @@ def test__SchemaModel__from_path__yaml_file():
     assert new_model == model
 
 
-def test__SchemaModel__to_path__from_path():
+def test__PydanticBaseModel__to_path__from_path():
     with TemporaryDirectory("w") as tmpdir:
         path = Path(tmpdir) / "model"
         model = Simple(int_value=1, str_value="s")

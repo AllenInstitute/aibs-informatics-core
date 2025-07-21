@@ -72,4 +72,12 @@ else:
             when_used="json",  # only affects JSON/dict output, not Python copy
         ),
     ]
-    DateOrStr = Annotated[datetime.date, BeforeValidator(_parse_date)]
+    IsoDate = Annotated[
+        datetime.date,
+        BeforeValidator(_parse_date),
+        PlainSerializer(
+            lambda v: v.isoformat(),  # or v.isoformat(timespec="seconds") for no µs
+            return_type=str,
+            when_used="json",  # only affects JSON/dict output, not Python copy
+        ),
+    ]
