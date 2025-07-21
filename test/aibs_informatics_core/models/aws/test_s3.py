@@ -654,9 +654,14 @@ def test__S3Path__parent__works():
     path = S3Path("s3://my-bucket/my-key")
     assert path.parent == S3Path("s3://my-bucket/")
 
+    path = S3Path("s3://my-bucket/my-prefix/my-key")
+    assert path.parent == S3Path("s3://my-bucket/my-prefix/")
+    assert path.parent.parent == S3Path("s3://my-bucket/")
+    assert path.parent.parent.parent == S3Path("s3://my-bucket/")  # Parent of bucket is itself
+
     # Test with a key prefix
     path = S3Path("s3://my-bucket/my-prefix/")
-    assert path.parent == S3Path("s3://my-bucket/my-prefix/")
+    assert path.parent == S3Path("s3://my-bucket/")
 
     # Test with just the bucket
     path = S3Path("s3://my-bucket/")
