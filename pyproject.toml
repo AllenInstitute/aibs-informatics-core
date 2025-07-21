@@ -32,6 +32,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "aibs-informatics-test-resources~=0.1",
+    # Cannot use 1.17.0 due to bug introduced (https://github.com/python/mypy/issues/19483). 
+    # Must wait for 1.17.1 or later.
+    "mypy~=1.16.0",
 ]
 
 [dependency-groups]
