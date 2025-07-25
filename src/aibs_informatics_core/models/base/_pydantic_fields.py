@@ -46,24 +46,16 @@ else:
         # Already a datetime instance → return unchanged
         return v
 
-    def _parse_epoch(v: str | int | float | datetime.datetime) -> datetime.datetime:
-        """Handle epoch milliseconds and plain `datetime` values."""
-        if isinstance(v, (int, float)):
-            return datetime.datetime.fromtimestamp(v / 1_000, datetime.timezone.utc)
-        if isinstance(v, str):
-            # Accept ISO date‑time strings with optional fractional seconds
-            if "." in v:
-                v = v.split(".", 1)[0]
-            return datetime.datetime.fromisoformat(v)
-        return v
-
     def _parse_date(v: str | datetime.date) -> datetime.date:
         """Handle date strings and plain `datetime.date` values."""
         if isinstance(v, str):
             return datetime.date.fromisoformat(v)
         return v
 
-    EpochDatetime = Annotated[datetime.datetime, BeforeValidator(_parse_epoch)]
+    # --------------------------------------------------------------
+    #                     Pydantic Fields
+    # --------------------------------------------------------------
+
     IsoDateTime = Annotated[
         datetime.datetime,
         BeforeValidator(_parse_isoish_dt),

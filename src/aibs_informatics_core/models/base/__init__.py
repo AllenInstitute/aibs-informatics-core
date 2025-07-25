@@ -34,7 +34,6 @@ __all__ = [
     "PydanticBaseModel",
     "IsoDateTime",
     "IsoDate",
-    "EpochDatetime",
 ]
 
 
@@ -83,7 +82,6 @@ try:
     from aibs_informatics_core.models.base._pydantic_fields import (
         IsoDateTime,
         IsoDate,
-        EpochDatetime,
     )
 except ModuleNotFoundError:
     import types
