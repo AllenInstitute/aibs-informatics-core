@@ -27,10 +27,15 @@ dependencies = [
     "pyyaml~=6.0",
     "requests",
     "typing_inspect",
+    "typing-extensions ~= 4.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
+pydantic = [
+    "pydantic >= 2.0.3, < 3",
+]
 dev = [
+    "aibs-informatics-core[pydantic]",
     "aibs-informatics-test-resources~=0.1",
     # Cannot use 1.16.*/1.17.0 due to bug introduced (https://github.com/python/mypy/issues/19483). 
     # Must wait for 1.17.1 or later.
@@ -40,6 +45,7 @@ dev = [
 [dependency-groups]
 
 dev = [
+    "aibs-informatics-test-resources~=0.1",
     { include-group = 'linting' },
     { include-group = 'typing' },
 ]
@@ -240,6 +246,7 @@ ignore_errors = false
 [tool.ruff]
 line-length = 99
 src = ["src", "test"]
+cache-dir = "build/.ruff_cache"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "C90"]
