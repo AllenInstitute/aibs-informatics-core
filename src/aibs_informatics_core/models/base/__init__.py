@@ -83,7 +83,7 @@ try:
         IsoDateTime,
         IsoDate,
     )
-except ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     import types
 
     class _MissingPydantic(types.ModuleType):
