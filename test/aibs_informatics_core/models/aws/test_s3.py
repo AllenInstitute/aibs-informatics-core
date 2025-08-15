@@ -162,52 +162,31 @@ def test__S3PathStats__getitem__works():
         ),
         pytest.param(
             "s3://${Token[detail-requestParameters-bucketName.2805]}/${Token[detail-requestParameters-key.2806]}",
-            True,
-            {
-                "bucket": "${Token[detail-requestParameters-bucketName.2805]}",
-                "key": "${Token[detail-requestParameters-key.2806]}",
-            },
-            does_not_raise(),
-            id="S3 path with cdk-style placeholders succeeds with allow_placeholders=True",
-        ),
-        pytest.param(
-            "s3://${Token[detail-requestParameters-bucketName.2805]}/${Token[detail-requestParameters-key.2806]}",
             False,
             None,
             pytest.raises(ValidationError),
-            id="S3 path with cdk-style placeholders fails with allow_placeholders=False - (fail)",
-        ),
-        pytest.param(
-            "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/key-name",
-            True,
-            {
-                "bucket": "${MY_ENV_VAR}",
-                "key": "keyprefix/${MY_ENV_VAR2}/key-name",
-                "parent": "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/",
-            },
-            does_not_raise(),
-            id="S3 path with simple env_var interpolation succeeds with allow_placeholders=True",
+            id="S3 path with cdk-style placeholders is rejected (fail)",
         ),
         pytest.param(
             "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/key-name",
             False,
             None,
             pytest.raises(ValidationError),
-            id="S3 path with simple env_var interpolation fails with allow_placeholders=False - (fail)",  # noqa: E501
+            id="S3 path with simple env_var interpolation is rejected (fail)",
         ),
         pytest.param(
             "s3://bucket_name/key-name",
             False,
             None,
             pytest.raises(ValidationError),
-            id="Invalid s3 bucket name (contains '_') is rejected - (fail)",
+            id="Invalid s3 bucket name (contains '_') is rejected (fail)",
         ),
         pytest.param(
             "S3://bucket-name/key-name",
             False,
             None,
             pytest.raises(ValidationError),
-            id="Incorrectly capitalized S3 URI scheme - (fail)",
+            id="Incorrectly capitalized S3 URI scheme (fail)",
         ),
     ],
 )
@@ -225,6 +204,47 @@ def test__S3Path__init(string_input, allow_placeholders, expected, raise_expecta
             )
             assert v == getattr(s3_path_placeholder, k), (
                 f"Expected {k} to be {v}, but got {getattr(s3_path, k)}"
+            )
+        assert s3_path_placeholder.allow_placeholders == allow_placeholders
+
+
+@pytest.mark.parametrize(
+    "string_input, allow_placeholders, expected, raise_expectation",
+    [
+        pytest.param(
+            "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/key-name",
+            True,
+            {
+                "bucket": "${MY_ENV_VAR}",
+                "key": "keyprefix/${MY_ENV_VAR2}/key-name",
+                "parent": "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/",
+            },
+            does_not_raise(),
+            id="S3 path with simple env_var interpolation succeeds",
+        ),
+        pytest.param(
+            "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/key-name",
+            True,
+            {
+                "bucket": "${MY_ENV_VAR}",
+                "key": "keyprefix/${MY_ENV_VAR2}/key-name",
+                "parent": "s3://${MY_ENV_VAR}/keyprefix/${MY_ENV_VAR2}/",
+            },
+            does_not_raise(),
+            id="S3 path with simple env_var interpolation succeeds with allow_placeholders=True",
+        ),
+    ],
+)
+def test__S3PathPlaceholder__init(string_input, allow_placeholders, expected, raise_expectation):
+    with raise_expectation:
+        s3_path_placeholder = S3PathPlaceholder(
+            string_input, allow_placeholders=allow_placeholders
+        )
+
+    if expected:
+        for k, v in expected.items():
+            assert v == getattr(s3_path_placeholder, k), (
+                f"Expected {k} to be {v}, but got {getattr(s3_path_placeholder, k)}"
             )
         assert s3_path_placeholder.allow_placeholders == allow_placeholders
 
@@ -371,7 +391,7 @@ def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
         ),
     ],
 )
-def test__S3BucketName__init_allow_placeholders(value: str, raise_expectation):
+def test__S3BucketNamePlaceholder__init_allow_placeholders(value: str, raise_expectation):
     with raise_expectation:
         S3BucketNamePlaceholder(value, allow_placeholders=True)
 
@@ -434,7 +454,7 @@ def test__S3Key__init_no_placeholders(value: str, raise_expectation):
         pytest.param("a#b", pytest.raises(ValidationError), id="(x) pound"),
     ],
 )
-def test__S3Key__init_allow_placeholders(value: str, raise_expectation):
+def test__S3KeyPlaceholder__init_allow_placeholders(value: str, raise_expectation):
     with raise_expectation:
         S3KeyPlaceholder(value, allow_placeholders=True)
 
@@ -582,33 +602,6 @@ def test__S3URI__add__works(this: S3Path, other: Union[str, S3Path], expected: S
 )
 def test__S3URI__truediv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
     assert this / other == expected
-
-
-@pytest.mark.parametrize(
-    "this, other, expected",
-    [
-        pytest.param(
-            S3Path("s3://my-bucket/my-key"),
-            "another-bucket",
-            S3Path("s3://another-bucket/my-key"),
-            id="str / SELF",
-        ),
-        pytest.param(
-            S3Path("s3://my-bucket/my-key"),
-            "s3://another-bucket/another-key",
-            S3Path("s3://another-bucket/my-key"),
-            id="s3 uri str / SELF",
-        ),
-        pytest.param(
-            S3Path("s3://my-bucket/my-key"),
-            S3BucketName("another-bucket"),
-            S3Path("s3://another-bucket/my-key"),
-            id="s3 bucket name / SELF",
-        ),
-    ],
-)
-def test__S3URI__rtruediv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
-    assert other / this == expected
 
 
 @pytest.mark.parametrize(

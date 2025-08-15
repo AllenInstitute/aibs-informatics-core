@@ -29,14 +29,6 @@ ANOTHER_S3_URI = S3URI.build(bucket_name="bucket", key="key2")
 
 S3_PREFIX = S3URI.build(bucket_name="bucket", key="prefix/")
 
-# def test__refresh_params__no_args():
-
-#     class CustomExecutionParameters(DemandExecutionParameters):
-
-#         @refresh_params
-#         def add_wonky_inputs(self, inputs: List[str]) -> List[str]:
-#             return inputs + ["wonky_input"]
-
 
 @fixture(scope="function")
 def demand_execution_parameters():

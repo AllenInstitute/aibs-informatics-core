@@ -114,9 +114,7 @@ S3_BUCKET_NAME_PATTERN_STR = (
 # S3 Key Pattern
 NORMAL_CHARS = r"a-zA-Z0-9!_.*'()\-"
 SPECIAL_CHARS = "&$@=;:+,? "
-S3_KEY_PATTERN_STR_NO_VARS = (
-    rf"[{NORMAL_CHARS}{SPECIAL_CHARS}]+(?:/[{NORMAL_CHARS}{SPECIAL_CHARS}]+)*"
-)
+S3_KEY_PATTERN_STR_NO_VARS = rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]+/?)*"
 S3_KEY_PATTERN_WITH_VARS = (
     rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*"
     rf"(?:/(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*)*"
@@ -479,8 +477,10 @@ class S3PathPlaceholder(ConditionalPlaceholderStr):
         There may be cases where the bucket_name or key is a placeholder
         (e.g. "${FILL_WITH_SOME_ENV_VAR}") in which case you must set allow_placeholders=True
         """
-        bucket = S3BucketName(bucket_name, allow_placeholders=allow_placeholders, **kwargs)
-        key = S3Key(key, allow_placeholders=allow_placeholders, **kwargs)
+        bucket = S3BucketNamePlaceholder(
+            bucket_name, allow_placeholders=allow_placeholders, **kwargs
+        )
+        key = S3KeyPlaceholder(key, allow_placeholders=allow_placeholders, **kwargs)
         return cls(f"s3://{bucket}/{key}", allow_placeholders=allow_placeholders, **kwargs)
 
     def __add__(self, __other: Union[str, "S3PathPlaceholder", S3Path]) -> "S3PathPlaceholder":
