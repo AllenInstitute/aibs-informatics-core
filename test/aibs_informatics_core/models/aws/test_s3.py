@@ -803,3 +803,41 @@ def test__S3Path__parent__works():
     # Test with just the bucket
     path = S3Path("s3://my-bucket/")
     assert path.parent == S3Path("s3://my-bucket/")  # Parent of bucket is itself
+
+
+@pytest.mark.parametrize(
+    "input_value, expected_result",
+    [
+        pytest.param(
+            # input_value
+            "s3://my-bucket/my-prefix/my-key",
+            # expected_result
+            True,
+            id="Valid str as input"
+        ),
+        pytest.param(
+            # input_value
+            S3Path("s3://my-bucket/my-prefix/my-key"),
+            # expected_result
+            True,
+            id="Valid S3Path as input"
+        ),
+        pytest.param(
+            # input_value
+            Path("/some/file-system/path"),
+            # expected_result
+            False,
+            id="Regression test - `is_valid()` should handle Any input [Path]"
+        ),
+        pytest.param(
+            # input_value
+            3,
+            # expected_result
+            False,
+            id="`is_valid()` should handle Any input [int]"
+        )
+    ]
+)
+def test__S3Path__is_valid__works(input_value, expected_result):
+    result = S3Path.is_valid(value=input_value)
+    assert expected_result == result

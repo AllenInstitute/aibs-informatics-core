@@ -189,6 +189,7 @@ class S3Path(ValidatedStr):
 
     @classmethod
     def _sanitize(cls, value: str, *args, **kwargs) -> str:
+        value = str(value)
         value = value[:3] + _DOUBLE_SLASH_PATTERN.sub(r"\1", value[3:])
         return value
 
