@@ -94,33 +94,45 @@ class S3PathStats:
         return super().__getattribute__(key)
 
 
-PLACEHOLDER_PATTERN = r"(?:\$\{[\w\-\\[\]._^}]+\})"
+# --- Placeholder (tight & brace-safe; adjust char class as you like) ---
+PLACEHOLDER_PATTERN = r"(?:\$\{[A-Za-z0-9._\-\[\]]+\})"
+
+NORMAL_CHARS = r"a-zA-Z0-9!_.*'()\-"
+SPECIAL_CHARS = r"&$@=;:+,? "
+
+# S3 Key Pattern Pattern: strictly no placeholders
+# NOTE: S3 keys can be empty strings, so we allow that here
+S3_KEY_PATTERN_STR_NO_VARS = rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]+/?)*"
+
+KEY_RUN = rf"[{NORMAL_CHARS}{SPECIAL_CHARS}]+"  # non-slash run
+KEY_TOKEN = rf"(?:{KEY_RUN}|{PLACEHOLDER_PATTERN})"  # run OR placeholder
+KEY_SEG = rf"{KEY_TOKEN}+"  # one or more tokens per segment
+
+# Mixed tokens where segments are separated by slashes, and can be empty (for trailing slash)
+S3_KEY_PATTERN_STR_VARS = rf"(?:/(?={KEY_SEG}))?{KEY_SEG}(?:/{KEY_SEG})*/?|/?"
 
 # S3 Bucket Name Pattern
+
+BUCKET_RUN = r"[A-Za-z0-9.-]+"  # no slash
+BUCKET_TOKEN = rf"(?:{BUCKET_RUN}|{PLACEHOLDER_PATTERN})"
+
+# Strict bucket pattern
 S3_BUCKET_NAME_PATTERN_STR_NO_VARS = r"(?:[A-Za-z0-9][A-Za-z0-9\-.]{1,61}[A-Za-z0-9])"
-S3_BUCKET_NAME_PATTERN_WITH_VARS = (
-    rf"(?=.*{PLACEHOLDER_PATTERN}.*)"
-    rf"(?![A-Za-z0-9.\-]+$)"
-    rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9])"
-    rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9.\-])*"
-    rf"(?:{PLACEHOLDER_PATTERN}|[A-Za-z0-9])"
-)
-S3_BUCKET_NAME_PATTERN_STR = (
-    rf"(?:{S3_BUCKET_NAME_PATTERN_STR_NO_VARS}|"
-    rf"{S3_BUCKET_NAME_PATTERN_WITH_VARS}|"
-    rf"{PLACEHOLDER_PATTERN})"
+
+# Mixed tokens where the ends are alnum OR placeholder; handles 'bucket-${x}', '${x}-bucket', etc.
+S3_BUCKET_NAME_PATTERN_MIXED = (
+    rf"(?:"
+    rf"(?:[A-Za-z0-9]|{PLACEHOLDER_PATTERN})"
+    rf"(?:{BUCKET_TOKEN})*"
+    rf"(?:[A-Za-z0-9]|{PLACEHOLDER_PATTERN})"
+    rf")"
 )
 
-# S3 Key Pattern
-NORMAL_CHARS = r"a-zA-Z0-9!_.*'()\-"
-SPECIAL_CHARS = "&$@=;:+,? "
-S3_KEY_PATTERN_STR_NO_VARS = rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]+/?)*"
-S3_KEY_PATTERN_WITH_VARS = (
-    rf"(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*"
-    rf"(?:/(?:[{NORMAL_CHARS}{SPECIAL_CHARS}]|{PLACEHOLDER_PATTERN})*)*"
-)
-S3_KEY_PATTERN_STR = (
-    rf"(?:{S3_KEY_PATTERN_STR_NO_VARS}|{S3_KEY_PATTERN_WITH_VARS}|{PLACEHOLDER_PATTERN})"
+# Full bucket pattern: plain literal OR mixed OR single placeholder
+S3_BUCKET_NAME_PATTERN_STR_VARS = (
+    rf"(?:{S3_BUCKET_NAME_PATTERN_STR_NO_VARS}|"
+    rf"{S3_BUCKET_NAME_PATTERN_MIXED}|"
+    rf"{PLACEHOLDER_PATTERN})"
 )
 
 
@@ -151,7 +163,7 @@ class S3BucketName(ValidatedStr):
 
 
 class S3Key(ValidatedStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR)
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR_VARS)
 
     @property
     def components(self) -> List[str]:
@@ -355,7 +367,7 @@ class ConditionalPlaceholderStr(ValidatedStr):
 
 # https://stackoverflow.com/a/58248645/4544508
 class S3BucketNamePlaceholder(ConditionalPlaceholderStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR)
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_BUCKET_NAME_PATTERN_STR_VARS)
 
     def __truediv__(self, __other: str) -> "S3PathPlaceholder":
         """Creates a S3PathProxy
@@ -380,7 +392,7 @@ class S3BucketNamePlaceholder(ConditionalPlaceholderStr):
 
 
 class S3KeyPlaceholder(ConditionalPlaceholderStr):
-    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR)
+    regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR_VARS)
 
     @property
     def components(self) -> List[str]:
@@ -403,7 +415,7 @@ class S3KeyPlaceholder(ConditionalPlaceholderStr):
 
 class S3PathPlaceholder(ConditionalPlaceholderStr):
     regex_pattern: ClassVar[Pattern] = re.compile(
-        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR})(?:\/({S3_KEY_PATTERN_STR}))?"
+        rf"^s3:\/\/({S3_BUCKET_NAME_PATTERN_STR_VARS})(?:\/({S3_KEY_PATTERN_STR_VARS}))?"
     )
 
     @classmethod

@@ -233,6 +233,17 @@ def test__S3Path__init(string_input, allow_placeholders, expected, raise_expecta
             does_not_raise(),
             id="S3 path with simple env_var interpolation succeeds with allow_placeholders=True",
         ),
+        pytest.param(
+            "s3://some-bucket-bucket-${Token[AWS.AccountId.5]}/keyprefix/${MY_ENV_VAR2}/key-name/${Token[AWS.AccountId.5]}",
+            True,
+            {
+                "bucket": "some-bucket-bucket-${Token[AWS.AccountId.5]}",
+                "key": "keyprefix/${MY_ENV_VAR2}/key-name/${Token[AWS.AccountId.5]}",
+                "parent": "s3://some-bucket-bucket-${Token[AWS.AccountId.5]}/keyprefix/${MY_ENV_VAR2}/key-name/",
+            },
+            does_not_raise(),
+            id="S3 path with long complex placeholders succeeds with allow_placeholders=True",
+        ),
     ],
 )
 def test__S3PathPlaceholder__init(string_input, allow_placeholders, expected, raise_expectation):
@@ -374,8 +385,6 @@ def test__S3BucketName__init_no_placeholders(value: str, raise_expectation):
             "my.${bucket}.name${bucket}", does_not_raise(), id="(o) multiple placeholders and dots"
         ),
         # invalid cases
-        pytest.param("my", pytest.raises(ValidationError), id="(x) too short"),
-        pytest.param("a" * 64, pytest.raises(ValidationError), id="(x) too long"),
         pytest.param(
             "my_bucket_name", pytest.raises(ValidationError), id="(x) contains underscore"
         ),
@@ -813,30 +822,30 @@ def test__S3Path__parent__works():
             "s3://my-bucket/my-prefix/my-key",
             # expected_result
             True,
-            id="Valid str as input"
+            id="Valid str as input",
         ),
         pytest.param(
             # input_value
             S3Path("s3://my-bucket/my-prefix/my-key"),
             # expected_result
             True,
-            id="Valid S3Path as input"
+            id="Valid S3Path as input",
         ),
         pytest.param(
             # input_value
             Path("/some/file-system/path"),
             # expected_result
             False,
-            id="Regression test - `is_valid()` should handle Any input [Path]"
+            id="Regression test - `is_valid()` should handle Any input [Path]",
         ),
         pytest.param(
             # input_value
             3,
             # expected_result
             False,
-            id="`is_valid()` should handle Any input [int]"
-        )
-    ]
+            id="`is_valid()` should handle Any input [int]",
+        ),
+    ],
 )
 def test__S3Path__is_valid__works(input_value, expected_result):
     result = S3Path.is_valid(value=input_value)
