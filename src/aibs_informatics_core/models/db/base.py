@@ -7,7 +7,7 @@ __all__ = [
 ]
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Type, TypeVar
+from typing import List, Literal, Optional, Tuple, Type, TypeVar, overload
 
 from aibs_informatics_core.collections import StrEnum
 from aibs_informatics_core.env import EnvBase
@@ -148,6 +148,22 @@ class DBIndex(StrEnum):
     @property
     def non_key_attributes(self) -> Optional[List[str]]:
         return self._attributes
+
+    @overload
+    def get_sort_key_name(self) -> Optional[str]: ...
+
+    @overload
+    def get_sort_key_name(self, raise_if_none: Literal[False] = False) -> Optional[str]: ...
+
+    @overload
+    def get_sort_key_name(self, raise_if_none: Literal[True] = True) -> str: ...
+
+    def get_sort_key_name(self, raise_if_none: bool = False) -> Optional[str]:
+        if self._sort_key_name is not None:
+            return self._sort_key_name.value
+        if raise_if_none:
+            raise ValueError(f"{self} has no sort key!")
+        return None
 
     def is_partial(self) -> bool:
         return self._attributes is not None

@@ -64,6 +64,19 @@ def test_dbindex():
     assert MockDBIndex.GSI_Y.supports_strongly_consistent_read is False
 
 
+def test__DBIndex__get_sort_key_name__works():
+    # Test default behavior (raise_if_none=False)
+    assert MockDBIndex.GSI_X.get_sort_key_name() == "sort_key_a"
+    assert MockDBIndex.MAIN_TABLE.get_sort_key_name() is None
+    # Test raise_if_none=False
+    assert MockDBIndex.GSI_X.get_sort_key_name(raise_if_none=False) == "sort_key_a"
+    assert MockDBIndex.MAIN_TABLE.get_sort_key_name(raise_if_none=False) is None
+    # Test raise_if_none=True
+    assert MockDBIndex.GSI_X.get_sort_key_name(raise_if_none=True) == "sort_key_a"
+    with raises(ValueError):
+        MockDBIndex.MAIN_TABLE.get_sort_key_name(raise_if_none=True)
+
+
 @mark.parametrize(
     "db_index, partition_value, sort_value, strict, expected, raises_error",
     [
