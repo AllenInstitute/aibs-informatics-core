@@ -1,5 +1,4 @@
 import re
-from test.base import BaseTest, does_not_raise
 from typing import Optional, Pattern, Union
 
 from pytest import mark, param, raises
@@ -14,6 +13,7 @@ from aibs_informatics_core.utils.hashing import (
     uuid_str,
 )
 from aibs_informatics_core.utils.json import JSON
+from test.base import BaseTest, does_not_raise
 
 
 @mark.parametrize(

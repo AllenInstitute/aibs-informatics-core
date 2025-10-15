@@ -1,10 +1,10 @@
 import decimal
 import json
 from pathlib import Path
-from test.base import BaseTest
 from typing import Union
 
 from aibs_informatics_core.utils.json import JSON, DecimalEncoder, load_json, load_json_object
+from test.base import BaseTest
 
 
 class DecimalEncoderTests(BaseTest):

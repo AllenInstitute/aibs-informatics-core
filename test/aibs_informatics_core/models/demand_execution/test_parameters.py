@@ -1,4 +1,3 @@
-from test.base import does_not_raise
 from typing import List
 from unittest import mock
 
@@ -20,6 +19,7 @@ from aibs_informatics_core.models.demand_execution.param_pair import (
 )
 from aibs_informatics_core.models.demand_execution.resolvables import Resolvable
 from aibs_informatics_core.models.unique_ids import UniqueID
+from test.base import does_not_raise
 
 THIS_UUID = UniqueID.create()
 THAT_UUID = UniqueID.create()

@@ -15,11 +15,11 @@ __all__ = [
 import abc
 import inspect
 import json
+import sys
 from dataclasses import MISSING as dataclass_MISSING
 from dataclasses import Field, dataclass, fields
 from functools import wraps
 from pathlib import Path
-import sys
 from types import MethodType
 from typing import (
     Any,

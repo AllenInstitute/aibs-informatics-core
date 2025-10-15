@@ -1,5 +1,3 @@
-from test.base import BaseTest
-
 import pytest
 from aibs_informatics_test_resources import does_not_raise
 
@@ -17,6 +15,7 @@ from aibs_informatics_core.utils.os_operations import (
     to_env_var_list,
     write_env_file,
 )
+from test.base import BaseTest
 
 
 class OSOperationsTests(BaseTest):

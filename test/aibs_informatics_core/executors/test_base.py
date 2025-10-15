@@ -1,6 +1,5 @@
 import json
 from dataclasses import dataclass
-from test.base import BaseTest
 from typing import Optional
 
 from marshmallow import ValidationError
@@ -10,6 +9,7 @@ from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import SchemaModel
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.modules import get_qualified_name
+from test.base import BaseTest
 
 
 @dataclass

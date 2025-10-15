@@ -1,9 +1,8 @@
-from test.base import does_not_raise
-
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.email_address import EmailAddress
+from test.base import does_not_raise
 
 
 @mark.parametrize(

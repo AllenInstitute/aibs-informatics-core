@@ -1,12 +1,12 @@
 import os
 import uuid
-from test.base import does_not_raise
 
 import marshmallow as mm
 import pytest
 from aibs_informatics_test_resources import reset_environ_after_test
 
 from aibs_informatics_core.models.unique_ids import UniqueID
+from test.base import does_not_raise
 
 
 @pytest.mark.parametrize(

@@ -1,16 +1,17 @@
-from datetime import datetime
 import json
+import uuid
+from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import List, Optional
-import uuid
-from aibs_informatics_test_resources import does_not_raise
-from pydantic import ValidationError
+
 import pytest
 import yaml
+from aibs_informatics_test_resources import does_not_raise
+from pydantic import ValidationError
 
-from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 from aibs_informatics_core.models.base._pydantic_fields import IsoDateTime
+from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 
 
 class Empty(PydanticBaseModel):

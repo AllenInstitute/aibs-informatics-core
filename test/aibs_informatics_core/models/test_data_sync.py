@@ -1,9 +1,10 @@
 from pathlib import Path
 
-
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
 from aibs_informatics_core.models.data_sync import (
     BatchDataSyncRequest,
+    BatchDataSyncResponse,
+    BatchDataSyncResult,
     DataSyncConfig,
     DataSyncRequest,
     DataSyncResult,
@@ -11,8 +12,6 @@ from aibs_informatics_core.models.data_sync import (
     JSONContent,
     JSONReference,
     PrepareBatchDataSyncResponse,
-    BatchDataSyncResponse,
-    BatchDataSyncResult,
 )
 
 S3_URI = S3Path.build(bucket_name="bucket", key="key")

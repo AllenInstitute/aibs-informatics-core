@@ -1,10 +1,10 @@
-from test.base import does_not_raise
 from typing import Optional
 
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.version import Version, VersionStr
+from test.base import does_not_raise
 
 
 @mark.parametrize(

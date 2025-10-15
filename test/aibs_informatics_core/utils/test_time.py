@@ -1,10 +1,10 @@
 import datetime as dt
-from test.base import does_not_raise
 from typing import Optional
 
 from pytest import mark, param, raises
 
 from aibs_informatics_core.utils.time import from_isoformat_8601
+from test.base import does_not_raise
 
 
 @mark.parametrize(

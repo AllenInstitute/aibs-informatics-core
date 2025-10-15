@@ -249,7 +249,7 @@ src = ["src", "test"]
 cache-dir = "build/.ruff_cache"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "C90"]
+select = ["E", "F", "I", "W", "C90"]
 # ignore = ["E501"]
 
 # -----------------------------------------------------------------------------
