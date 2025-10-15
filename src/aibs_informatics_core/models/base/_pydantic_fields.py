@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import datetime
-from typing import Annotated
-
-
 import sys
+from typing import Annotated
 
 from aibs_informatics_core.utils.time import from_isoformat_8601
 

@@ -1,6 +1,5 @@
 import os
 from enum import Enum
-from test.base import BaseTest
 
 from aibs_informatics_core.env import (
     ENV_BASE_KEY,
@@ -20,6 +19,7 @@ from aibs_informatics_core.env import (
     get_env_label,
     get_env_type,
 )
+from test.base import BaseTest
 
 
 class EnvBaseTests(BaseTest):

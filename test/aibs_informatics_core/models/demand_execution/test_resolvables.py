@@ -1,4 +1,3 @@
-from test.base import does_not_raise
 from typing import Any, Optional, Tuple, Type, Union
 
 import marshmallow as mm
@@ -16,6 +15,7 @@ from aibs_informatics_core.models.demand_execution.resolvables import (
     Uploadable,
     get_resolvable_from_value,
 )
+from test.base import does_not_raise
 
 
 @mark.parametrize(

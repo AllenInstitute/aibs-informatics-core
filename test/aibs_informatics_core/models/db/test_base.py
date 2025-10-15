@@ -1,7 +1,7 @@
-from test.base import does_not_raise
 from typing import Optional
 
 from pytest import mark, param, raises
+from test.base import does_not_raise
 
 from aibs_informatics_core.env import EnvBase, EnvType
 from aibs_informatics_core.models.db import (

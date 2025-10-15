@@ -1,8 +1,8 @@
-from test.base import does_not_raise
 from typing import Optional
 
 from marshmallow import ValidationError
 from pytest import mark, param, raises
+from test.base import does_not_raise
 
 from aibs_informatics_core.models.aws.dynamodb import (
     AttributeBaseExpression,

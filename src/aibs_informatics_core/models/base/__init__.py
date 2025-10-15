@@ -38,6 +38,7 @@ __all__ = [
 
 
 import sys
+
 from aibs_informatics_core.models.base.custom_fields import (
     BooleanField,
     CustomAwareDateTime,
@@ -78,11 +79,11 @@ from aibs_informatics_core.models.base.model import (
 )
 
 try:
-    from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
     from aibs_informatics_core.models.base._pydantic_fields import (
-        IsoDateTime,
         IsoDate,
+        IsoDateTime,
     )
+    from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 except (ImportError, ModuleNotFoundError):
     import types
 

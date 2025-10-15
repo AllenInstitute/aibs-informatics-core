@@ -1,5 +1,4 @@
 import json
-from test.base import BaseTest
 from unittest import mock
 
 import requests
@@ -17,6 +16,7 @@ from aibs_informatics_core.models.api.route import (
 from aibs_informatics_core.models.base.model import ModelProtocol
 from aibs_informatics_core.models.version import VersionStr
 from aibs_informatics_core.utils.version import get_version
+from test.base import BaseTest
 
 from .helpers import (
     BaseRequest,

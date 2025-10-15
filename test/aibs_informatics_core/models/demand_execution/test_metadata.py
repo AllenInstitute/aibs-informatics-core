@@ -1,11 +1,10 @@
 from typing import Any, Optional
 
 from aibs_informatics_test_resources import does_not_raise
-
 from pytest import mark, param, raises
 
-from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.aws.sfn import ExecutionArn
+from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.status import Status
 
 

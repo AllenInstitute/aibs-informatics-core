@@ -11,7 +11,8 @@ else:
     from typing import Self
 
 try:
-    from pydantic import AliasGenerator, BaseModel as _PydanticBaseModel, ConfigDict
+    from pydantic import AliasGenerator, ConfigDict
+    from pydantic import BaseModel as _PydanticBaseModel
     from pydantic.alias_generators import to_camel
 
 except ModuleNotFoundError:  # pragma: no cover

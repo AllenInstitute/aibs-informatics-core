@@ -1,5 +1,4 @@
 from dataclasses import dataclass, fields
-from test.base import BaseTest
 from typing import Optional, Union
 
 import marshmallow as mm
@@ -7,6 +6,7 @@ import pytest
 
 from aibs_informatics_core.models.base import FieldProps, SchemaModel
 from aibs_informatics_core.models.base.field_utils import FieldMetadataBuilder
+from test.base import BaseTest
 
 
 @dataclass

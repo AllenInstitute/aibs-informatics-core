@@ -1,6 +1,5 @@
 import os
 import unittest
-from test.base import does_not_raise
 
 from pytest import mark, param, raises
 
@@ -11,6 +10,7 @@ from aibs_informatics_core.utils.modules import (
     load_all_modules_from_pkg,
     load_type_from_qualified_name,
 )
+from test.base import does_not_raise
 
 
 class ModuleUtilsTests(unittest.TestCase):
