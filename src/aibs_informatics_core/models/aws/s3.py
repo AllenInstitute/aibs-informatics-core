@@ -165,6 +165,12 @@ class S3BucketName(ValidatedStr):
 class S3Key(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR_VARS)
 
+    @classmethod
+    def _sanitize(cls, value: str, *args, **kwargs) -> str:
+        value = str(value)
+        value = _DOUBLE_SLASH_PATTERN.sub(r"\1", value)
+        return value
+
     @property
     def components(self) -> List[str]:
         return self.split("/")

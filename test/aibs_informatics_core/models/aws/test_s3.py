@@ -544,6 +544,13 @@ def test__S3Key__components(this: S3Key, expected):
         ),
         pytest.param(
             S3Key("my-key"),
+            "another//key/",
+            S3Key("another/key/my-key"),
+            does_not_raise(),
+            id="handles key with redundant slash (sanitized)",
+        ),
+        pytest.param(
+            S3Key("my-key"),
             object(),
             None,
             pytest.raises(TypeError),
