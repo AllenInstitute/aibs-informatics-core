@@ -1,12 +1,22 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from aibs_informatics_core.models.aws.iam import IAMRoleArn
 from aibs_informatics_core.models.base import SchemaModel, custom_field
+from aibs_informatics_core.models.base.custom_fields import (
+    CustomStringField,
+    StringField,
+    UnionField,
+)
 
 
 @dataclass
 class AWSBatchExecutionPlatform(SchemaModel):
     job_queue_name: str
+    job_role: Optional[str | IAMRoleArn] = custom_field(
+        mm_field=UnionField([(IAMRoleArn, CustomStringField(IAMRoleArn)), (str, StringField())]),
+        default=None,
+    )
 
 
 # TODO: I would prefer to make ExecutionPlatform polymorphic, but datacalasses does not support it

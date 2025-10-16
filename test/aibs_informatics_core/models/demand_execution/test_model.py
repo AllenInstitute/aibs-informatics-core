@@ -1,4 +1,5 @@
 import unittest
+from typing import Optional
 
 from pytest import mark, param
 
@@ -6,6 +7,10 @@ from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.demand_execution.model import DemandExecution
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
+from aibs_informatics_core.models.demand_execution.platform import (
+    AWSBatchExecutionPlatform,
+    ExecutionPlatform,
+)
 from aibs_informatics_core.models.unique_ids import UniqueID
 
 THIS_UUID = UniqueID.create()
@@ -19,11 +24,11 @@ ANOTHER_EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/another_
 
 
 def get_any_demand_execution(
-    execution_type: str = None,
-    execution_id: str = None,
-    execution_image: str = None,
-    execution_parameters: DemandExecutionParameters = None,
-    execution_metadata: DemandExecutionMetadata = None,
+    execution_type: Optional[str] = None,
+    execution_id: Optional[str] = None,
+    execution_image: Optional[str] = None,
+    execution_parameters: Optional[DemandExecutionParameters] = None,
+    execution_metadata: Optional[DemandExecutionMetadata] = None,
 ) -> DemandExecution:
     return DemandExecution(
         execution_id=execution_id or THIS_UUID,
@@ -169,3 +174,85 @@ class DemandExecutionTests(unittest.TestCase):
         self.assertRegex(
             execution_name, rf"{demand_execution.execution_id}-[\d]{{{8}}}T[\d]{{{6}}}"
         )
+
+
+def test__DemandExecution__to_dict_and_from_dict__works():
+    demand_execution = get_any_demand_execution()
+    as_dict = demand_execution.to_dict()
+    from_dict = DemandExecution.from_dict(as_dict)
+    assert from_dict == demand_execution
+
+
+@mark.parametrize(
+    "demand_execution, expected_dict",
+    [
+        param(
+            get_any_demand_execution(),
+            {
+                "execution_id": str(THIS_UUID),
+                "execution_type": "custom",
+                "execution_image": EXECUTION_IMAGE,
+                "execution_parameters": {
+                    "command": [],
+                    "params": {},
+                    "inputs": [],
+                    "outputs": [],
+                    "outputs_metadata": {},
+                    "output_s3_prefix": "s3://bucket/key",
+                    "verbosity": True,
+                },
+                "execution_platform": {},
+                "execution_metadata": {},
+                "resource_requirements": {},
+            },
+            id="Default demand execution to_dict",
+        ),
+        param(
+            DemandExecution(
+                execution_id=str(THIS_UUID),
+                execution_type="operationA",
+                execution_image=ANOTHER_EXECUTION_IMAGE,
+                execution_parameters=DemandExecutionParameters(
+                    output_s3_prefix=S3_URI,
+                    verbosity=True,
+                    command=["my_exe"],
+                    params={"a": "a"},
+                    outputs=["a"],
+                ),
+                execution_metadata=DemandExecutionMetadata(tags={"tag1": "value1"}),
+                execution_platform=ExecutionPlatform(
+                    aws_batch=AWSBatchExecutionPlatform(
+                        job_queue_name="my_job_queue",
+                        job_role="arn:aws:iam::123456789012:role/MyRole",
+                    )
+                ),
+            ),
+            {
+                "execution_id": str(THIS_UUID),
+                "execution_type": "operationA",
+                "execution_image": ANOTHER_EXECUTION_IMAGE,
+                "execution_parameters": {
+                    "command": ["my_exe"],
+                    "params": {"a": "a"},
+                    "inputs": [],
+                    "outputs": ["a"],
+                    "outputs_metadata": {},
+                    "output_s3_prefix": "s3://bucket/key",
+                    "verbosity": True,
+                },
+                "execution_metadata": {"tags": {"tag1": "value1"}},
+                "execution_platform": {
+                    "aws_batch": {
+                        "job_queue_name": "my_job_queue",
+                        "job_role": "arn:aws:iam::123456789012:role/MyRole",
+                    }
+                },
+                "resource_requirements": {},
+            },
+            id="Custom demand execution to_dict",
+        ),
+    ],
+)
+def test__DemandExecution__to_dict(demand_execution, expected_dict):
+    as_dict = demand_execution.to_dict()
+    assert as_dict == expected_dict

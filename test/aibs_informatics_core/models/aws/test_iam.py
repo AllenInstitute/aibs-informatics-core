@@ -3,7 +3,7 @@ from typing import Optional
 
 from pytest import mark, param, raises
 
-from aibs_informatics_core.models.aws.iam import IAMArn, PrincipalType, UserId
+from aibs_informatics_core.models.aws.iam import IAMArn, IAMRoleArn, PrincipalType, UserId
 
 
 @mark.parametrize(
@@ -313,3 +313,70 @@ def test__IAMArn__validates(
         assert actual.resource_id == expected_resource_id
         assert actual.resource_name == expected_resource_name
         assert actual.resource_path == expected_resource_path
+
+
+@mark.parametrize(
+    "value, expected_account_id, expected_resource_id, expected_role_name, expected_role_path, raise_expectation",  # noqa: E501
+    [
+        param(
+            "arn:aws:iam::123456789012:role/MyRole",
+            "123456789012",
+            "MyRole",
+            "MyRole",
+            "/",
+            does_not_raise(),
+            id="Simple IAMRoleArn",
+        ),
+        param(
+            "arn:aws:iam::123456789012:role/service-role/MyServiceRole",
+            "123456789012",
+            "service-role/MyServiceRole",
+            "MyServiceRole",
+            "/service-role",
+            does_not_raise(),
+            id="Service role IAMRoleArn",
+        ),
+        param(
+            "arn:aws:iam::123456789012:role/aws-service-role/access-analyzer.amazonaws.com/AWSServiceRoleForAccessAnalyzer",
+            "123456789012",
+            "aws-service-role/access-analyzer.amazonaws.com/AWSServiceRoleForAccessAnalyzer",
+            "AWSServiceRoleForAccessAnalyzer",
+            "/aws-service-role/access-analyzer.amazonaws.com",
+            does_not_raise(),
+            id="Service linked IAMRoleArn",
+        ),
+        param(
+            "arn:aws:iam::123456789012:user/JohnDoe",
+            None,
+            None,
+            None,
+            None,
+            raises(ValueError),
+            id="Non role IAMRoleArn",
+        ),
+        param(
+            "arn:aws:iam::123456789012:role/",
+            None,
+            None,
+            None,
+            None,
+            raises(ValueError),
+            id="Missing role name IAMRoleArn",
+        ),
+    ],
+)
+def test__IAMRoleArn__validates(
+    value: str,
+    expected_account_id: Optional[str],
+    expected_resource_id: Optional[str],
+    expected_role_name: Optional[str],
+    expected_role_path: Optional[str],
+    raise_expectation,
+):
+    with raise_expectation:
+        actual = IAMRoleArn(value)
+
+        assert actual.account_id == expected_account_id
+        assert actual.resource_id == expected_resource_id
+        assert actual.role_name == expected_role_name
+        assert actual.role_path == expected_role_path
