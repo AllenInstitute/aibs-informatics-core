@@ -2,6 +2,7 @@ __all__ = [
     "PrincipalType",
     "UserId",
     "IAMArn",
+    "IAMRoleArn",
 ]
 import re
 from typing import ClassVar, Optional, Pattern
@@ -145,3 +146,37 @@ class IAMArn(ValidatedStr):
     @property
     def resource_path(self) -> str:
         return f"/{'/'.join(self.resource_id.split('/')[:-1])}"
+
+
+class IAMRoleArn(IAMArn):
+    """
+    Validates ARN strings for IAM roles.
+
+    Examples:
+        - arn:aws:iam::123456789012:role/MyRole
+        - arn:aws:iam::123456789012:role/service-role/MyRole
+    """
+
+    regex_pattern: ClassVar[Pattern] = re.compile(
+        r"""arn:
+            aws:
+            (iam):
+            :
+            ([\d]{12}):
+            (
+                (
+                    role
+                )
+                /(.+)
+            )
+        """,
+        re.X,
+    )
+
+    @property
+    def role_name(self) -> str:
+        return self.resource_name
+
+    @property
+    def role_path(self) -> str:
+        return self.resource_path
