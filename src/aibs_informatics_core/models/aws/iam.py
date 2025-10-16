@@ -157,21 +157,7 @@ class IAMRoleArn(IAMArn):
         - arn:aws:iam::123456789012:role/service-role/MyRole
     """
 
-    regex_pattern: ClassVar[Pattern] = re.compile(
-        r"""arn:
-            aws:
-            (iam):
-            :
-            ([\d]{12}):
-            (
-                (
-                    role
-                )
-                /(.+)
-            )
-        """,
-        re.X,
-    )
+    regex_pattern: ClassVar[Pattern] = re.compile(r"arn:aws:(iam)::([\d]{12}):((role)/(.+))")
 
     @property
     def role_name(self) -> str:
