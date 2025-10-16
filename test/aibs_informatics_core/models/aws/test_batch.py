@@ -1,13 +1,34 @@
-from marshmallow import ValidationError
-from pytest import raises
+from marshmallow import ValidationError as MarshmallowValidationError
+from pytest import mark, param, raises
+from test.base import does_not_raise
 
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.batch import (
     AttemptContainerDetail,
     AttemptDetail,
     BatchJobDetail,
     ContainerDetail,
+    JobName,
     KeyValuePairType,
 )
+
+
+@mark.parametrize(
+    "value,raise_expectation",
+    [
+        param("a" * 128, does_not_raise(), id="max length"),
+        param("1_valid-name_123", does_not_raise(), id="valid name"),
+        param("a" * 129, raises(ValidationError), id="too long"),
+        param("-invalid-name", raises(ValidationError), id="starts with hyphen"),
+        param("invalid..name", raises(ValidationError), id="consecutive periods"),
+        param("invalid name", raises(ValidationError), id="invalid space"),
+        param("invalid$name", raises(ValidationError), id="invalid character"),
+        param("", raises(ValidationError), id="empty"),
+    ],
+)
+def test__JobName__valid(value, raise_expectation):
+    with raise_expectation:
+        JobName(value)
 
 
 def test__KeyValuePairType__from_dict():
@@ -119,7 +140,7 @@ def test__BatchJobDetail__from_dict():
 
 
 def test__from_dict__invalid_container_type():
-    with raises(ValidationError):
+    with raises(MarshmallowValidationError):
         BatchJobDetail.from_dict(
             dict(
                 jobDefinition="asdf",

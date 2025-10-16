@@ -7,7 +7,7 @@ from aibs_informatics_core.models.base import IntegerField, ListField, SchemaMod
 
 
 class JobName(ValidatedStr):
-    regex_pattern = re.compile(r"([a-zA-Z0-9][\w_-]*){1-128}")
+    regex_pattern = re.compile(r"([a-zA-Z0-9][\w_-]{0,127})")
 
 
 @dataclass
