@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from aibs_informatics_core.models.aws.iam import IAMRoleArn
 from aibs_informatics_core.models.base import SchemaModel, custom_field
@@ -13,7 +13,7 @@ from aibs_informatics_core.models.base.custom_fields import (
 @dataclass
 class AWSBatchExecutionPlatform(SchemaModel):
     job_queue_name: str
-    job_role: Optional[str | IAMRoleArn] = custom_field(
+    job_role: Optional[Union[str, IAMRoleArn]] = custom_field(
         mm_field=UnionField([(IAMRoleArn, CustomStringField(IAMRoleArn)), (str, StringField())]),
         default=None,
     )
