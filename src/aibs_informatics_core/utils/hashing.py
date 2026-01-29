@@ -24,7 +24,7 @@ from aibs_informatics_core.utils.os_operations import find_all_paths
 logger = logging.getLogger(__name__)
 
 
-HashTypeStr = Literal["md5", "sha256"]
+HashTypeStr = Literal["md5", "sha256", "sha1"]
 
 
 def uuid_str(content: Optional[str] = None) -> str:
