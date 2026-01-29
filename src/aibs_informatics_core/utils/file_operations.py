@@ -31,6 +31,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Pattern, Sequence, Union, cast
 
+from aibs_informatics_core.utils.decorators import deprecated
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
 ArchiveFile = Union[tarfile.TarFile, zipfile.ZipFile]
@@ -299,6 +300,7 @@ def get_path_size_bytes(path: Path) -> int:
     return size_bytes
 
 
+@deprecated("Please use `generate_path_hash` from `aibs_informatics_core.utils.hashing` instead")
 def get_path_hash(
     path: Union[Path, str],
     includes: Optional[Sequence[Union[Pattern, str]]] = None,
@@ -314,11 +316,13 @@ def get_path_hash(
     Returns:
         str: hash value
     """
+    from aibs_informatics_core.utils.hashing import generate_file_hash
+
     paths_to_hash = find_paths(root=path, include_dirs=False, includes=includes, excludes=excludes)
 
     path_hash = hashlib.sha256()
     for path in paths_to_hash:
-        path_hash.update(sha256sum(path).encode("utf-8"))
+        path_hash.update(generate_file_hash(path).encode("utf-8"))
 
     return path_hash.hexdigest()
 
@@ -479,6 +483,7 @@ class PathLock:
 # Helpers
 
 
+@deprecated("Please use `generate_file_hash` from `aibs_informatics_core.utils.hashing` instead")
 def sha256sum(filename: str, bufsize: int = 128 * 1024) -> str:
     """
 

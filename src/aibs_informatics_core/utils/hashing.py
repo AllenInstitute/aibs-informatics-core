@@ -16,12 +16,15 @@ import re
 import uuid
 from base64 import standard_b64decode, standard_b64encode, urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Literal, Optional, Union
 
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
 logger = logging.getLogger(__name__)
+
+
+HashTypeStr = Literal["md5", "sha256", "sha1"]
 
 
 def uuid_str(content: Optional[str] = None) -> str:
@@ -114,6 +117,7 @@ def generate_path_hash(
     path: Union[str, Path],
     includes: Optional[List[str]] = None,
     excludes: Optional[List[str]] = None,
+    hash_type: HashTypeStr = "sha256",
 ) -> str:
     """Generate a hash based on files found under a given path.
 
@@ -121,6 +125,8 @@ def generate_path_hash(
         path (str): path to compute a hash
         includes (List[str], optional): list of regex patterns to include. Defaults to None.
         excludes (List[str], optional): list of regex patterns to exclude. Defaults to None.
+        hash_type (Literal["md5", "sha256"], optional): type of hash to generate.
+            Defaults to "sha256".
 
     Returns:
         str: hash value
@@ -141,27 +147,32 @@ def generate_path_hash(
                 if include_pattern.fullmatch(path):
                     paths_to_hash.append(path)
                     break
-    asset_hash = hashlib.sha256()
+    path_hash = hashlib.new(hash_type)
     for path in paths_to_hash:
-        asset_hash.update(generate_file_hash(path).encode("utf-8"))
+        path_hash.update(generate_file_hash(path, hash_type=hash_type).encode("utf-8"))
 
-    return asset_hash.hexdigest()
+    return path_hash.hexdigest()
 
 
-def generate_file_hash(filename: Union[str, Path], bufsize: int = 128 * 1024) -> str:
-    """
+def generate_file_hash(
+    filename: Union[str, Path], bufsize: int = 128 * 1024, hash_type: HashTypeStr = "sha256"
+) -> str:
+    """Generate a hash for a file
 
     https://stackoverflow.com/a/70215084/4544508
 
     Args:
         filename (str|Path): filepath to hash
         bufsize (int, optional): buffer size. Defaults to 128*1024.
+        hash_type (Literal["md5", "sha256"], optional): type of hash to generate.
+            Defaults to "sha256".
 
     Returns:
         str: hash value of file
     """
     filename = str(filename)
-    h = hashlib.sha256()
+    h = hashlib.new(hash_type)
+
     buffer = bytearray(bufsize)
     buffer_view = memoryview(buffer)
     with open(filename, "rb", buffering=0) as f:
