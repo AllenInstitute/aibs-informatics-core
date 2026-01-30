@@ -103,7 +103,7 @@ class ParamSetPair(SchemaModel):
         This is useful for grouping ParamPairs by output
 
         Returns:
-            List[ParamSetPair]: A list of ParamSetPairs
+            A list of ParamSetPairs
         """
         # group pairs only by outputs
         output_set_pairs: Dict[Union[str, None], ParamSetPair] = {}
@@ -209,7 +209,7 @@ class JobParamSetPair:
         This is useful for grouping JobParamPairs by output
 
         Returns:
-            List[JobParamSetPair]: A list of JobParamSetPairs
+            A list of JobParamSetPairs
         """
         # group pairs only by outputs
         output_set_pairs: Dict[Union[ResolvableJobParam, None], JobParamSetPair] = {}

@@ -154,7 +154,7 @@ class S3BucketName(ValidatedStr):
             __other (Union[str, S3Path]): The key or key of path to use for the S3Path
 
         Returns:
-            S3Path: a new S3Path with the appended key using the `/` operator
+            a new S3Path with the appended key using the `/` operator
         """
 
         if S3Path.is_valid(__other):
@@ -182,7 +182,7 @@ class S3Key(ValidatedStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with a new key
+            a new S3Path with a new key
         """
         if isinstance(__other, str):
             prefix = __other.rstrip("/")
@@ -289,7 +289,7 @@ class S3Path(ValidatedStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with the appended key
+            a new S3Path with the appended key
         """
         if isinstance(__other, S3Path):
             __other = __other.key
@@ -309,7 +309,7 @@ class S3Path(ValidatedStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with the appended key using the `/` operator
+            a new S3Path with the appended key using the `/` operator
         """
         if isinstance(__other, S3Path):
             __other = __other.key
@@ -329,7 +329,7 @@ class S3Path(ValidatedStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with a new key
+            a new S3Path with a new key
         """
         if isinstance(__other, S3Path):
             __other = __other.key
@@ -389,7 +389,7 @@ class S3BucketNamePlaceholder(ConditionalPlaceholderStr):
             __other (Union[str, S3Path]): The key or key of path to use for the S3Path
 
         Returns:
-            S3Path: a new S3Path with the appended key using the `/` operator
+            a new S3Path with the appended key using the `/` operator
         """
 
         if S3PathPlaceholder.is_valid(__other):
@@ -411,7 +411,7 @@ class S3KeyPlaceholder(ConditionalPlaceholderStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with a new key
+            a new S3Path with a new key
         """
         if isinstance(__other, str):
             prefix = __other.rstrip("/")
@@ -516,7 +516,7 @@ class S3PathPlaceholder(ConditionalPlaceholderStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with the appended key
+            a new S3Path with the appended key
         """
         if isinstance(__other, (S3PathPlaceholder, S3Path)):
             __other = __other.key
@@ -536,7 +536,7 @@ class S3PathPlaceholder(ConditionalPlaceholderStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with the appended key using the `/` operator
+            a new S3Path with the appended key using the `/` operator
         """
         if isinstance(__other, (S3Path, S3PathPlaceholder)):
             __other = __other.key
@@ -558,7 +558,7 @@ class S3PathPlaceholder(ConditionalPlaceholderStr):
             __other (Union[str, S3Path]): The key to append to the end of this S3Path
 
         Returns:
-            S3Path: a new S3Path with a new key
+            a new S3Path with a new key
         """
         if isinstance(__other, (S3Path, S3PathPlaceholder)):
             __other = __other.key

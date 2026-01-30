@@ -192,7 +192,7 @@ class DemandExecutionParameters(SchemaModel):
             envname (str): An environment name or placeholder.
 
         Returns:
-            bool: True if param contains envname or placeholder references
+            True if param contains envname or placeholder references
         """
         envname = self._sanitize_envname(envname)
         job_param = self._job_param_map.get(envname)
@@ -324,7 +324,7 @@ class DemandExecutionParameters(SchemaModel):
             envname (str): any string reference to parameter
 
         Returns:
-            JobParamEnvName:
+             The sanitized envname.
         """
         if JobParamRef.is_valid(envname):
             envname = JobParamRef(envname).envname
@@ -334,7 +334,7 @@ class DemandExecutionParameters(SchemaModel):
         """Convert param dictionary into List of JobParam objects
 
         Returns:
-            List[JobParam]:
+            A list of JobParam objects representing the parameters.
         """
         job_params: List[JobParam] = []
         input_envnames = set([JobParam.as_envname(i) for i in self.inputs])

@@ -135,7 +135,7 @@ class ApiRequestConfig(SchemaModel):
         4. client_version_package_name_default in class -> get_version(VALUE)
 
         Returns:
-            VersionStr: version string resolved from the above order of precedence
+            version string resolved from the above order of precedence
         """
         if "client_version" in kwargs:
             return VersionStr(kwargs["client_version"])
@@ -190,7 +190,7 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
         """The rule for the given API route
 
         Returns:
-            str: a rule (e.g. /prefix/route/<execution_id>)
+            The string route rule (e.g. /prefix/route/<execution_id>)
         """
         raise NotImplementedError("Specify a rule for the given API route")  # pragma: no cover
 

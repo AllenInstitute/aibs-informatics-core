@@ -192,7 +192,7 @@ class EFSPath(ValidatedStr):
             __other (Union[str, EFSPath]): The key to append to the end of this EFSPath
 
         Returns:
-            EFSPath: a new EFSPath with the appended key using the `/` operator
+            a new EFSPath with the appended key using the `/` operator
         """
         if isinstance(__other, EFSPath):
             __other = __other.path
@@ -217,7 +217,7 @@ class EFSPath(ValidatedStr):
             __other (Union[str, EFSPath]): The key to append to the end of this EFSPath
 
         Returns:
-            EFSPath: a new EFSPath with a new key
+            a new EFSPath with a new key
         """
         if EFSPath.is_valid(__other):
             return EFSPath(__other) / self
@@ -244,7 +244,7 @@ class EFSPath(ValidatedStr):
             __other (Union[str, EFSPath]): The key to append to the end of this EFSPath
 
         Returns:
-            EFSPath: a new EFSPath with a new key
+            a new EFSPath with a new key
         """
         if isinstance(__other, EFSPath):
             __other = __other.path

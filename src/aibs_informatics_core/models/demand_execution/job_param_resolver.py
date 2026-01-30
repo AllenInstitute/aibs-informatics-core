@@ -55,7 +55,7 @@ class JobParamResolver:
             job_params (List[JobParam]): List of job params with unresolved references in values
 
         Returns:
-            List[JobParam]: list of job params with resolved references in values
+            list of job params with resolved references in values
         """
 
         cls.check_collisions(job_params)
