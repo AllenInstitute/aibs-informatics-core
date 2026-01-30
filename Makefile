@@ -156,6 +156,18 @@ coverage-server: .uv ## Run coverage server
 
 .PHONY: coverage-server
 
+########################
+##@ Documentation Commands
+########################
+
+docs-serve: .uv ## Serve MkDocs site locally
+	uv run mkdocs serve --watch-theme
+
+docs-build: .uv ## Build MkDocs site into build/documentation/site
+	uv run mkdocs build --clean
+
+.PHONY: docs-serve docs-build
+
 #####################
 ##@ Docker Commands
 #####################

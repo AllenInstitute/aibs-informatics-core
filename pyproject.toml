@@ -34,20 +34,16 @@ dependencies = [
 pydantic = [
     "pydantic >= 2.0.3, < 3",
 ]
-dev = [
-    "aibs-informatics-core[pydantic]",
-    "aibs-informatics-test-resources~=0.1",
-    # Cannot use 1.16.*/1.17.0 due to bug introduced (https://github.com/python/mypy/issues/19483). 
-    # Must wait for 1.17.1 or later.
-    "mypy~=1.15.0",
-]
 
 [dependency-groups]
 
 dev = [
+    # Need to include core with pydantic extra here to ensure it's installed in dev envs
+    "aibs-informatics-core[pydantic]",
     "aibs-informatics-test-resources~=0.1",
     { include-group = 'linting' },
     { include-group = 'typing' },
+    { include-group = 'docs' },
 ]
 
 release = [
@@ -60,8 +56,17 @@ linting = [
 ]
 
 typing = [
-    "mypy~=1.13",
+    # Cannot use 1.16.*/1.17.0 due to bug introduced (https://github.com/python/mypy/issues/19483). 
+    # Must wait for 1.17.1 or later.
+    "mypy~=1.15.0",
 ]   
+
+docs = [
+    "griffe-pydantic~=1.1",
+    "mkdocs>=1.6,<2.0",
+    "mkdocs-material>=9.5,<10.0",
+    "mkdocstrings[python]>=0.25,<0.26",
+]
 
 bump = [
     "bump-my-version",
