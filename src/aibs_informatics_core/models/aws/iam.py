@@ -112,8 +112,9 @@ class IAMArn(ValidatedStr):
             - root
             - user/JohnDoe
             - assumed-role/Accounting-Role/JaneDoe
+
         Returns:
-            str: resource
+            resource of the ARN
         """
         return self.get_match_groups()[2]
 
@@ -124,7 +125,7 @@ class IAMArn(ValidatedStr):
         Examples are root, user, assumed-role
 
         Returns:
-            str: AWS resource type
+            AWS resource type
         """
         return self.get_match_groups()[3]
 
@@ -135,7 +136,7 @@ class IAMArn(ValidatedStr):
         For most, this follows the first forward slash, but for "root", we return the account id
 
         Returns:
-            str: AWS resource type
+            AWS resource ID
         """
         return self.get_match_groups()[4] or self.account_id
 

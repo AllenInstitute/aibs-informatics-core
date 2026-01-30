@@ -193,7 +193,7 @@ class EnvBaseMixinsBase(Generic[E]):
         If env base has not been set, it sets the value using environment variables
 
         Returns:
-            EnvBase: env base
+            env base
         """
         try:
             return self._env_base
@@ -333,7 +333,7 @@ def get_env_label(
         env_label (Union[Optional[str], _Missing], optional): env label. Defaults to MISSING.
 
     Returns:
-        Optional[str]: env label string
+        env label string if exists, else None
     """
     env_base_cls = env_base_class or EnvBase
     if isinstance(env_label, _Missing):

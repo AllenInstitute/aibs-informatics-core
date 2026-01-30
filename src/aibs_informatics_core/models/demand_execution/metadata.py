@@ -53,7 +53,7 @@ class DemandExecutionMetadata(SchemaModel):
             None
 
         Returns:
-            Optional[str]: Comma separated string of tags or None if no tags are available.
+            Comma separated string of tags or None if no tags are available.
 
         """
         if self.tags:

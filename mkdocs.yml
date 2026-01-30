@@ -1,0 +1,88 @@
+site_name: AIBS Informatics Core
+site_description: "Core functionalities and utilities for informatics projects at the Allen Institute for Brain Science."
+repo_url: https://github.com/AllenInstitute/aibs-informatics-core
+repo_name: AllenInstitute/aibs-informatics-core
+docs_dir: docs
+site_dir: build/documentation/site
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - content.code.annotate
+plugins:
+  - search
+  - autorefs:
+      link_titles: auto
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths:
+            - src
+          options:
+            docstring_style: google
+            show_source: true
+            separate_signature: true
+            heading_level: 2
+            filters:
+              - "!^_"
+            merge_init_into_class: true
+nav:
+  - Home: index.md
+  - User Guide:
+      - Getting Started: user-guide/getting-started.md
+      - Configuration: user-guide/configuration.md
+  - Developer Guide:
+      - Overview: developer/index.md
+  - API Reference:
+      - Overview: api/index.md
+      - Collections: api/collections.md
+      - Env: api/env.md
+      - Exceptions: api/exceptions.md
+      - Executors:
+          - Overview: api/executors/index.md
+          - Base: api/executors/base.md
+          - CLI: api/executors/cli.md
+      - Models:
+          - Overview: api/models/index.md
+          - Base: api/models/base.md
+          - Status: api/models/status.md
+          - Unique IDs: api/models/unique-ids.md
+          - Version: api/models/version.md
+          - Data Sync: api/models/data-sync.md
+          - Email Address: api/models/email-address.md
+      - Utils:
+          - Overview: api/utils/index.md
+          - Decorators: api/utils/decorators.md
+          - File Operations: api/utils/file-operations.md
+          - Hashing: api/utils/hashing.md
+          - JSON: api/utils/json.md
+          - Logging: api/utils/logging.md
+          - Modules: api/utils/modules.md
+          - Multiprocessing: api/utils/multiprocessing.md
+          - OS Operations: api/utils/os-operations.md
+          - Time: api/utils/time.md
+          - Units: api/utils/units.md
+          - Version: api/utils/version.md
+          - Tools:
+              - Dict Tools: api/utils/tools/dicttools.md
+              - String Tools: api/utils/tools/strtools.md
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+extra:
+  version:
+    provider: mkdocs

@@ -236,7 +236,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         Raises:
             ValidationError - If no regex pattern is defined.
         Returns:
-            List[T]: List of substrings matching pattern
+            List of substrings matching pattern
         """
         cls.validate_regex_pattern()
         return [cls(match.group(0)) for match in regex_finditer(cls.regex_pattern, string)]
@@ -250,7 +250,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
             s (str): String to find/replace
             repl (Union[str, Callable[[Match], str]]): replacement method
         Returns:
-            str: string with replacements
+            string with replacements
         """
         if not cls.has_regex_pattern():
             logger.warning(f"{cls.__name__} has no regex pattern. No substitutions can be made.")

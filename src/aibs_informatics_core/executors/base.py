@@ -35,7 +35,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             request (API_REQUEST): Request object expected
 
         Returns:
-            Optional[API_RESPONSE]: response object returned, Optional
+            response object returned, Optional
         """
         raise NotImplementedError("Must implement handler logic here")
 
@@ -66,7 +66,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             request (Union[JSONObject, S3Path, str, Path]): raw request
 
         Returns:
-            REQUEST: Deserialized request
+            Deserialized request
         """
         if isinstance(request, cls.get_request_cls()):
             return request
@@ -89,7 +89,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             response (API_RESPONSE): The returned response object
 
         Returns:
-            JSON: serialized form of response object
+            serialized form of response object
         """
         return response.to_dict()
 
@@ -107,7 +107,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             input (Any): raw input. Can be any of the supported types.
 
         Returns:
-            JSON: content loaded from input
+            content loaded from input
         """
         if isinstance(input, dict):
             return input
@@ -128,7 +128,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             s3_path (S3Path): S3 location to read input from
 
         Returns:
-            JSON: JSON data read from S3
+            JSON data read from S3
         """
         raise NotImplementedError(
             f"{cls.__name__} has not provided an implementation for this form of input"
@@ -142,7 +142,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
             local_path (Path): Local path to read input from
 
         Returns:
-            JSON: JSON data read from file
+            JSON data read from file
         """
         if not local_path.exists():
             raise ValueError(f"local path specified {local_path} does not exist")
@@ -211,7 +211,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         Must be able to create an executor from environment variables
 
         Returns:
-            E: Executor object
+            Executor object
         """
         return cls(**kwargs)
 
