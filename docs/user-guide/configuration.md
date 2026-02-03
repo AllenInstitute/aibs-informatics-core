@@ -26,13 +26,13 @@ logger.info("Application started")
 The `EnvBase` class can be configured with different environment types and names:
 
 ```python
-from aibs_informatics_core.env import EnvBase
+from aibs_informatics_core.env import EnvBase, EnvType
 
 # Development environment
 dev_env = EnvBase('dev-projectX')
 
 # Production environment
-prod_env = EnvBase('prod-projectX')
+prod_env = EnvBase.from_type_and_label(EnvType.PROD, 'projectX')
 
 # Create prefixed names for resources
 dev_env.prefixed('bucket', 'data')  # 'dev-projectX-bucket-data'

@@ -19,34 +19,16 @@ cd aibs-informatics-core
 
 ### Install Dependencies
 
-Using uv (recommended):
+Using make:
+
+```bash
+make install
+```
+
+Using uv directly:
 
 ```bash
 uv sync --group dev
-```
-
-Using pip:
-
-```bash
-pip install -e ".[dev]"
-```
-
-## Project Structure
-
-```
-aibs-informatics-core/
-├── src/
-│   └── aibs_informatics_core/
-│       ├── collections.py      # Collection classes and utilities
-│       ├── env.py              # Environment configuration
-│       ├── exceptions.py       # Custom exceptions
-│       ├── executors/          # Executor base classes
-│       ├── models/             # Data model base classes
-│       └── utils/              # Utility functions
-├── test/                       # Test files
-├── docs/                       # Documentation
-├── pyproject.toml              # Project configuration
-└── Makefile                    # Build automation
 ```
 
 ## Running Tests
@@ -56,7 +38,7 @@ aibs-informatics-core/
 make test
 
 # Run tests with coverage
-make test-coverage
+make test coverage-server
 
 # Run specific test file
 pytest test/aibs_informatics_core/test_collections.py
@@ -71,27 +53,24 @@ pytest test/aibs_informatics_core/test_collections.py
 make lint
 
 # Auto-fix linting issues
-make lint-fix
+make format
 ```
 
 ### Type Checking
 
 ```bash
 # Run mypy type checker
-make type-check
+make lint-mypy
 ```
 
 ## Building Documentation
 
 ```bash
-# Install documentation dependencies
-pip install mkdocs mkdocs-material mkdocstrings[python]
-
 # Serve documentation locally
-mkdocs serve
+make docs-serve
 
 # Build documentation
-mkdocs build
+make docs-build
 ```
 
 ## Contributing
