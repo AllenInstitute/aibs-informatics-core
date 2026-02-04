@@ -126,7 +126,7 @@ def extract_archive(source_path: Path, destination_path: Optional[Path] = None) 
         RuntimeError: If extraction fails
 
     Returns:
-        Path: path to the untarred data
+        path to the untarred data
     """
     archive_type = ArchiveType.from_path(source_path)
 
@@ -157,7 +157,7 @@ def make_archive(
         RuntimeError: If archiving operation fails
 
     Returns:
-        Path: path to the untarred data
+        path to the untarred data
     """
 
     archive_path = destination_path or Path(tempfile.mktemp())
@@ -201,7 +201,7 @@ def find_filesystem_boundary(starting_path: Path) -> Path:
         RuntimeError: If the provided starting_path cannot resolve to a real existing path
 
     Returns:
-        Path: The path of the nearest filesystem boundary OR the first parent directory prior
+        The path of the nearest filesystem boundary OR the first parent directory prior
             to the filesystem anchor (example anchors: "/", "c:\\")
     """
     current_path = starting_path.resolve()
@@ -314,7 +314,7 @@ def get_path_hash(
         excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
-        str: hash value
+        hash value
     """
     from aibs_informatics_core.utils.hashing import generate_file_hash
 
@@ -345,7 +345,7 @@ def find_paths(
         excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
-        List[str]: list of paths matching criteria
+        list of paths matching criteria
     """
 
     paths_to_return = []
@@ -392,7 +392,7 @@ def strip_path_root(path: Union[str, Path], root: Optional[Union[str, Path]] = N
             If no root specified, uses "/".
 
     Returns:
-        str: a relative path
+        a relative path
     """
     root = Path(root) if root is not None else Path("/")
     path = Path(path)
@@ -494,7 +494,7 @@ def sha256sum(filename: str, bufsize: int = 128 * 1024) -> str:
         bufsize (int, optional): buffer size. Defaults to 128*1024.
 
     Returns:
-        str: hash value of file
+        hash value of file
     """
     h = hashlib.sha256()
     buffer = bytearray(bufsize)

@@ -214,7 +214,7 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[Type[R]])
         mm.ValidationError: No resolvable object could be constructed from input
 
     Returns:
-        R: resolvable object
+        resolvable object
     """
     if any([isinstance(value, _) for _ in resolvable_classes]):
         return value

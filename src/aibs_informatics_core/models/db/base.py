@@ -183,7 +183,7 @@ class DBIndex(StrEnum):
                 Defaults to None.
 
         Returns:
-            DynamoDBKey: A DynamoDBKey mapping that maps partition and sort key names to values
+            A DynamoDBKey mapping that maps partition and sort key names to values
         """
         return self.get_primary_key(
             partition_value=partition_value, sort_value=sort_value, strict=False
@@ -214,7 +214,7 @@ class DBIndex(StrEnum):
             ValueError: If strict=True AND if 'sort key' is defined, but NO sort key value is provided
 
         Returns:
-            DynamoDBKey: A DynamoDBKey mapping that maps partition and sort key names to values
+            A DynamoDBKey mapping that maps partition and sort key names to values
         """  # noqa: E501
         if self.key_name is None:
             raise ValueError(f"'{self}' has no key name.")

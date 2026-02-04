@@ -64,7 +64,7 @@ def find_all_paths(
         include_dirs (bool, optional): Whether to include directories. Defaults to True.
         include_files (bool, optional): whether to include files. Defaults to True.
     Returns:
-        List[str]: list of paths found under root
+        list of paths found under root
     """
     paths = []
     str_root = str(root) if isinstance(root, Path) else root
@@ -99,7 +99,7 @@ def get_env_var(*keys: str, default_value: Optional[str] = None) -> Optional[str
         default_value: value to use if none are found. Defaults to none
 
     Returns:
-        Optional[str]:
+        env variable value or default_value
     """
     for key in keys:
         val = os.environ.get(key)
@@ -359,7 +359,7 @@ def generate_env_file_content(env_vars: EnvVarCollection) -> str:
         env_vars (EnvVarCollection): A collection of environment variables.
 
     Returns:
-        str: The content of the environment file.
+        The content of the environment file.
     """
     return "\n".join(
         [

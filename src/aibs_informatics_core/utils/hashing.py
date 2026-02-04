@@ -34,7 +34,7 @@ def uuid_str(content: Optional[str] = None) -> str:
         content (str, optional): A seed to use for determining UUID. Defaults to None.
 
     Returns:
-        str: UUID appropriate string
+        UUID appropriate string
     """
     if content is None:
         return str(uuid.uuid4())
@@ -51,7 +51,7 @@ def sha256_hexdigest(content: Optional[JSON] = None) -> str:
         content (JSON, optional): Input to base hexdigest off of. Defaults to None.
 
     Returns:
-        str: a SHA 256 hex digest string.
+        a SHA 256 hex digest string.
     """
     if content is None:
         content = uuid_str()
@@ -67,7 +67,7 @@ def b64_decoded_str(encoded_str: str) -> str:
         encoded_str (str): A string that has been previously encoded with base64
 
     Returns:
-        str: a decoded base 64 string
+        a decoded base 64 string
     """
     try:
         return standard_b64decode(encoded_str.encode()).decode()
@@ -84,7 +84,7 @@ def b64_encoded_str(decoded_str: str) -> str:
         encoded_str (str): Any string
 
     Returns:
-        str: an encoded base 64 string
+        an encoded base 64 string
     """
     return standard_b64encode(decoded_str.encode()).decode()
 
@@ -96,7 +96,7 @@ def urlsafe_b64_decoded_str(encoded_str: str) -> str:
         encoded_str (str): A string that has been previously encoded with base64
 
     Returns:
-        str: a decoded base 64 string
+        a decoded base 64 string
     """
     return urlsafe_b64decode(encoded_str.encode()).decode()
 
@@ -108,7 +108,7 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
         encoded_str (str): Any string
 
     Returns:
-        str: an encoded base 64 string
+        an encoded base 64 string
     """
     return urlsafe_b64encode(decoded_str.encode()).decode()
 
@@ -129,7 +129,7 @@ def generate_path_hash(
             Defaults to "sha256".
 
     Returns:
-        str: hash value
+        hash value
     """
     paths = find_all_paths(path, include_dirs=False)
     include_patterns = [re.compile(include) for include in includes or [r".*"]]
@@ -168,7 +168,7 @@ def generate_file_hash(
             Defaults to "sha256".
 
     Returns:
-        str: hash value of file
+        hash value of file
     """
     filename = str(filename)
     h = hashlib.new(hash_type)

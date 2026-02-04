@@ -231,7 +231,7 @@ def custom_field(
         metadata (Optional[Mapping[Any, Any]], optional): _description_. Defaults to None.
 
     Returns:
-        Field: _description_
+        A dataclass Field with the specified properties
     """
     required = init and not (default != MISSING or default_factory != MISSING)
     metadata = field_metadata(

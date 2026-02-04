@@ -211,7 +211,7 @@ class SchemaModel(DataClassModel):
             partial (bool, optional): Whether to partially construct. Defaults to False.
 
         Returns:
-            Self: An instance of the model class
+            An instance of the model class
         """
         # return super().from_dict(data, partial=partial, **kwargs)
         return cls.model_schema(partial=partial, **kwargs).load(data=data, partial=partial)  # type: ignore[return-value]
@@ -303,7 +303,7 @@ class SchemaModel(DataClassModel):
             data (dict): Validated data (based on schema)
 
         Returns:
-            T: An instance of the model
+            An instance of the model
         """
         if partial:
             class_fields = fields(cls)  # type: ignore[arg-type]

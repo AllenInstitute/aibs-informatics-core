@@ -122,7 +122,7 @@ def get_qualified_name(obj: Any) -> str:
         obj (Any): variable to get qualified name of (class, function, object etc.)
 
     Returns:
-        str: fully qualified name of object
+        fully qualified name of object
     """
     try:
         # if obj is a class or function, get module directly
