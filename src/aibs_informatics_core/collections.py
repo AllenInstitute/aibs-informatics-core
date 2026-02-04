@@ -230,11 +230,14 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
     @classmethod
     def findall(cls: Type[S], string: str) -> List[S]:
         """Convenience method for re.findall
+
         Args:
             cls (Type[T]): ValidatedStr subclass
             string (str): string to find patterns within
+
         Raises:
             ValidationError - If no regex pattern is defined.
+
         Returns:
             List of substrings matching pattern
         """

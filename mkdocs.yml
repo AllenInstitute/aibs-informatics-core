@@ -1,5 +1,5 @@
 site_name: AIBS Informatics Core
-site_description: "Core functionalities and utilities for informatics projects at the Allen Institute for Brain Science."
+site_description: "Core functionalities and utilities for Data and Technology Informatics team projects at the Allen Institute for Brain Science."
 repo_url: https://github.com/AllenInstitute/aibs-informatics-core
 repo_name: AllenInstitute/aibs-informatics-core
 docs_dir: docs
