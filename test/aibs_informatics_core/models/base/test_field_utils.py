@@ -1,5 +1,4 @@
 from dataclasses import dataclass, fields
-from typing import Optional, Union
 
 import marshmallow as mm
 import pytest
@@ -12,9 +11,9 @@ from test.base import BaseTest
 @dataclass
 class YetAnotherDC(SchemaModel):
     req: str
-    opt: Optional[str]
-    another_opt: Union[int, Union[Optional[int], bool]]
-    opt_with_default: Optional[str] = None
+    opt: str | None
+    another_opt: int | int | None | bool
+    opt_with_default: str | None = None
     non_opt_with_default: str = "empty_sm"
 
 

@@ -15,7 +15,7 @@ import sys
 
 # Unfortunately, cannot import from decorators, because decorators imports from logging.
 from functools import cache, cached_property
-from typing import List, Optional, Union
+from typing import Union
 
 DEFAULT_LOGGING_FORMAT = "%(name)s : %(levelname)s : %(asctime)s : %(message)s"
 
@@ -25,7 +25,7 @@ StrOrLogger = Union[str, logging.Logger]
 LogLevel = Union[str, int]
 
 
-def get_logger(name: Optional[str] = None):
+def get_logger(name: str | None = None):
     return logging.getLogger(name=name)
 
 
@@ -48,8 +48,8 @@ def get_stdout_handler(
     return handler
 
 
-def get_all_handlers(logger: logging.Logger) -> List[logging.Handler]:
-    handlers: List[logging.Handler] = []
+def get_all_handlers(logger: logging.Logger) -> list[logging.Handler]:
+    handlers: list[logging.Handler] = []
     if logger.handlers:
         handlers.extend(list(logger.handlers))
     while logger.parent:
@@ -60,7 +60,7 @@ def get_all_handlers(logger: logging.Logger) -> List[logging.Handler]:
 
 
 def check_formatter_equality(
-    this: Optional[logging.Formatter], other: Optional[logging.Formatter]
+    this: logging.Formatter | None, other: logging.Formatter | None
 ) -> bool:
     if this is None and other is None:
         return True
@@ -97,7 +97,7 @@ def enable_stdout_logging(
     return logger
 
 
-class LoggingMixin(object):
+class LoggingMixin:
     @cached_property
     def logger(self) -> logging.Logger:
         name = f"{self.__class__.__module__}.{self.__class__.__name__}"

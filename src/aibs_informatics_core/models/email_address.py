@@ -1,5 +1,6 @@
 import re
-from typing import ClassVar, Pattern
+from re import Pattern
+from typing import ClassVar
 
 from aibs_informatics_core.collections import ValidatedStr
 

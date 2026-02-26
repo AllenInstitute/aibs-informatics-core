@@ -6,17 +6,16 @@ __all__ = [
 ]
 
 import datetime as dt
-from typing import Optional
 
 BEGINNING_OF_TIME = dt.datetime.fromtimestamp(0.0, tz=dt.timezone.utc)
 
 
-def get_current_time(tz: Optional[dt.timezone] = None) -> dt.datetime:
+def get_current_time(tz: dt.timezone | None = None) -> dt.datetime:
     """Returns current time (in UTC) as a timezone aware datetime instance"""
     return dt.datetime.now(tz=tz or dt.timezone.utc)
 
 
-def get_duration_in_secs(start: dt.datetime, stop: Optional[dt.datetime] = None) -> int:
+def get_duration_in_secs(start: dt.datetime, stop: dt.datetime | None = None) -> int:
     return round(((stop or get_current_time()) - start).total_seconds())
 
 

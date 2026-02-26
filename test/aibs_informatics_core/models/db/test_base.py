@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pytest import mark, param, raises
 from test.base import does_not_raise
 
@@ -130,7 +128,7 @@ def test__DBIndex__get_sort_key_name__works():
 def test__DBIndex__get_primary_key(
     db_index: DBIndex,
     partition_value: DynamoDBItemValue,
-    sort_value: Optional[DynamoDBItemValue],
+    sort_value: DynamoDBItemValue | None,
     strict: bool,
     expected: DynamoDBKey,
     raises_error,

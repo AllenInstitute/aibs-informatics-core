@@ -17,7 +17,7 @@ description = "Core package for informatics projects at the Allen Institute for 
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { file = "LICENSE" }
 dynamic = ["version"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     # TODO: deprecate the use of marshmallow in favor of pydantic
     "marshmallow~=3.22.0",

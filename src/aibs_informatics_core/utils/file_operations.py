@@ -25,11 +25,13 @@ import tarfile
 import tempfile
 import zipfile
 from collections import deque
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Pattern, Sequence, Union, cast
+from re import Pattern
+from typing import Literal, Union, cast
 
 from aibs_informatics_core.utils.decorators import deprecated
 from aibs_informatics_core.utils.os_operations import find_all_paths
@@ -96,8 +98,8 @@ class ArchiveType(Enum):
             raise ValueError("Cannot infer type")
 
     @classmethod
-    def _get_compression_type(cls, path: Path) -> Optional[Literal["gz", "bz", "xz", "zip"]]:
-        file_sign_mapping: Dict[bytes, Literal["gz", "bz", "xz", "zip"]] = {
+    def _get_compression_type(cls, path: Path) -> Literal["gz", "bz", "xz", "zip"] | None:
+        file_sign_mapping: dict[bytes, Literal["gz", "bz", "xz", "zip"]] = {
             b"\x1f\x8b\x08": "gz",
             b"\x42\x5a\x68": "bz",
             b"\xfd\x37\x7a\x58\x5a\x00": "xz",
@@ -113,7 +115,7 @@ class ArchiveType(Enum):
         return None
 
 
-def extract_archive(source_path: Path, destination_path: Optional[Path] = None) -> Path:
+def extract_archive(source_path: Path, destination_path: Path | None = None) -> Path:
     """Untar/unzip data batch into a dedicate folder
     Example: batch_of_samples.tar.gz -> batch_of_samples
 
@@ -142,8 +144,8 @@ def extract_archive(source_path: Path, destination_path: Optional[Path] = None) 
 
 def make_archive(
     source_path: Path,
-    destination_path: Optional[Path] = None,
-    archive_type: Union[ArchiveType, ArchiveFormat] = ArchiveType.TAR_GZ,
+    destination_path: Path | None = None,
+    archive_type: ArchiveType | ArchiveFormat = ArchiveType.TAR_GZ,
 ) -> Path:
     """tar/zip data batch from a folder
     Example: batch_of_samples -> batch_of_samples.tar.gz
@@ -302,9 +304,9 @@ def get_path_size_bytes(path: Path) -> int:
 
 @deprecated("Please use `generate_path_hash` from `aibs_informatics_core.utils.hashing` instead")
 def get_path_hash(
-    path: Union[Path, str],
-    includes: Optional[Sequence[Union[Pattern, str]]] = None,
-    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
+    path: Path | str,
+    includes: Sequence[Pattern | str] | None = None,
+    excludes: Sequence[Pattern | str] | None = None,
 ) -> str:
     """Generate the hash based on files found under a given path.
 
@@ -328,12 +330,12 @@ def get_path_hash(
 
 
 def find_paths(
-    root: Union[str, Path],
+    root: str | Path,
     include_dirs: bool = True,
     include_files: bool = True,
-    includes: Optional[Sequence[Union[Pattern, str]]] = None,
-    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
-) -> List[str]:
+    includes: Sequence[Pattern | str] | None = None,
+    excludes: Sequence[Pattern | str] | None = None,
+) -> list[str]:
     """Find paths that match criteria
 
     Args:
@@ -372,7 +374,7 @@ def find_paths(
     return paths_to_return
 
 
-def get_path_with_root(path: Union[str, Path], root: Union[str, Path]) -> str:
+def get_path_with_root(path: str | Path, root: str | Path) -> str:
     orig_path = path
     root = Path(root)
     path = Path(path)
@@ -383,7 +385,7 @@ def get_path_with_root(path: Union[str, Path], root: Union[str, Path]) -> str:
     return path_with_root
 
 
-def strip_path_root(path: Union[str, Path], root: Optional[Union[str, Path]] = None) -> str:
+def strip_path_root(path: str | Path, root: str | Path | None = None) -> str:
     """Strip the root from the path if path is absolute
 
     Args:
@@ -423,8 +425,8 @@ class PathLock:
             will be created. Defaults to None.
     """  # noqa: E501
 
-    path: Union[str, Path]
-    lock_root: Optional[Union[str, Path]] = None
+    path: str | Path
+    lock_root: str | Path | None = None
     raise_if_locked: bool = False
 
     def __post_init__(self):

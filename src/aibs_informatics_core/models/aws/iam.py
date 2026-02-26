@@ -5,7 +5,8 @@ __all__ = [
     "IAMRoleArn",
 ]
 import re
-from typing import ClassVar, Optional, Pattern
+from re import Pattern
+from typing import ClassVar
 
 from aibs_informatics_core.collections import StrEnum, ValidatedStr
 from aibs_informatics_core.utils.decorators import cached_property
@@ -34,15 +35,15 @@ class UserId(ValidatedStr):
     )
 
     @property
-    def account_id(self) -> Optional[str]:
+    def account_id(self) -> str | None:
         return self.get_match_groups()[0]
 
     @property
-    def unique_id(self) -> Optional[str]:
+    def unique_id(self) -> str | None:
         return self.get_match_groups()[1]
 
     @property
-    def caller_specified_name(self) -> Optional[str]:
+    def caller_specified_name(self) -> str | None:
         return self.get_match_groups()[2]
 
     @cached_property

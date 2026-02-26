@@ -1,5 +1,3 @@
-from typing import Optional
-
 from marshmallow import ValidationError
 from pytest import mark, param, raises
 from test.base import does_not_raise
@@ -120,7 +118,7 @@ condition_base_expression__invalid__test_cases__to_dict = [
     + condition_base_expression__invalid__test_cases__from_dict,
 )
 def test__ConditionBaseExpression__from_dict(
-    model_dict: dict, expected: Optional[ConditionBaseExpression], raises_error
+    model_dict: dict, expected: ConditionBaseExpression | None, raises_error
 ):
     with raises_error:
         actual = ConditionBaseExpression.from_dict(model_dict)
@@ -135,7 +133,7 @@ def test__ConditionBaseExpression__from_dict(
     + condition_base_expression__invalid__test_cases__to_dict,
 )
 def test__ConditionBaseExpression__to_dict(
-    model: ConditionBaseExpression, expected: Optional[dict], raises_error
+    model: ConditionBaseExpression, expected: dict | None, raises_error
 ):
     with raises_error:
         actual = model.to_dict()
@@ -292,7 +290,7 @@ def test__ConditionBaseExpression__to_dict(
     ],
 )
 def test__ConditionBaseExpressionString__get_condition_expression(
-    value: str, is_key: bool, expected: Optional[ConditionBaseExpression], raises_error
+    value: str, is_key: bool, expected: ConditionBaseExpression | None, raises_error
 ):
     with raises_error:
         actual = ConditionBaseExpressionString(value).get_condition_expression(is_key)

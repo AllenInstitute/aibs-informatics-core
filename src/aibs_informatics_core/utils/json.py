@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 __all__ = [
     "JSONArray",
     "JSONObject",
@@ -13,25 +11,24 @@ __all__ = [
 import decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Protocol, Type, Union, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 # TODO: Figure out better JSON typing. mypy doesn't like
-JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
-# JSON = Union['JSONArray', 'JSONObject', int, str, float, bool, Type[None]]
+JSON = type[dict[str, Any] | list[Any] | int | str | float | bool | None]
+# JSON = JSONArray | JSONObject | int | str | float | bool | type[None]
 
 
 if TYPE_CHECKING:  # pragma: no cover
 
     class JSONArray(list[JSON], Protocol):  # type: ignore
-        # __class__: Type[list[JSON]]  # type: ignore[assignment]
+        # __class__: type[list[JSON]]
         pass
 
     class JSONObject(dict[str, JSON], Protocol):  # type: ignore
-        # __class__: Type[dict[str, JSON]]  # type: ignore[assignment]
+        # __class__: Type[dict[str, JSON]]
         pass
-
 else:
-    JSONArray, JSONObject = List[Any], Dict[str, Any]
+    JSONArray, JSONObject = list[Any], dict[str, Any]
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -39,10 +36,10 @@ class DecimalEncoder(json.JSONEncoder):
     JSON strings
     """
 
-    def default(self, o: Any) -> Union[str, json.JSONEncoder]:
+    def default(self, o: Any) -> str | json.JSONEncoder:
         if isinstance(o, decimal.Decimal):
             return str(o)
-        return super(DecimalEncoder, self).default(o)
+        return super().default(o)
 
 
 def is_json_str(data: Any) -> bool:
@@ -54,17 +51,17 @@ def is_json_str(data: Any) -> bool:
     return True
 
 
-def load_json(path_or_str: Union[str, Path], **kwargs) -> JSON:
+def load_json(path_or_str: str | Path, **kwargs) -> JSON:
     if isinstance(path_or_str, str) and is_json_str(path_or_str):
         return json.loads(path_or_str, **kwargs)
     elif Path(path_or_str).exists():
-        with open(str(path_or_str), "r") as f:
+        with open(str(path_or_str)) as f:
             return json.load(f, **kwargs)
     else:
         raise ValueError(f"Cannot load {path_or_str} as json. Not valid json string or path.")
 
 
-def load_json_object(path_or_str: Union[str, Path], **kwargs) -> JSONObject:
+def load_json_object(path_or_str: str | Path, **kwargs) -> JSONObject:
     json_data = load_json(path_or_str, **kwargs)
     if not isinstance(json_data, dict):
         raise ValueError(f"{path_or_str} was loaded as JSON but not a JSON Object")

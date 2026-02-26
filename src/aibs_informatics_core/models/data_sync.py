@@ -17,7 +17,7 @@ __all__ = [
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import marshmallow as mm
 
@@ -44,14 +44,14 @@ class JSONContent(SchemaModel):
 
 @dataclass
 class JSONReference(SchemaModel):
-    path: Union[S3Path, Path] = custom_field(
+    path: S3Path | Path = custom_field(
         mm_field=UnionField([(S3Path, S3Path.as_mm_field()), (Path, PathField())])
     )
 
 
 @dataclass
 class PutJSONToFileRequest(JSONContent):
-    path: Optional[Union[S3Path, Path]] = custom_field(
+    path: S3Path | Path | None = custom_field(
         default=None, mm_field=UnionField([(S3Path, S3Path.as_mm_field()), (Path, PathField())])
     )
 
@@ -73,7 +73,7 @@ class GetJSONFromFileResponse(JSONContent):
 
 @dataclass
 class DataSyncTask(SchemaModel):
-    source_path: Union[S3Path, EFSPath, Path] = custom_field(
+    source_path: S3Path | EFSPath | Path = custom_field(
         mm_field=UnionField(
             [
                 (S3Path, S3Path.as_mm_field()),
@@ -82,7 +82,7 @@ class DataSyncTask(SchemaModel):
             ]
         )
     )
-    destination_path: Union[S3Path, EFSPath, Path] = custom_field(
+    destination_path: S3Path | EFSPath | Path = custom_field(
         mm_field=UnionField(
             [
                 (S3Path, S3Path.as_mm_field()),
@@ -91,7 +91,7 @@ class DataSyncTask(SchemaModel):
             ]
         )
     )
-    source_path_prefix: Optional[S3KeyPrefix] = custom_field(
+    source_path_prefix: S3KeyPrefix | None = custom_field(
         default=None, mm_field=CustomStringField(S3KeyPrefix)
     )
 
@@ -102,7 +102,7 @@ class RemoteToLocalConfig(SchemaModel):
     # instead of using boto3's implementation which creates a part file (e.g. *.6eF5b5da)
     # in SAME parent dir as the desired destination path.
     use_custom_tmp_dir: bool = custom_field(default=False, mm_field=BooleanField())
-    custom_tmp_dir: Optional[Union[EFSPath, Path]] = custom_field(
+    custom_tmp_dir: EFSPath | Path | None = custom_field(
         default=None,
         mm_field=UnionField(
             [
@@ -172,7 +172,7 @@ class DataSyncResponse(SchemaModel):
 
 @dataclass
 class BatchDataSyncRequest(SchemaModel):
-    requests: Union[List[DataSyncRequest], S3Path] = custom_field(
+    requests: list[DataSyncRequest] | S3Path = custom_field(
         mm_field=UnionField(
             [
                 (list, ListField(DataSyncRequest.as_mm_field())),
@@ -184,7 +184,7 @@ class BatchDataSyncRequest(SchemaModel):
 
     @classmethod
     @mm.pre_load
-    def _handle_single_flattened_request(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    def _handle_single_flattened_request(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
         if DataSyncRequest.is_valid(data=data, many=False, partial=False):
             data = {
                 "requests": [data],
@@ -212,7 +212,7 @@ class BatchDataSyncResult(DataSyncResult):
 @dataclass
 class BatchDataSyncResponse(SchemaModel):
     result: BatchDataSyncResult = custom_field(mm_field=BatchDataSyncResult.as_mm_field())
-    failed_requests: Optional[List[DataSyncRequest]] = custom_field(default=None)
+    failed_requests: list[DataSyncRequest] | None = custom_field(default=None)
 
     def add_failed_request(self, request: DataSyncRequest) -> None:
         if self.failed_requests is None:
@@ -222,14 +222,14 @@ class BatchDataSyncResponse(SchemaModel):
 
 @dataclass
 class PrepareBatchDataSyncRequest(DataSyncRequest):
-    batch_size_bytes_limit: Optional[int] = custom_field(default=None, mm_field=IntegerField())
-    temporary_request_payload_path: Optional[S3Path] = custom_field(
+    batch_size_bytes_limit: int | None = custom_field(default=None, mm_field=IntegerField())
+    temporary_request_payload_path: S3Path | None = custom_field(
         default=None, mm_field=S3Path.as_mm_field()
     )
 
 
 @dataclass
 class PrepareBatchDataSyncResponse(SchemaModel):
-    requests: List[BatchDataSyncRequest] = custom_field(
+    requests: list[BatchDataSyncRequest] = custom_field(
         mm_field=ListField(BatchDataSyncRequest.as_mm_field())
     )

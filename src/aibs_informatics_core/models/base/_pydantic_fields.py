@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Annotated, Type
+from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, PlainSerializer
 
@@ -72,7 +72,7 @@ class PydanticField(mm.fields.Field):
         "invalid_type": "Expected {expected_type}, got {input_type}: {input!r}. {error}",
     }
 
-    def __init__(self, pydantic_model_cls: Type[BaseModel], *args, **kwargs):
+    def __init__(self, pydantic_model_cls: type[BaseModel], *args, **kwargs):
         self.pydantic_model_cls = pydantic_model_cls
         super().__init__(*args, **kwargs)
 
