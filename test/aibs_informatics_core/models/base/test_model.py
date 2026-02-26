@@ -6,7 +6,7 @@ from dataclasses import MISSING as MISSING_
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 import marshmallow as mm
 import pytest
@@ -138,7 +138,7 @@ class HasOptionalFieldSchema(BaseSchema):
 @dataclass
 class HasOptionalField(SchemaModel):
     required_str: str
-    optional_str: Optional[str] = None
+    optional_str: str | None = None
 
     @classmethod
     def model_schema(cls, many: bool = False, partial: bool = False, **kwargs) -> BaseSchema:
@@ -658,12 +658,12 @@ class SimpleChild(Simple):
 class SimpleNested(SchemaModel):
     empty_sm: Empty
     required_simple: Simple
-    optional_simple: Optional[Simple] = None
+    optional_simple: Simple | None = None
 
 
 @dataclass
 class SimpleCollection(SchemaModel):
-    simples: List[Simple]
+    simples: list[Simple]
 
 
 @dataclass
@@ -680,7 +680,7 @@ class Complex(SchemaModel):
 @dataclass
 class ComplexNested(SchemaModel):
     required: Complex
-    optional: Optional[Complex] = None
+    optional: Complex | None = None
 
 
 def test__SchemaModel__auto():
@@ -689,7 +689,7 @@ def test__SchemaModel__auto():
         str_val: str
         int_val: int
 
-        _schema_config: ClassVar[Dict[str, Any]] = {
+        _schema_config: ClassVar[dict[str, Any]] = {
             "attach_schema_hooks": False,
             "remove_post_load_hooks": True,
         }
@@ -701,7 +701,7 @@ def test__SchemaModel__auto():
 
     @dataclass
     class ModelWithSchemaHooks(ModelWithNoSchemaHooks):
-        _schema_config: ClassVar[Dict[str, Any]] = {
+        _schema_config: ClassVar[dict[str, Any]] = {
             "attach_schema_hooks": True,
             "remove_post_load_hooks": True,
         }
@@ -1004,7 +1004,7 @@ def test__SchemaModel__make_object() -> None:
     class X(SchemaModel):
         a: str
         b: int
-        c: Optional[int]
+        c: int | None
         d: int = field(init=False, default=42)
 
     result = X.make_object({}, partial=True)

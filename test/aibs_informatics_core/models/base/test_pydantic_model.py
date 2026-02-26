@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Optional
 
 import pytest
 import yaml
@@ -30,11 +29,11 @@ class SimpleChild(Simple):
 class SimpleNested(PydanticBaseModel):
     empty: Empty
     required_simple: Simple
-    optional_simple: Optional[Simple] = None
+    optional_simple: Simple | None = None
 
 
 class SimpleCollection(PydanticBaseModel):
-    simples: List[Simple]
+    simples: list[Simple]
 
 
 class Complex(PydanticBaseModel):
@@ -44,7 +43,7 @@ class Complex(PydanticBaseModel):
 
 class ComplexNested(PydanticBaseModel):
     required: Complex
-    optional: Optional[Complex] = None
+    optional: Complex | None = None
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, Iterable, List, Optional, Union
 
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.base import (
@@ -32,15 +32,15 @@ class ParamPair(SchemaModel):
 
     """
 
-    input: Optional[str] = custom_field(mm_field=StringField(), default=None)
-    output: Optional[str] = custom_field(mm_field=StringField(), default=None)
+    input: str | None = custom_field(mm_field=StringField(), default=None)
+    output: str | None = custom_field(mm_field=StringField(), default=None)
 
     @classmethod
-    def from_set_pairs(cls, *values: ParamSetPair) -> List[ParamPair]:
+    def from_set_pairs(cls, *values: ParamSetPair) -> list[ParamPair]:
         return [pair for value in values for pair in value.to_pairs()]
 
     @classmethod
-    def from_sets(cls, inputs: Iterable[str], outputs: Iterable[str]) -> List[ParamPair]:
+    def from_sets(cls, inputs: Iterable[str], outputs: Iterable[str]) -> list[ParamPair]:
         if not inputs and not outputs:
             return []
         elif not inputs:
@@ -68,10 +68,10 @@ class ParamSetPair(SchemaModel):
             This is used to represent a single job that has only inputs
     """
 
-    inputs: FrozenSet[str] = custom_field(
+    inputs: frozenset[str] = custom_field(
         mm_field=FrozenSetField(StringField), default_factory=frozenset
     )
-    outputs: FrozenSet[str] = custom_field(
+    outputs: frozenset[str] = custom_field(
         mm_field=FrozenSetField(StringField), default_factory=frozenset
     )
 
@@ -93,11 +93,11 @@ class ParamSetPair(SchemaModel):
     def remove_outputs(self, *outputs: str):
         self.outputs = self.outputs.difference(outputs)
 
-    def to_pairs(self) -> List[ParamPair]:
+    def to_pairs(self) -> list[ParamPair]:
         return ParamPair.from_sets(inputs=self.inputs, outputs=self.outputs)
 
     @classmethod
-    def from_pairs(cls, *pairs: ParamPair) -> List[ParamSetPair]:
+    def from_pairs(cls, *pairs: ParamPair) -> list[ParamSetPair]:
         """Converts a list of ParamPairs to a list of ParamSetPairs
 
         This is useful for grouping ParamPairs by output
@@ -106,7 +106,7 @@ class ParamSetPair(SchemaModel):
             A list of ParamSetPairs
         """
         # group pairs only by outputs
-        output_set_pairs: Dict[Union[str, None], ParamSetPair] = {}
+        output_set_pairs: dict[str | None, ParamSetPair] = {}
         for pair in pairs:
             if pair.output not in output_set_pairs:
                 output_set_pairs[pair.output] = ParamSetPair(
@@ -138,13 +138,13 @@ class JobParamPair:
             This is used to represent a single job that has only inputs
     """  # noqa: E501
 
-    input: Optional[ResolvableJobParam] = None
-    output: Optional[ResolvableJobParam] = None
+    input: ResolvableJobParam | None = None
+    output: ResolvableJobParam | None = None
 
     @classmethod
     def from_sets(
         cls, inputs: Iterable[ResolvableJobParam], outputs: Iterable[ResolvableJobParam]
-    ) -> List[JobParamPair]:
+    ) -> list[JobParamPair]:
         if not inputs and not outputs:
             return []
         elif not inputs:
@@ -154,7 +154,7 @@ class JobParamPair:
         return [JobParamPair(input=input, output=output) for input in inputs for output in outputs]
 
     @classmethod
-    def from_set_pairs(cls, *values: JobParamSetPair) -> List[JobParamPair]:
+    def from_set_pairs(cls, *values: JobParamSetPair) -> list[JobParamPair]:
         return [pair for value in values for pair in value.to_pairs()]
 
 
@@ -178,8 +178,8 @@ class JobParamSetPair:
             This is used to represent a single job that has only inputs
     """  # noqa: E501
 
-    inputs: FrozenSet[ResolvableJobParam] = field(default_factory=frozenset)
-    outputs: FrozenSet[ResolvableJobParam] = field(default_factory=frozenset)
+    inputs: frozenset[ResolvableJobParam] = field(default_factory=frozenset)
+    outputs: frozenset[ResolvableJobParam] = field(default_factory=frozenset)
 
     def __post_init__(self):
         if not isinstance(self.inputs, frozenset):
@@ -199,11 +199,11 @@ class JobParamSetPair:
     def remove_outputs(self, *outputs: ResolvableJobParam):
         self.outputs = self.outputs.difference(outputs)
 
-    def to_pairs(self) -> List[JobParamPair]:
+    def to_pairs(self) -> list[JobParamPair]:
         return JobParamPair.from_sets(inputs=self.inputs, outputs=self.outputs)
 
     @classmethod
-    def from_pairs(cls, *pairs: JobParamPair) -> List[JobParamSetPair]:
+    def from_pairs(cls, *pairs: JobParamPair) -> list[JobParamSetPair]:
         """Converts a list of JobParamPairs to a list of JobParamSetPairs
 
         This is useful for grouping JobParamPairs by output
@@ -212,7 +212,7 @@ class JobParamSetPair:
             A list of JobParamSetPairs
         """
         # group pairs only by outputs
-        output_set_pairs: Dict[Union[ResolvableJobParam, None], JobParamSetPair] = {}
+        output_set_pairs: dict[ResolvableJobParam | None, JobParamSetPair] = {}
         for pair in pairs:
             if pair.output not in output_set_pairs:
                 output_set_pairs[pair.output] = JobParamSetPair(
@@ -240,7 +240,7 @@ class ResolvedParamSetPair(SchemaModel):
 
     """  # noqa: E501
 
-    inputs: FrozenSet[ResolvableID] = custom_field(
+    inputs: frozenset[ResolvableID] = custom_field(
         mm_field=FrozenSetField(
             UnionField(
                 [
@@ -250,7 +250,7 @@ class ResolvedParamSetPair(SchemaModel):
         ),
         default_factory=frozenset,
     )
-    outputs: FrozenSet[ResolvableID] = custom_field(
+    outputs: frozenset[ResolvableID] = custom_field(
         mm_field=FrozenSetField(
             UnionField(
                 [

@@ -27,16 +27,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
+from re import Pattern
 from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
-    Dict,
     Generic,
-    List,
     Literal,
-    Optional,
-    Pattern,
     Protocol,
     TypedDict,
     TypeVar,
@@ -58,7 +55,7 @@ from aibs_informatics_core.models.base import CustomStringField, EnumField
 if TYPE_CHECKING:  # pragma: no cover
     # from mypy_boto3_s3.service_resource import Object as S3_Object
     class S3_Object(Protocol):
-        storage_class: Optional[str]
+        storage_class: str | None
 
 else:
     S3_Object = object
@@ -88,7 +85,7 @@ else:  # pragma: no cover
 class S3PathStats:
     last_modified: datetime
     size_bytes: int
-    object_count: Optional[int]
+    object_count: int | None
 
     def __getitem__(self, key):
         return super().__getattribute__(key)
@@ -172,7 +169,7 @@ class S3Key(ValidatedStr):
         return value
 
     @property
-    def components(self) -> List[str]:
+    def components(self) -> list[str]:
         return self.split("/")
 
     def __rtruediv__(self, __other: str) -> "S3Key":
@@ -401,7 +398,7 @@ class S3KeyPlaceholder(ConditionalPlaceholderStr):
     regex_pattern: ClassVar[Pattern] = re.compile(S3_KEY_PATTERN_STR_VARS)
 
     @property
-    def components(self) -> List[str]:
+    def components(self) -> list[str]:
         return self.split("/")
 
     def __rtruediv__(self, __other: str) -> "S3KeyPlaceholder":
@@ -580,14 +577,14 @@ class S3TransferRequest(Generic[T, U]):
 @dataclass
 # class S3CopyRequest:
 class S3CopyRequest(S3TransferRequest[S3Path, S3Path]):
-    extra_args: Optional[Dict[str, Any]] = None
+    extra_args: dict[str, Any] | None = None
 
 
 @dataclass
 class S3TransferResponse:
     request: S3TransferRequest
     failed: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
     def __post_init__(self):
         if self.failed and not self.reason:
@@ -598,7 +595,7 @@ class S3TransferResponse:
 class S3CopyResponse:
     request: S3CopyRequest
     failed: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
     def __post_init__(self):
         if self.failed and not self.reason:
@@ -607,7 +604,7 @@ class S3CopyResponse:
 
 @dataclass
 class S3UploadRequest(S3TransferRequest[Path, S3Path]):
-    extra_args: Optional[Dict[str, Any]] = None
+    extra_args: dict[str, Any] | None = None
 
 
 @dataclass
@@ -619,7 +616,7 @@ class S3DownloadRequest(S3TransferRequest[S3Path, Path]):
 class S3UploadResponse:
     request: S3UploadRequest
     failed: bool = False
-    reason: Optional[str] = None
+    reason: str | None = None
 
     def __post_init__(self):
         if self.failed and not self.reason:
@@ -635,10 +632,10 @@ class S3RestoreStatusEnum(OrderedStrEnum):
 @dataclass
 class S3RestoreStatus:
     restore_status: S3RestoreStatusEnum
-    restore_expiration_time: Optional[datetime] = None
+    restore_expiration_time: datetime | None = None
 
     @classmethod
-    def from_raw_s3_restore_status(cls, raw_s3_restore_status: Optional[str]) -> "S3RestoreStatus":
+    def from_raw_s3_restore_status(cls, raw_s3_restore_status: str | None) -> "S3RestoreStatus":
         if raw_s3_restore_status is None:
             # Example of what boto3 s3.Object.restore property returns:
             # None
@@ -692,12 +689,12 @@ class S3StorageClass(OrderedStrEnum):
             return S3StorageClass(s3_obj.storage_class)
 
     @classmethod
-    def list_archive_storage_classes(cls) -> List["S3StorageClass"]:
+    def list_archive_storage_classes(cls) -> list["S3StorageClass"]:
         """Storage classes that require a 'restore' operation to interact with the s3 object"""
         return [cls("GLACIER"), cls("DEEP_ARCHIVE")]
 
     @classmethod
-    def list_transitionable_storage_classes(cls) -> List["S3StorageClass"]:
+    def list_transitionable_storage_classes(cls) -> list["S3StorageClass"]:
         return [
             cls("STANDARD"),
             cls("STANDARD_IA"),

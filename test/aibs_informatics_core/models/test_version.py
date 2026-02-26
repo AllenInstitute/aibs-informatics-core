@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
@@ -22,7 +20,7 @@ from test.base import does_not_raise
         param("one.two.three", None, raises(ValidationError), id="invalid non digit versions"),
     ],
 )
-def test_version(input: str, expected: Optional[Version], raises_error):
+def test_version(input: str, expected: Version | None, raises_error):
     with raises_error:
         version_str = VersionStr(input)
 

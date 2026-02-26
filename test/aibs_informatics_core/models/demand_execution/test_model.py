@@ -1,5 +1,4 @@
 import unittest
-from typing import Optional
 
 from pytest import mark, param
 
@@ -24,11 +23,11 @@ ANOTHER_EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/another_
 
 
 def get_any_demand_execution(
-    execution_type: Optional[str] = None,
-    execution_id: Optional[str] = None,
-    execution_image: Optional[str] = None,
-    execution_parameters: Optional[DemandExecutionParameters] = None,
-    execution_metadata: Optional[DemandExecutionMetadata] = None,
+    execution_type: str | None = None,
+    execution_id: str | None = None,
+    execution_image: str | None = None,
+    execution_parameters: DemandExecutionParameters | None = None,
+    execution_metadata: DemandExecutionMetadata | None = None,
 ) -> DemandExecution:
     return DemandExecution(
         execution_id=execution_id or THIS_UUID,

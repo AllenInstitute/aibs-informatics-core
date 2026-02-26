@@ -3,8 +3,9 @@ import os
 import tarfile
 import threading
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Literal, Sequence, Tuple, Union
+from typing import Literal
 from unittest.mock import MagicMock, patch
 
 from aibs_informatics_test_resources import BaseTest, does_not_raise
@@ -27,7 +28,7 @@ from aibs_informatics_core.utils.file_operations import (
 
 
 class FileOperationsBaseTest(BaseTest):
-    def assertDirectoryContents(self, root_path: Path, expected_file_paths: List[str]):
+    def assertDirectoryContents(self, root_path: Path, expected_file_paths: list[str]):
         relative_extracted_paths = [
             str(_) for _ in self.os_walk(root_path, include_dirs=False, include_root=False)
         ]
@@ -36,7 +37,7 @@ class FileOperationsBaseTest(BaseTest):
     def create_tar_archive(
         self,
         root_path: Path,
-        relative_paths: List[str] = [],
+        relative_paths: list[str] = [],
         compression: Literal["", "gz"] = "gz",
     ) -> Path:
         self.create_dir(root_path, relative_paths)
@@ -50,7 +51,7 @@ class FileOperationsBaseTest(BaseTest):
                     tar_handle.add(os.path.join(relative_root, file), arcname=arcname)
         return tar_name
 
-    def create_zip_archive(self, root_path: Path, relative_paths: List[str] = []) -> Path:
+    def create_zip_archive(self, root_path: Path, relative_paths: list[str] = []) -> Path:
         self.create_dir(root_path, relative_paths)
 
         zip_name = self.tmp_path() / "archive"
@@ -62,7 +63,7 @@ class FileOperationsBaseTest(BaseTest):
                     zipf.write(os.path.join(relative_root, file), arcname=arcname)
         return zip_name
 
-    def create_dir(self, root_path: Path, relative_paths: Sequence[Union[str, Tuple[str, str]]]):
+    def create_dir(self, root_path: Path, relative_paths: Sequence[str | tuple[str, str]]):
         for relative_path in relative_paths:
             relative_path, content = (
                 relative_path
@@ -79,7 +80,7 @@ class FileOperationsBaseTest(BaseTest):
         include_dirs: bool = True,
         include_files: bool = True,
         include_root: bool = True,
-    ) -> List[Path]:
+    ) -> list[Path]:
         paths = []
         for relative_root, dirs, files in os.walk(root_path):
             rel_root_path = Path(relative_root)
@@ -470,7 +471,7 @@ class FileOperationsTests(FileOperationsBaseTest):
         ),
     ],
 )
-def test__get_path_with_root(path: Union[Path, str], root: Union[Path, str], expected: str):
+def test__get_path_with_root(path: Path | str, root: Path | str, expected: str):
     actual = get_path_with_root(path=path, root=root)
     assert actual == expected
 

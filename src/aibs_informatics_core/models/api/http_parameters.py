@@ -6,7 +6,6 @@ import json
 import urllib.parse
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.utils.json import JSON
@@ -20,24 +19,24 @@ QUERY_PARAMS_KEY = "data"
 
 @dataclass
 class HTTPParameters:
-    route_params: Optional[Dict[str, JSON]]
-    query_params: Optional[Dict[str, JSON]]
-    request_body: Optional[Dict[str, JSON]]
+    route_params: dict[str, JSON] | None
+    query_params: dict[str, JSON] | None
+    request_body: dict[str, JSON] | None
 
     @property
-    def stringified_route_params(self) -> Dict[str, str]:
+    def stringified_route_params(self) -> dict[str, str]:
         return self.to_stringified_route_params(self.route_params)
 
     @property
-    def stringified_query_params(self) -> Dict[str, str]:
+    def stringified_query_params(self) -> dict[str, str]:
         return self.to_stringified_query_params(self.query_params)
 
     @property
-    def stringified_request_body(self) -> Optional[str]:
+    def stringified_request_body(self) -> str | None:
         return self.to_stringified_request_body(self.request_body)
 
     @property
-    def merged_params(self) -> Dict[str, JSON]:
+    def merged_params(self) -> dict[str, JSON]:
         request_json = {}
         # First add route parameters
         if self.route_params:
@@ -51,9 +50,7 @@ class HTTPParameters:
         return request_json
 
     @classmethod
-    def from_stringified_route_params(
-        cls, parameters: Optional[Dict[str, str]]
-    ) -> Dict[str, JSON]:
+    def from_stringified_route_params(cls, parameters: dict[str, str] | None) -> dict[str, JSON]:
         evaluated_params = dict()
 
         input_params = parameters or dict()
@@ -67,7 +64,7 @@ class HTTPParameters:
         return evaluated_params
 
     @classmethod
-    def to_stringified_route_params(cls, parameters: Optional[Dict[str, JSON]]) -> Dict[str, str]:
+    def to_stringified_route_params(cls, parameters: dict[str, JSON] | None) -> dict[str, str]:
         string_params = {}
         for k, v in (parameters or {}).items():
             try:
@@ -77,9 +74,7 @@ class HTTPParameters:
         return string_params
 
     @classmethod
-    def from_stringified_query_params(
-        cls, parameters: Optional[Dict[str, str]]
-    ) -> Dict[str, JSON]:
+    def from_stringified_query_params(cls, parameters: dict[str, str] | None) -> dict[str, JSON]:
         if parameters is None or len(parameters) == 0:
             return {}
         elif QUERY_PARAMS_KEY not in parameters:
@@ -90,20 +85,20 @@ class HTTPParameters:
         return json.loads(parameters_str)
 
     @classmethod
-    def to_stringified_query_params(cls, parameters: Optional[Dict[str, JSON]]) -> Dict[str, str]:
+    def to_stringified_query_params(cls, parameters: dict[str, JSON] | None) -> dict[str, str]:
         if parameters is None or len(parameters) == 0:
             return {}
         parameters_str = json.dumps(parameters, sort_keys=True)
         return {QUERY_PARAMS_KEY: urlsafe_b64encode(parameters_str.encode()).decode()}
 
     @classmethod
-    def to_stringified_request_body(cls, parameters: Optional[Dict[str, JSON]]) -> Optional[str]:
+    def to_stringified_request_body(cls, parameters: dict[str, JSON] | None) -> str | None:
         if parameters is None or len(parameters) == 0:
             return None
         return json.dumps(parameters, sort_keys=True)
 
     @classmethod
-    def from_stringified_request_body(cls, parameters: Optional[str]) -> Dict[str, JSON]:
+    def from_stringified_request_body(cls, parameters: str | None) -> dict[str, JSON]:
         if parameters is None or len(parameters) == 0:
             return {}
         return json.loads(parameters)
@@ -111,9 +106,9 @@ class HTTPParameters:
     @classmethod
     def from_http_request(
         cls,
-        stringified_route_params: Optional[Dict[str, str]],
-        stringified_query_params: Optional[Dict[str, str]],
-        stringified_request_body: Optional[str],
+        stringified_route_params: dict[str, str] | None,
+        stringified_query_params: dict[str, str] | None,
+        stringified_request_body: str | None,
     ) -> "HTTPParameters":
         return HTTPParameters(
             route_params=cls.from_stringified_route_params(stringified_route_params),

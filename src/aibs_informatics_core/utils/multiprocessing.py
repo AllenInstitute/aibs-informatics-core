@@ -4,9 +4,10 @@ __all__ = [
     "apply_args_and_kwargs",
 ]
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from itertools import repeat
 from multiprocessing import pool as mp_pool
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Sequence, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -29,7 +30,7 @@ def apply_args_and_kwargs(fn, args: Iterable[Any], kwargs: Mapping[str, Any]):
 
 
 def _starmap_apply(
-    fn: Callable[[List[Any]], U],
+    fn: Callable[[list[Any]], U],
     args: Sequence[Any],
     kwargs: Mapping[str, Any],
 ) -> U:
@@ -39,13 +40,13 @@ def _starmap_apply(
 def parallel_starmap(
     callable: Callable[[Any], U],
     arguments: Sequence[T],
-    keyword_arguments: Optional[Union[Sequence[Mapping[str, Any]], Mapping[str, Any]]] = None,
-    pool_class: Optional[Type[mp_pool.Pool]] = None,
-    processes: Optional[int] = None,
-    chunk_size: Optional[int] = None,
-    callback: Optional[Callable[[List[T]], Any]] = None,
-    error_callback: Optional[Callable[[BaseException], None]] = None,
-) -> List[U]:
+    keyword_arguments: Sequence[Mapping[str, Any]] | Mapping[str, Any] | None = None,
+    pool_class: type[mp_pool.Pool] | None = None,
+    processes: int | None = None,
+    chunk_size: int | None = None,
+    callback: Callable[[list[T]], Any] | None = None,
+    error_callback: Callable[[BaseException], None] | None = None,
+) -> list[U]:
     pool_class = pool_class or mp_pool.Pool
     with pool_class(processes=processes) as pool:
         starmap_arguments = zip(

@@ -5,8 +5,9 @@ __all__ = [
     "DynamoDBPrimaryKeyItemValue",
 ]
 
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
-from typing import Any, Mapping, Sequence, Set, Union
+from typing import Any, Union
 
 DynamoDBPrimaryKeyItemValue = Union[
     bytes,
@@ -25,11 +26,11 @@ DynamoDBItemValue = Union[
     int,
     Decimal,
     bool,
-    Set[int],
-    Set[Decimal],
-    Set[str],
-    Set[bytes],
-    Set[bytearray],
+    set[int],
+    set[Decimal],
+    set[str],
+    set[bytes],
+    set[bytearray],
     Sequence[Any],
     Mapping[str, Any],
     None,

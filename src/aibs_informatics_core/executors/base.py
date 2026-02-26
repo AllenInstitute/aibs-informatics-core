@@ -6,7 +6,7 @@ import os
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from aibs_informatics_core.collections import PostInitMixin
 from aibs_informatics_core.env import EnvBaseMixins
@@ -26,7 +26,7 @@ E = TypeVar("E", bound="BaseExecutor")
 @dataclass  # type: ignore[misc] # mypy #5374
 class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
     @abstractmethod
-    def handle(self, request: REQUEST) -> Optional[RESPONSE]:  # pragma: no cover
+    def handle(self, request: REQUEST) -> RESPONSE | None:  # pragma: no cover
         """Core logic for handling request
 
         NOT IMPLEMENTED
@@ -44,11 +44,11 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
     # --------------------------------------------------------------------
 
     @classmethod
-    def get_request_cls(cls) -> Type[REQUEST]:
+    def get_request_cls(cls) -> type[REQUEST]:
         return cls.__orig_bases__[0].__args__[0]  # type: ignore
 
     @classmethod
-    def get_response_cls(cls) -> Type[RESPONSE]:
+    def get_response_cls(cls) -> type[RESPONSE]:
         return cls.__orig_bases__[0].__args__[1]  # type: ignore
 
     @classmethod
@@ -151,7 +151,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         return load_json_object(local_path)
 
     @classmethod
-    def write_output(cls, output: JSON, path: Union[str, Path]) -> None:
+    def write_output(cls, output: JSON, path: str | Path) -> None:
         """Writes output to location
 
         Args:
@@ -205,7 +205,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         return cls.__name__
 
     @classmethod
-    def build_from_env(cls: Type[E], **kwargs) -> E:
+    def build_from_env(cls: type[E], **kwargs) -> E:
         """Creates an executor from environment
 
         Must be able to create an executor from environment variables
@@ -217,8 +217,8 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
 
     @classmethod
     def run_executor(
-        cls, input: JSON, output_location: Optional[Union[str, Path]] = None, **kwargs
-    ) -> Optional[JSON]:
+        cls, input: JSON, output_location: str | Path | None = None, **kwargs
+    ) -> JSON | None:
         """Runs an executor
 
         Args:

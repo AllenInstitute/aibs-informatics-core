@@ -1,5 +1,5 @@
 import uuid
-from typing import ClassVar, List, Optional, Type, TypeVar, Union
+from typing import ClassVar, TypeVar
 
 import marshmallow as mm
 
@@ -13,7 +13,7 @@ UNIQUE_ID_TYPE = TypeVar("UNIQUE_ID_TYPE", bound="UniqueID")
 class UniqueID(str):
     """An augmented `str` class intended to represent a unique ID type"""
 
-    ENV_VARS: ClassVar[List[str]] = ["UNIQUE_ID"]
+    ENV_VARS: ClassVar[list[str]] = ["UNIQUE_ID"]
 
     def __new__(cls, *args, **kwargs):
         return str.__new__(cls, *args, **kwargs)
@@ -30,16 +30,14 @@ class UniqueID(str):
         return CustomStringField(cls, *args, **kwargs)
 
     @classmethod
-    def create(
-        cls: Type[UNIQUE_ID_TYPE], seed: Optional[Union[int, str]] = None
-    ) -> UNIQUE_ID_TYPE:
+    def create(cls: type[UNIQUE_ID_TYPE], seed: int | str | None = None) -> UNIQUE_ID_TYPE:
         return cls(uuid_str(str(seed)) if seed is not None else uuid.uuid4())
 
     def as_uuid(self) -> uuid.UUID:
         return self._uuid_obj
 
     @classmethod
-    def from_env(cls: Type[UNIQUE_ID_TYPE]) -> UNIQUE_ID_TYPE:
+    def from_env(cls: type[UNIQUE_ID_TYPE]) -> UNIQUE_ID_TYPE:
         env_var = get_env_var(*cls.ENV_VARS)
         if env_var is None:
             raise ValueError(

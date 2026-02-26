@@ -7,7 +7,8 @@ __all__ = [
 
 import re
 from dataclasses import dataclass
-from typing import Any, ClassVar, List, Optional, Pattern, Union, cast
+from re import Pattern
+from typing import Any, ClassVar, Union, cast
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.models.base import (
@@ -31,7 +32,7 @@ class ConditionBaseExpression(SchemaModel):
     format: str = custom_field(mm_field=CustomStringField(str, strict_mode=True))
     operator: str = custom_field(mm_field=CustomStringField(str, strict_mode=True))
     # type: ignore[misc] # https://github.com/python/mypy/issues/731
-    values: List[Union["ConditionBaseExpression", AttributeBaseExpression, Any]] = custom_field(
+    values: list[Union["ConditionBaseExpression", AttributeBaseExpression, Any]] = custom_field(
         mm_field=ListField(
             UnionField(
                 [
@@ -76,14 +77,14 @@ class ConditionBaseExpressionString(ValidatedStr):
     @property
     def condition_values(  # noqa: C901
         self,
-    ) -> List[Union[ConditionBaseExpression, AttributeBaseExpression, Any]]:
+    ) -> list[ConditionBaseExpression | AttributeBaseExpression | Any]:
         condition_values = [AttributeBaseExpression("Attr", self.condition_name)]
         value = self.get_match_groups()[2]
 
         def is_enclosed(s: str, b: str, e: str) -> bool:
             return True if len(s) > 1 and (s[0], s[-1]) == (b, e) else False
 
-        def resolve(value: Optional[str], is_iterable: bool = False) -> Any:
+        def resolve(value: str | None, is_iterable: bool = False) -> Any:
             if not value:
                 if is_iterable:
                     raise ValueError(
@@ -113,7 +114,7 @@ class ConditionBaseExpressionString(ValidatedStr):
         if value is not None:
             condition_values.append(value)
         return cast(
-            List[Union[ConditionBaseExpression, AttributeBaseExpression, Any]], condition_values
+            list[Union[ConditionBaseExpression, AttributeBaseExpression, Any]], condition_values
         )
 
     def get_condition_expression(self, is_key: bool) -> ConditionBaseExpression:

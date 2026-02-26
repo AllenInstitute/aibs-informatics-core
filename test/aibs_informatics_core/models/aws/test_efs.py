@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 from aibs_informatics_test_resources import does_not_raise
 from pytest import mark, param, raises
@@ -382,7 +381,7 @@ def test__EFSPath__eq__works():
     ],
 )
 def test__EFSPath__truediv__works(
-    this: EFSPath, other, expected: Optional[EFSPath], raise_expectation
+    this: EFSPath, other, expected: EFSPath | None, raise_expectation
 ):
     with raise_expectation:
         actual = this / other
@@ -467,7 +466,7 @@ def test__EFSPath__truediv__works(
     ],
 )
 def test__EFSPath__floordiv__works(
-    this: EFSPath, other, expected: Optional[EFSPath], raise_expectation
+    this: EFSPath, other, expected: EFSPath | None, raise_expectation
 ):
     with raise_expectation:
         actual = this // other
@@ -510,7 +509,7 @@ def test__EFSPath__floordiv__works(
     ],
 )
 def test__EFSPath__rtruediv__works(
-    this: EFSPath, other, expected: Optional[EFSPath], raise_expectation
+    this: EFSPath, other, expected: EFSPath | None, raise_expectation
 ):
     with raise_expectation:
         actual = this.__rtruediv__(other)

@@ -1,7 +1,7 @@
 import re
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Union
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.models.aws.core import AWS_ACCOUNT_PATTERN_STR as AWS_ACCOUNT_PATTERN
@@ -28,11 +28,11 @@ class FileSystemId(ValidatedStr):
         return self.get_match_groups()[-1]
 
     @property
-    def region(self) -> Optional[str]:
+    def region(self) -> str | None:
         return self.get_match_groups()[-2]
 
     @property
-    def arn_prefix(self) -> Optional[str]:
+    def arn_prefix(self) -> str | None:
         return self.get_match_groups()[0]
 
 
@@ -51,11 +51,11 @@ class AccessPointId(ValidatedStr):
         return self.get_match_groups()[-1]
 
     @property
-    def region(self) -> Optional[str]:
+    def region(self) -> str | None:
         return self.get_match_groups()[-2]
 
     @property
-    def arn_prefix(self) -> Optional[str]:
+    def arn_prefix(self) -> str | None:
         return self.get_match_groups()[0]
 
 
@@ -155,7 +155,7 @@ class EFSPath(ValidatedStr):
 
     @classmethod
     def build(
-        cls, resource_id: Union[FileSystemId, FileSystemDNSName, str], path: Union[Path, str]
+        cls, resource_id: FileSystemId | FileSystemDNSName | str, path: Path | str
     ) -> "EFSPath":
         file_system_id: FileSystemId
         if FileSystemId.is_valid(resource_id):

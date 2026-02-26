@@ -1,4 +1,3 @@
-from typing import List
 from unittest import mock
 
 from pytest import fixture, mark, param, raises
@@ -113,8 +112,8 @@ def demand_execution_parameters():
 )
 def test__DemandExecutionParameters__job_params_returns_expected_result(
     parameters: DemandExecutionParameters,
-    expected_resolved_command: List[str],
-    expected_job_params: List[JobParam],
+    expected_resolved_command: list[str],
+    expected_job_params: list[JobParam],
 ):
     assert parameters.resolved_command == expected_resolved_command
     assert parameters.job_params == expected_job_params
@@ -479,8 +478,8 @@ def test__DemandExecutionParameters__from_dict__validation_works_as_intended(
 )
 def test__DemandExecutionParameters__param_pairs_and_param_set_pairs__work(
     parameters: DemandExecutionParameters,
-    expected_param_set_pairs: List[ParamSetPair],
-    expected_param_pairs: List[ParamPair],
+    expected_param_set_pairs: list[ParamSetPair],
+    expected_param_pairs: list[ParamPair],
 ):
     actual = sorted(parameters.param_set_pairs, key=lambda _: str(_))
     expected = sorted(expected_param_set_pairs, key=lambda _: str(_))
