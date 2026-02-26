@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List, cast
+from typing import Any, cast
 
 from aibs_informatics_core.models.base import SchemaModel, StringField, custom_field
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
@@ -35,7 +35,7 @@ class DemandExecution(SchemaModel):
     )
 
     def get_execution_hash(self, strict: bool = True) -> str:
-        hash_components: List[Any] = [
+        hash_components: list[Any] = [
             self.execution_type,
             self.execution_image,
             self.execution_parameters.command,

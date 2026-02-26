@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from aibs_informatics_core.models.api.route import ApiRoute
 from aibs_informatics_core.models.base.model import SchemaModel
@@ -8,16 +8,16 @@ from aibs_informatics_core.models.base.model import SchemaModel
 @dataclass
 class BaseRequest(SchemaModel):
     id_str: str
-    any_str: Optional[str] = None
-    any_int: Optional[int] = None
-    any_bool: Optional[bool] = None
-    any_list: Optional[List[Any]] = None
-    any_map: Optional[Dict[Any, Any]] = None
+    any_str: str | None = None
+    any_int: int | None = None
+    any_bool: bool | None = None
+    any_list: list[Any] | None = None
+    any_map: dict[Any, Any] | None = None
 
 
 @dataclass
 class BaseResponse(SchemaModel):
-    any_str: Optional[str] = None
+    any_str: str | None = None
 
 
 class GetterResourceRoute(ApiRoute[BaseRequest, BaseResponse]):

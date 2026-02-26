@@ -21,19 +21,13 @@ __all__ = [
 import datetime as dt
 import uuid
 from collections import defaultdict
+from collections.abc import Callable, Sequence
 from enum import Enum
 from inspect import isfunction
 from pathlib import Path
 from typing import (
     Any,
-    Callable,
-    Dict,
     Generic,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
     TypeVar,
     Union,
     cast,
@@ -50,7 +44,7 @@ T = TypeVar("T")
 S = TypeVar("S", bound=str)
 E = TypeVar("E", bound=Enum)
 
-FieldMetadata = Dict[str, dict]
+FieldMetadata = dict[str, dict]
 
 EncoderType = Callable[[T], JSON]
 DecoderType = Callable[[JSON], T]
@@ -67,11 +61,11 @@ class EnumField(mm.fields.Field, Generic[E]):
         "not_enum": "'{input}' (type: {input_type}) is not an Enum type.",
     }
 
-    def __init__(self, enum: Type[E], *args, **kwargs):
+    def __init__(self, enum: type[E], *args, **kwargs):
         self.enum_cls = enum
         super().__init__(*args, **kwargs)
 
-    def _serialize(self, value, attr, obj, **kwargs) -> Optional[str]:
+    def _serialize(self, value, attr, obj, **kwargs) -> str | None:
         if value is None:
             return None
         else:
@@ -80,7 +74,7 @@ class EnumField(mm.fields.Field, Generic[E]):
             else:
                 raise self.make_error(key="not_enum", input=value, input_type=type(value))
 
-    def _deserialize(self, value, attr, data, **kwargs) -> Optional[E]:
+    def _deserialize(self, value, attr, data, **kwargs) -> E | None:
         if value is None:
             return None
         else:
@@ -112,7 +106,7 @@ class CustomStringField(mm.fields.String, Generic[S]):
         "invalid_type": "'{input}' (type: {input_type}) is not a {expected_type} type!"
     }
 
-    def __init__(self, str_cls: Type[S], *args, strict_mode: bool = False, **kwargs):
+    def __init__(self, str_cls: type[S], *args, strict_mode: bool = False, **kwargs):
         """Field for subclassed string types.
 
         Deserialized values are constructed using subclass string type.
@@ -129,7 +123,7 @@ class CustomStringField(mm.fields.String, Generic[S]):
         self.strict_mode = strict_mode
         super().__init__(*args, **kwargs)
 
-    def _serialize(self, value, attr, obj, **kwargs) -> Optional[str]:
+    def _serialize(self, value, attr, obj, **kwargs) -> str | None:
         if value is None:
             return None
         elif not issubclass(type(value), self.str_cls):
@@ -138,7 +132,7 @@ class CustomStringField(mm.fields.String, Generic[S]):
             value = self.str_cls(value)
         return super()._serialize(value, attr, obj, **kwargs)
 
-    def _deserialize(self, value, attr, data, **kwargs) -> Optional[S]:
+    def _deserialize(self, value, attr, data, **kwargs) -> S | None:
         deserialized_value = super()._deserialize(value=value, attr=attr, data=data, **kwargs)
         return self.str_cls(deserialized_value) if deserialized_value is not None else None
 
@@ -187,8 +181,8 @@ class CustomAwareDateTime(mm.fields.AwareDateTime):
         return super()._deserialize(value, attr, data, **kwargs)
 
 
-TypeOrTupleOfTypes = Union[Type[Any], Tuple[Type[Any], ...]]
-UnionFieldsType = Tuple[
+TypeOrTupleOfTypes = Union[type[Any], tuple[type[Any], ...]]
+UnionFieldsType = tuple[
     Union[TypeOrTupleOfTypes, Callable[[], TypeOrTupleOfTypes]],
     Union[mm.fields.Field, Callable[[], mm.fields.Field]],
 ]
@@ -210,11 +204,11 @@ class UnionField(mm.fields.Field):
 
     def __init__(self, union_fields: Sequence[UnionFieldsType], *args, **kwargs):
         self._raw_union_fields: Sequence[UnionFieldsType] = union_fields
-        self._union_fields: Dict[Type[Any], List[mm.fields.Field]] = None  # type: ignore
+        self._union_fields: dict[type[Any], list[mm.fields.Field]] = None  # type: ignore
         super().__init__(*args, **kwargs)
 
     @property
-    def union_fields(self) -> Dict[Type[Any], List[mm.fields.Field]]:
+    def union_fields(self) -> dict[type[Any], list[mm.fields.Field]]:
         if self._union_fields is None:
             self._union_fields = defaultdict(list)
             for union_type, union_field in self._raw_union_fields:
@@ -225,16 +219,16 @@ class UnionField(mm.fields.Field):
                     union_field = union_field()
 
                 for union_type in union_types:
-                    self._union_fields[cast(Type[Any], union_type)].append(
+                    self._union_fields[cast(type[Any], union_type)].append(
                         cast(mm.fields.Field, union_field)
                     )
         return self._union_fields
 
-    def _serialize(self, value, attr, obj, **kwargs) -> Optional[str]:
+    def _serialize(self, value, attr, obj, **kwargs) -> str | None:
         if value is None:
             return None
         input_type = type(value)
-        errors: Dict[Type[Any], List[mm.ValidationError]] = defaultdict(list)
+        errors: dict[type[Any], list[mm.ValidationError]] = defaultdict(list)
         for class_type, class_fields in self.union_fields.items():
             if issubclass(input_type, class_type):
                 for class_field in class_fields:
@@ -265,11 +259,11 @@ class UnionField(mm.fields.Field):
                 expected_types=list(self.union_fields.keys()),
             )
 
-    def _deserialize(self, value, attr, data, **kwargs) -> Optional[E]:
+    def _deserialize(self, value, attr, data, **kwargs) -> E | None:
         if value is None:
             return None
         else:
-            errors: Dict[Type[Any], List[mm.ValidationError]] = defaultdict(list)
+            errors: dict[type[Any], list[mm.ValidationError]] = defaultdict(list)
             for class_type, class_fields in self.union_fields.items():
                 for class_field in class_fields:
                     try:

@@ -1,7 +1,6 @@
 import decimal
 import json
 from pathlib import Path
-from typing import Union
 
 from aibs_informatics_core.utils.json import JSON, DecimalEncoder, load_json, load_json_object
 from test.base import BaseTest
@@ -15,7 +14,7 @@ class DecimalEncoderTests(BaseTest):
 
 
 class JsonUtilTests(BaseTest):
-    def dump_json(self, data: JSON, to_file: bool = False) -> Union[str, Path]:
+    def dump_json(self, data: JSON, to_file: bool = False) -> str | Path:
         json_string = json.dumps(data)
         if to_file:
             tmp_file = self.tmp_file()

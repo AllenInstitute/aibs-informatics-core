@@ -20,13 +20,8 @@ from types import MethodType
 from typing import (
     Any,
     ClassVar,
-    Dict,
-    Optional,
     Protocol,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
     get_type_hints,
 )
@@ -88,13 +83,13 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
         return cls.from_dict(json.loads(data), **kwargs)
 
     def to_json(self, **kwargs) -> str:
-        json_encoder_cls: Type[json.JSONEncoder] = kwargs.pop("json_encoder", _ExtendedEncoder)
+        json_encoder_cls: type[json.JSONEncoder] = kwargs.pop("json_encoder", _ExtendedEncoder)
         return json.dumps(self.to_dict(**kwargs), indent=4, cls=json_encoder_cls)
 
     @classmethod
     @cache
-    def get_model_fields(cls) -> Tuple[Field, ...]:
-        resolved: Optional[Dict[str, Type]] = None
+    def get_model_fields(cls) -> tuple[Field, ...]:
+        resolved: dict[str, type] | None = None
         class_fields = fields(cls)  # type: ignore[arg-type]
         for f in class_fields:
             # There is a bug with https://peps.python.org/pep-0563/
@@ -190,7 +185,7 @@ MISSING = mm.missing
 
 
 class SchemaModel(DataClassModel):
-    _schema_config: ClassVar[Dict[str, Any]] = {}
+    _schema_config: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
@@ -199,7 +194,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     def from_dict(  # type: ignore[override]
-        cls, data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs
+        cls, data: dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> Self:
         """deserialize JSON data (and validate)
 
@@ -222,7 +217,7 @@ class SchemaModel(DataClassModel):
             self.validate(model_dict, partial=partial, **kwargs)
         return model_dict
 
-    def update(self, data: Dict[str, Any]):
+    def update(self, data: dict[str, Any]):
         """Update dataclass attributes with validation"""
         existing_data = self.to_dict(partial=True)
         existing_data.update(data)
@@ -241,9 +236,7 @@ class SchemaModel(DataClassModel):
         self.validate(self, partial=partial, **kwargs)
 
     @classmethod
-    def validate(
-        cls, data: Union[Dict[str, Any], Self], partial: bool = DEFAULT_PARTIAL, **kwargs
-    ):
+    def validate(cls, data: dict[str, Any] | Self, partial: bool = DEFAULT_PARTIAL, **kwargs):
         try:
             if isinstance(data, cls):
                 data = data.to_dict(partial=partial)
@@ -256,7 +249,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     def is_valid(
-        cls, data: Union[Dict[str, Any], Self], partial: bool = DEFAULT_PARTIAL, **kwargs
+        cls, data: dict[str, Any] | Self, partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> bool:
         try:
             cls.validate(data, partial=partial, **kwargs)
@@ -266,7 +259,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     def empty(cls) -> Self:
-        empty: Dict[str, Any] = {}
+        empty: dict[str, Any] = {}
         return cls.from_dict(empty, partial=True)
 
     # ----------------------------------------
@@ -292,7 +285,7 @@ class SchemaModel(DataClassModel):
 
     @classmethod
     @mm.post_load
-    def make_object(cls, data: Dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs) -> Self:
+    def make_object(cls, data: dict[str, Any], partial: bool = DEFAULT_PARTIAL, **kwargs) -> Self:
         """Method for defining how to make an instance based on validated data.
 
         Args:
@@ -358,7 +351,7 @@ class SchemaModel(DataClassModel):
 
 class ModelSchemaMethod(Protocol):
     def __call__(
-        self, cls: Type[SM], partial: bool, **kwargs
+        self, cls: type[SM], partial: bool, **kwargs
     ) -> mm.Schema: ...  # pragma: no cover
 
 
@@ -366,7 +359,7 @@ class ModelClassMethod(Protocol):
     def __call__(*args, **kwargs) -> Any: ...  # pragma: no cover
 
 
-def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = True):  # noqa: C901
+def attach_schema_hooks(cls: type[SchemaModel], remove_post_load_hooks: bool = True):  # noqa: C901
     """Attaches schema hooks from SchemaModel class onto the schema class
 
     Args:
@@ -387,7 +380,7 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
     model_schema_method: ModelSchemaMethod = cls.model_schema.__func__  # type: ignore
 
     def check_and_attach_schema_hook(
-        cls: Type[SM],
+        cls: type[SM],
         schema: mm.Schema,
         class_method_name: str,
         class_method: ModelClassMethod,
@@ -416,7 +409,7 @@ def attach_schema_hooks(cls: Type[SchemaModel], remove_post_load_hooks: bool = T
     @cache
     @wraps(model_schema_method)
     def model_schema_with_hooks(
-        cls: Type[SM], partial: bool = DEFAULT_PARTIAL, **kwargs
+        cls: type[SM], partial: bool = DEFAULT_PARTIAL, **kwargs
     ) -> mm.Schema:
         schema = model_schema_method(cls, partial=partial, **kwargs)
 

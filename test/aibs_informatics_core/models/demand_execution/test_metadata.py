@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from aibs_informatics_test_resources import does_not_raise
 from pytest import mark, param, raises
@@ -137,7 +137,7 @@ from aibs_informatics_core.models.status import Status
     ],
 )
 def test__DemandExecutionMetadata__from_dict(
-    data: dict[str, Any], expected: Optional[DemandExecutionMetadata], raise_expectation
+    data: dict[str, Any], expected: DemandExecutionMetadata | None, raise_expectation
 ):
     """Test the from_dict method of DemandExecutionMetadata."""
     with raise_expectation:

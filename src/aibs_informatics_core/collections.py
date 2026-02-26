@@ -12,28 +12,20 @@ __all__ = [
 
 import logging
 from collections import ChainMap
+from collections.abc import Callable, Hashable, MutableMapping, Sequence
 from enum import Enum, EnumMeta
 from functools import cached_property, total_ordering, wraps
+from re import Match, Pattern
 from re import compile as regex_compile
 from re import finditer as regex_finditer
 from re import fullmatch as regex_fullmatch
 from re import sub as regex_sub
 from typing import (
     Any,
-    Callable,
     ClassVar,
     Generic,
-    Hashable,
-    List,
-    Match,
-    MutableMapping,
     Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -100,10 +92,10 @@ class Tree(dict[KT, "Tree"], Generic[KT]):
                 __self[key] = self.__class__()
             __self = __self[key]  # type: ignore
 
-    def to_sequences(self: "Tree[KT]") -> List[Tuple[KT, ...]]:
-        sequences: List[Tuple[KT, ...]] = []
+    def to_sequences(self: "Tree[KT]") -> list[tuple[KT, ...]]:
+        sequences: list[tuple[KT, ...]] = []
         for key in self.keys():
-            sub_sequences: List[Tuple[KT, ...]] = self[key].to_sequences()  # type: ignore
+            sub_sequences: list[tuple[KT, ...]] = self[key].to_sequences()  # type: ignore
             if not sub_sequences:
                 sequences.append((key,))
             else:
@@ -210,8 +202,8 @@ class PydanticStrMixin:
 
 class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
     regex_pattern: ClassVar[Pattern]
-    min_len: ClassVar[Optional[int]] = None
-    max_len: ClassVar[Optional[int]] = None
+    min_len: ClassVar[int | None] = None
+    max_len: ClassVar[int | None] = None
 
     _regex_pattern_provided: ClassVar[bool] = False
 
@@ -265,7 +257,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         return match.groups()
 
     @classmethod
-    def findall(cls: Type[S], string: str) -> List[S]:
+    def findall(cls: type[S], string: str) -> list[S]:
         """Convenience method for re.findall
 
         Args:
@@ -282,7 +274,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         return [cls(match.group(0)) for match in regex_finditer(cls.regex_pattern, string)]
 
     @classmethod
-    def suball(cls: Type[S], string: str, repl: Union[str, Callable[[Match], str]]) -> str:
+    def suball(cls: type[S], string: str, repl: str | Callable[[Match], str]) -> str:
         """Convenience method for running re.sub on string.
         If no regex pattern is defined, then return original.
         Args:
@@ -302,7 +294,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         return cls.find_prefix(string) is not None
 
     @classmethod
-    def find_prefix(cls: Type[S], string: str) -> Optional[S]:
+    def find_prefix(cls: type[S], string: str) -> S | None:
         cls.validate_regex_pattern()
         for match in regex_finditer(cls.regex_pattern, string):
             if match.span()[0] == 0:
@@ -314,7 +306,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         return cls.find_suffix(string) is not None
 
     @classmethod
-    def find_suffix(cls: Type[S], string: str) -> Optional[S]:
+    def find_suffix(cls: type[S], string: str) -> S | None:
         cls.validate_regex_pattern()
         for match in regex_finditer(cls.regex_pattern, string):
             if match.span()[1] == len(string):
@@ -369,7 +361,7 @@ class BaseEnum(Enum, metaclass=BaseEnumMeta):
         return result or other == self.value
 
     @classmethod
-    def values(cls) -> List[Any]:
+    def values(cls) -> list[Any]:
         return [c.value for c in cls]
 
 
@@ -392,7 +384,7 @@ SE = TypeVar("SE", bound="StrEnum")
 
 
 class StrEnum(str, BaseEnum):
-    def __new__(cls: Type[SE], value: str, *args: Any, **kwargs: Any) -> SE:
+    def __new__(cls: type[SE], value: str, *args: Any, **kwargs: Any) -> SE:
         obj = str.__new__(cls, value)
         obj._value_ = value
         return obj
@@ -401,14 +393,14 @@ class StrEnum(str, BaseEnum):
         return self.value
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         return [cast(str, c.value) for c in cls]
 
 
 @total_ordering
 class OrderedStrEnum(str, OrderedEnum):
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         return [cast(str, c.value) for c in cls]
 
     ## str class overrides
