@@ -5,131 +5,44 @@ __all__ = [
     "field_metadata",
 ]
 
-
 from collections.abc import Callable, Mapping
-from dataclasses import MISSING, Field, dataclass
-from dataclasses import field as dataclasses_field
-from enum import Enum
-from typing import Any, TypeVar, cast, overload
+from dataclasses import dataclass
+from typing import Any, TypeVar, overload
 
-import marshmallow as mm
-from dataclasses_json import config, global_config
-from typing_inspect import is_optional_type as _is_optional_type
-
-from aibs_informatics_core.utils.json import JSON
+from pydantic import Field
+from pydantic.fields import FieldInfo
+from pydantic_core import PydanticUndefined
 
 T = TypeVar("T")
-S = TypeVar("S", bound=str)
-E = TypeVar("E", bound=Enum)
 
-FieldMetadata = dict[str, dict]
+FieldMetadata = dict[str, Any]
 
-EncoderType = Callable[[T], JSON]
-DecoderType = Callable[[JSON], T]
-
-
-# --------------------------------------------------------------
-#                     Field Metadata Builder
-# --------------------------------------------------------------
+EncoderType = Callable[[T], Any]
+DecoderType = Callable[[Any], T]
 
 
 @dataclass
 class FieldMetadataBuilder:
-    mm_field: mm.fields.Field | None = None
+    mm_field: Any | None = None
     encoder: EncoderType | None = None
     decoder: DecoderType | None = None
 
     def build(self, required: bool | None = None, **kwargs) -> FieldMetadata:
-        mm_field = self.mm_field
-        encoder = self.encoder
-        decoder = self.decoder
+        metadata = {
+            "mm_field": self.mm_field,
+            "encoder": self.encoder,
+            "decoder": self.decoder,
+            "required": required,
+        }
+        metadata.update(kwargs)
+        return metadata
 
-        # set allow_none to !required IF required is explicitly specified (True/False).
-        allow_none = not required if required is not None else required
-
-        if mm_field is None:
-            mm_field_cls = self.create_mm_field_class(encoder=encoder, decoder=decoder)
-            mm_field_kwargs: dict[str, Any] = {}
-            if required is not None:
-                mm_field_kwargs["required"] = required
-            mm_field = mm_field_cls(**mm_field_kwargs)
-            if allow_none is not None:
-                mm_field.allow_none = allow_none
-
-        else:
-            if required is not None:
-                mm_field.required = required
-                if allow_none is not None:
-                    mm_field.allow_none = allow_none
-            if encoder is None:
-                encoder = self.create_encoder_from_mm_field(mm_field)
-            if decoder is None:
-                decoder = self.create_decoder_from_mm_field(mm_field)
-
-        return config(encoder=encoder, decoder=decoder, mm_field=mm_field, **kwargs)
-
-    def add_to_global_config(
-        self,
-        clazz: type[Any],
-        required: bool | None = None,
-        skip_mm_field: bool = False,
-        skip_encoder: bool = False,
-        skip_decoder: bool = False,
-        **kwargs,
-    ):
-        dataclass_json_config = self.build(required=required, **kwargs)["dataclasses_json"]
-
-        if "mm_field" in dataclass_json_config and not skip_mm_field:
-            global_config.mm_fields[clazz] = dataclass_json_config["mm_field"]
-        if "encoder" in dataclass_json_config and not skip_encoder:
-            global_config.encoders[clazz] = dataclass_json_config["encoder"]
-        if "decoder" in dataclass_json_config and not skip_decoder:
-            global_config.decoders[clazz] = dataclass_json_config["decoder"]
-
-    @classmethod
-    def create_mm_field_class(
-        cls, encoder: EncoderType | None, decoder: DecoderType | None
-    ) -> type[mm.fields.Field]:
-        """Creates a Marshmallow Field with optional encoder/decoder overrides
-
-        Args:
-            encoder (Optional[EncoderType]): Optional encoder function
-            decoder (Optional[DecoderType]): Optional decoder function
-
-        Returns:
-            Type[mm.fields.Field]: _description_
-        """
-
-        class CustomField(mm.fields.Field):
-            def _serialize(self, value, attr, obj, **kwargs):
-                if encoder:
-                    return encoder(value)
-                return super()._serialize(value, attr, obj, **kwargs)
-
-            def _deserialize(self, value, attr, data, **kwargs):
-                if decoder:
-                    return decoder(value)
-                return super()._deserialize(value, attr, data, **kwargs)
-
-        return CustomField
-
-    @classmethod
-    def create_encoder_from_mm_field(cls, mm_field: mm.fields.Field) -> EncoderType:
-        def mm_field_encoder(value):
-            return mm_field.serialize("", value, lambda _1, _2, _3: value)
-
-        return cast(EncoderType, mm_field_encoder)
-
-    @classmethod
-    def create_decoder_from_mm_field(cls, mm_field: mm.fields.Field) -> DecoderType:
-        def mm_field_decoder(value):
-            return mm_field.deserialize(value)
-
-        return cast(DecoderType, mm_field_decoder)
+    def add_to_global_config(self, *args, **kwargs):
+        return None
 
 
 def field_metadata(
-    mm_field: mm.fields.Field | None = None,
+    mm_field: Any | None = None,
     encoder: EncoderType | None = None,
     decoder: DecoderType | None = None,
     required: bool | None = None,
@@ -140,23 +53,26 @@ def field_metadata(
     )
 
 
-# --------------------------------------------------------------
-#               Dataclass Utility Functions
-# --------------------------------------------------------------
-
-
 @dataclass
 class FieldProps:
-    field: Field
+    field: Any
 
     def requires_init(self) -> bool:
-        return not self.has_default()
+        if isinstance(self.field, FieldInfo):
+            return self.field.is_required()
+        is_required = getattr(self.field, "is_required", None)
+        if callable(is_required):
+            return bool(is_required())
+        return False
 
     def is_optional_type(self) -> bool:
-        return _is_optional_type(self.field.type)
+        annotation = getattr(self.field, "annotation", None) or getattr(self.field, "type", None)
+        if annotation is None:
+            return True
+        return getattr(annotation, "__origin__", None) is None and annotation is Any
 
     def has_default(self) -> bool:
-        return not (self.field.default_factory is MISSING and self.field.default is MISSING)  # type: ignore[misc]
+        return not self.requires_init()
 
 
 @overload
@@ -168,7 +84,7 @@ def custom_field(
     hash: bool | None = None,
     compare: bool = True,
     metadata: Mapping[Any, Any] | None = None,
-    mm_field: mm.fields.Field | None = None,
+    mm_field: Any | None = None,
     encoder: EncoderType | None = None,
     decoder: DecoderType | None = None,
 ) -> T: ...  # pragma: no cover
@@ -183,7 +99,7 @@ def custom_field(
     hash: bool | None = None,
     compare: bool = True,
     metadata: Mapping[Any, Any] | None = None,
-    mm_field: mm.fields.Field | None = None,
+    mm_field: Any | None = None,
     encoder: EncoderType | None = None,
     decoder: DecoderType | None = None,
 ) -> T: ...  # pragma: no cover
@@ -197,7 +113,7 @@ def custom_field(
     hash: bool | None = None,
     compare: bool = True,
     metadata: Mapping[Any, Any] | None = None,
-    mm_field: mm.fields.Field | None = None,
+    mm_field: Any | None = None,
     encoder: EncoderType | None = None,
     decoder: DecoderType | None = None,
 ) -> Any: ...  # pragma: no cover
@@ -205,70 +121,44 @@ def custom_field(
 
 def custom_field(
     *,
-    # Below values mirror those found in `dataclasses.field`
-    default: Any = MISSING,
-    default_factory: Callable[[], Any] = MISSING,  # type: ignore
+    default: Any = PydanticUndefined,
+    default_factory: Callable[[], Any] | Any = PydanticUndefined,
     init: bool = True,
     repr: bool = True,
     hash: bool | None = None,
     compare: bool = True,
     metadata: Mapping[Any, Any] | None = None,
-    # Following are custom
-    mm_field: mm.fields.Field | None = None,
+    mm_field: Any | None = None,
     encoder: EncoderType | None = None,
     decoder: DecoderType | None = None,
 ) -> Any:
-    """Convenience function for generating a Dataclass Field WITH Encoders/Decoders/ MM Fields
+    json_schema_extra: dict[str, Any] = {}
+    if metadata is not None:
+        json_schema_extra["metadata"] = dict(metadata)
+    if mm_field is not None:
+        json_schema_extra["mm_field"] = mm_field
+    if encoder is not None:
+        json_schema_extra["encoder"] = encoder
+    if decoder is not None:
+        json_schema_extra["decoder"] = decoder
+    if hash is not None:
+        json_schema_extra["hash"] = hash
+    if compare is not None:
+        json_schema_extra["compare"] = compare
 
-    Args:
-        mm_field (mm.fields.Field, optional): _description_. Defaults to None.
-        encoder (EncoderType, optional): _description_. Defaults to None.
-        decoder (DecoderType, optional): . Defaults to None.
-        default (Any, optional): Default value if not provided. Defaults to MISSING.
-        default_factory (Callable[[], Any], optional): _description_. Defaults to MISSING.
-        repr (bool, optional): _description_. Defaults to True.
-        hash (Optional[bool], optional): _description_. Defaults to None.
-        compare (bool, optional): _description_. Defaults to True.
-        metadata (Optional[Mapping[Any, Any]], optional): _description_. Defaults to None.
+    kwargs: dict[str, Any] = {
+        "repr": repr,
+    }
+    if json_schema_extra:
+        kwargs["json_schema_extra"] = json_schema_extra
 
-    Returns:
-        A dataclass Field with the specified properties
-    """
-    required = init and not (default != MISSING or default_factory != MISSING)
-    metadata = field_metadata(
-        mm_field=mm_field,
-        encoder=encoder,
-        decoder=decoder,
-        required=required,
-        metadata=metadata,
-    )
-    if default != MISSING:
-        return dataclasses_field(
-            default=default,
-            init=init,
-            compare=compare,
-            hash=hash,
-            repr=repr,
-            metadata=metadata,
-        )
-    elif default_factory != MISSING:
-        return dataclasses_field(
-            default_factory=default_factory,
-            init=init,
-            compare=compare,
-            hash=hash,
-            repr=repr,
-            metadata=metadata,
-        )
-    else:
-        return dataclasses_field(
-            init=init,
-            compare=compare,
-            hash=hash,
-            repr=repr,
-            metadata=metadata,
-        )
+    if default_factory is not PydanticUndefined:
+        return Field(default_factory=default_factory, **kwargs)
+    if default is not PydanticUndefined:
+        return Field(default=default, **kwargs)
+    if init:
+        return Field(default=PydanticUndefined, **kwargs)
+    return Field(default=None, exclude=True, **kwargs)
 
 
-# to make it synonymous with dataclasses.field
 field = custom_field

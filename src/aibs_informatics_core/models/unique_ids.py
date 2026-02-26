@@ -1,8 +1,6 @@
 import uuid
 from typing import ClassVar, TypeVar
 
-import marshmallow as mm
-
 from aibs_informatics_core.models.base import CustomStringField
 from aibs_informatics_core.utils.hashing import uuid_str
 from aibs_informatics_core.utils.os_operations import get_env_var
@@ -22,11 +20,11 @@ class UniqueID(str):
         try:
             uuid_obj = uuid.UUID(self, version=4)
         except ValueError:
-            raise mm.ValidationError(f"'{self}' is not a valid {self.__class__.__name__} (uuid4)!")
+            raise ValueError(f"'{self}' is not a valid {self.__class__.__name__} (uuid4)!")
         self._uuid_obj = uuid_obj
 
     @classmethod
-    def as_mm_field(cls, *args, **kwargs) -> mm.fields.Field:
+    def as_mm_field(cls, *args, **kwargs):
         return CustomStringField(cls, *args, **kwargs)
 
     @classmethod

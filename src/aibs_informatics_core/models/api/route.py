@@ -14,7 +14,6 @@ __all__ = [
 import logging
 import re
 from abc import abstractmethod
-from dataclasses import dataclass
 from re import Match
 from typing import (
     ClassVar,
@@ -33,7 +32,7 @@ from aibs_informatics_core.models.api.http_parameters import HTTPParameters
 from aibs_informatics_core.models.base import (
     CustomStringField,
     ModelProtocol,
-    SchemaModel,
+    PydanticBaseModel,
     custom_field,
 )
 from aibs_informatics_core.models.version import VersionStr
@@ -63,8 +62,7 @@ API_REQUEST = TypeVar("API_REQUEST", bound=ModelProtocol)
 API_RESPONSE = TypeVar("API_RESPONSE", bound=ModelProtocol)
 
 
-@dataclass
-class ApiRequestConfig(SchemaModel):
+class ApiRequestConfig(PydanticBaseModel):
     client_version: VersionStr = custom_field(mm_field=CustomStringField(VersionStr))
     service_log_level: str | None = custom_field(default=None)
 

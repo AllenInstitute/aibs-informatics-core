@@ -19,9 +19,8 @@ except ModuleNotFoundError:  # pragma: no cover
 
         def __getattr__(self, item):
             raise ImportError(
-                "Optional dependency 'pydantic' is required for "
-                "`aibs_informatics_core.models.base.PydanticBaseModel`. "
-                "Install it with: pip install 'aibs-informatics-core[pydantic]'"
+                "Dependency 'pydantic' is required for "
+                "`aibs_informatics_core.models.base.PydanticBaseModel`."
             )
 
     # Ensure subsequent `import pydantic` resolves to the stub so recursive

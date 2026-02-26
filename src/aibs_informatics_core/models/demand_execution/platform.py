@@ -1,7 +1,5 @@
-from dataclasses import dataclass
-
 from aibs_informatics_core.models.aws.iam import IAMRoleArn
-from aibs_informatics_core.models.base import SchemaModel, custom_field
+from aibs_informatics_core.models.base import PydanticBaseModel, custom_field
 from aibs_informatics_core.models.base.custom_fields import (
     CustomStringField,
     StringField,
@@ -9,8 +7,7 @@ from aibs_informatics_core.models.base.custom_fields import (
 )
 
 
-@dataclass
-class AWSBatchExecutionPlatform(SchemaModel):
+class AWSBatchExecutionPlatform(PydanticBaseModel):
     job_queue_name: str
     job_role: str | IAMRoleArn | None = custom_field(
         mm_field=UnionField([(IAMRoleArn, CustomStringField(IAMRoleArn)), (str, StringField())]),
@@ -20,8 +17,7 @@ class AWSBatchExecutionPlatform(SchemaModel):
 
 # TODO: I would prefer to make ExecutionPlatform polymorphic, but datacalasses does not support it
 #       For now, I will just make a
-@dataclass
-class ExecutionPlatform(SchemaModel):
+class ExecutionPlatform(PydanticBaseModel):
     aws_batch: AWSBatchExecutionPlatform | None = custom_field(
         mm_field=AWSBatchExecutionPlatform.as_mm_field(), default=None
     )

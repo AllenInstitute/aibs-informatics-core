@@ -46,7 +46,6 @@ from aibs_informatics_core.exceptions import ValidationError
 if sys.version_info >= (3, 11):
     from typing import NotRequired
 
-import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
 
 from aibs_informatics_core.collections import OrderedStrEnum, ValidatedStr
@@ -258,7 +257,7 @@ class S3Path(ValidatedStr):
         return hosted_s3_url
 
     @classmethod
-    def as_mm_field(cls) -> mm.fields.Field:
+    def as_mm_field(cls):
         return CustomStringField(S3Path)
 
     @classmethod
@@ -481,7 +480,7 @@ class S3PathPlaceholder(ConditionalPlaceholderStr):
         return hosted_s3_url
 
     @classmethod
-    def as_mm_field(cls) -> mm.fields.Field:
+    def as_mm_field(cls):
         return CustomStringField(S3PathPlaceholder)
 
     @classmethod
@@ -706,7 +705,7 @@ class S3StorageClass(OrderedStrEnum):
         ]
 
     @classmethod
-    def as_mm_field(cls) -> mm.fields.Field:
+    def as_mm_field(cls):
         return EnumField(S3StorageClass)
 
 

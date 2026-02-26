@@ -1,18 +1,17 @@
 import logging
 import os
 from collections.abc import Callable
-from dataclasses import dataclass
 from functools import partial
 from typing import Any, cast
 
-import marshmallow as mm
+from pydantic import ConfigDict, PrivateAttr, model_serializer, model_validator
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
 from aibs_informatics_core.models.base import (
     DictField,
     ListField,
-    SchemaModel,
+    PydanticBaseModel,
     StringField,
     custom_field,
 )
@@ -70,8 +69,9 @@ class refresh_params:
         return value
 
 
-@dataclass
-class DemandExecutionParameters(SchemaModel):
+class DemandExecutionParameters(PydanticBaseModel):
+    model_config = ConfigDict(ignored_types=(refresh_params,))
+
     command: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
     params: dict[str, Any] = custom_field(default_factory=dict, mm_field=DictField(StringField))
     inputs: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
@@ -90,7 +90,11 @@ class DemandExecutionParameters(SchemaModel):
     )
     verbosity: bool = custom_field(default=False)
 
-    def __post_init__(self):
+    _refresh_hash: str = PrivateAttr(default="")
+    _job_params: list[JobParam] = PrivateAttr(default_factory=list)
+    _job_param_map: dict[str, JobParam] = PrivateAttr(default_factory=dict)
+
+    def model_post_init(self, __context) -> None:
         self._refresh_hash = self._compute_refresh_hash()
         self._refresh(True)
 
@@ -399,15 +403,17 @@ class DemandExecutionParameters(SchemaModel):
         return False
 
     def _compute_refresh_hash(self) -> str:
-        return sha256_hexdigest(self.to_dict(partial=True, validate=False))
+        return sha256_hexdigest(self.to_dict(validate=False, exclude_unset=False))
 
     # ------------------------------------------------
     #                   Schema hooks
     # ------------------------------------------------
 
+    @model_validator(mode="before")
     @classmethod
-    @mm.pre_load
-    def _sanitize_param_pairs(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
+    def _sanitize_param_pairs(cls, data: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(data, dict):
+            return data
         in_use_key = "param_pair_overrides"
         deprecated_keys = [
             "param_pairs",
@@ -431,9 +437,9 @@ class DemandExecutionParameters(SchemaModel):
 
         return data
 
-    @classmethod
-    @mm.post_dump
-    def _sanitize_params(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
+    @model_serializer(mode="wrap")
+    def _sanitize_params(self, handler):
+        data = handler(self)
         params = data["params"]
         for k, v in params.items():
             if isinstance(v, Resolvable):

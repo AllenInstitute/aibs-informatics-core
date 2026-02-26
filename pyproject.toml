@@ -19,8 +19,7 @@ license = { file = "LICENSE" }
 dynamic = ["version"]
 requires-python = ">=3.10"
 dependencies = [
-    "marshmallow~=3.22.0",
-    "dataclasses-json~=0.6.7",
+    "pydantic >= 2.0.3, < 3",
     "pathlib-abc",
     "python-dateutil",
     "pytz",
@@ -30,16 +29,10 @@ dependencies = [
     "typing-extensions ~= 4.0; python_version < '3.11'",
 ]
 
-[project.optional-dependencies]
-pydantic = [
-    "pydantic >= 2.0.3, < 3",
-]
-
 [dependency-groups]
 
 dev = [
-    # Need to include core with pydantic extra here to ensure it's installed in dev envs
-    "aibs-informatics-core[pydantic]",
+    "aibs-informatics-core",
     "aibs-informatics-test-resources~=0.1",
     { include-group = 'linting' },
     { include-group = 'typing' },

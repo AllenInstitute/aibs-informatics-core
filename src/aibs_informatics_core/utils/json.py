@@ -13,9 +13,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, cast
 
-# TODO: Figure out better JSON typing. mypy doesn't like
-JSON = type[dict[str, Any] | list[Any] | int | str | float | bool | None]
-# JSON = JSONArray | JSONObject | int | str | float | bool | type[None]
+JSON = dict[str, Any] | list[Any] | int | str | float | bool | None
 
 
 if TYPE_CHECKING:  # pragma: no cover

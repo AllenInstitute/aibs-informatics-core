@@ -22,15 +22,6 @@ __all__ = [
     "field_metadata",
     "ModelProtocol",
     "ModelBase",
-    "BaseSchema",
-    "DataClassModel",
-    "MISSING",
-    "NONE",
-    "SchemaModel",
-    "post_dump",
-    "pre_dump",
-    "pre_load",
-    "validates_schema",
     "PydanticBaseModel",
     "IsoDateTime",
     "IsoDate",
@@ -65,17 +56,8 @@ from aibs_informatics_core.models.base.field_utils import (
     field_metadata,
 )
 from aibs_informatics_core.models.base.model import (
-    MISSING,
-    NONE,
-    BaseSchema,
-    DataClassModel,
     ModelBase,
     ModelProtocol,
-    SchemaModel,
-    post_dump,
-    pre_dump,
-    pre_load,
-    validates_schema,
 )
 
 try:
@@ -94,9 +76,8 @@ except (ImportError, ModuleNotFoundError):
 
         def __getattr__(self, item):
             raise ImportError(
-                "Optional dependency 'pydantic' is required for "
-                "`aibs_informatics_core.models.base.PydanticBaseModel`. "
-                "Install it with: pip install 'aibs-informatics-core[pydantic]'"
+                "Dependency 'pydantic' is required for "
+                "`aibs_informatics_core.models.base.PydanticBaseModel`."
             )
 
     # Ensure subsequent `import pydantic` resolves to the stub so recursive

@@ -3,10 +3,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from pydantic import field_validator
+
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.base import (
     FrozenSetField,
-    SchemaModel,
+    PydanticBaseModel,
     StringField,
     custom_field,
 )
@@ -14,9 +16,8 @@ from aibs_informatics_core.models.base.custom_fields import UnionField
 from aibs_informatics_core.models.demand_execution.job_param import ResolvableJobParam
 
 
-@dataclass
-class ParamPair(SchemaModel):
-    """SchemaModel for an input and output parameter pairs as described in demand execution
+class ParamPair(PydanticBaseModel):
+    """PydanticBaseModel for an input and output parameter pairs as described in demand execution
 
     The values for input and output should correspond to the parameter key in the demand execution
 
@@ -50,9 +51,8 @@ class ParamPair(SchemaModel):
         return [ParamPair(input=input, output=output) for input in inputs for output in outputs]
 
 
-@dataclass
-class ParamSetPair(SchemaModel):
-    """SchemaModel for a set of input and output parameter pairs as described in demand execution
+class ParamSetPair(PydanticBaseModel):
+    """PydanticBaseModel for a set of input and output parameter pairs as described in demand execution
 
     The values for inputs and outputs should correspond to the parameter keys in the
     demand execution.
@@ -75,7 +75,18 @@ class ParamSetPair(SchemaModel):
         mm_field=FrozenSetField(StringField), default_factory=frozenset
     )
 
-    def __post_init__(self):
+    @field_validator("inputs", "outputs", mode="before")
+    @classmethod
+    def _coerce_setlike(cls, value):
+        if value is None:
+            return frozenset()
+        if isinstance(value, dict):
+            return frozenset(value.keys())
+        if isinstance(value, (set, frozenset, list, tuple)):
+            return frozenset(value)
+        return value
+
+    def model_post_init(self, __context) -> None:
         if not isinstance(self.inputs, frozenset):
             self.inputs = frozenset(self.inputs)
         if not isinstance(self.outputs, frozenset):
@@ -228,9 +239,8 @@ class JobParamSetPair:
 ResolvableID = S3URI
 
 
-@dataclass
-class ResolvedParamSetPair(SchemaModel):
-    """SchemaModel for a set of input and output resolved parameter pairs as described in demand execution
+class ResolvedParamSetPair(PydanticBaseModel):
+    """PydanticBaseModel for a set of input and output resolved parameter pairs as described in demand execution
 
     This is the other side of the ParamSetPair coin. This is used to represent a set of
     inputs and outputs' remote locations. The remote location can be a S3URI or other
@@ -261,7 +271,18 @@ class ResolvedParamSetPair(SchemaModel):
         default_factory=frozenset,
     )
 
-    def __post_init__(self):
+    @field_validator("inputs", "outputs", mode="before")
+    @classmethod
+    def _coerce_setlike(cls, value):
+        if value is None:
+            return frozenset()
+        if isinstance(value, dict):
+            return frozenset(value.keys())
+        if isinstance(value, (set, frozenset, list, tuple)):
+            return frozenset(value)
+        return value
+
+    def model_post_init(self, __context) -> None:
         if not isinstance(self.inputs, frozenset):
             self.inputs = frozenset(self.inputs)
         if not isinstance(self.outputs, frozenset):

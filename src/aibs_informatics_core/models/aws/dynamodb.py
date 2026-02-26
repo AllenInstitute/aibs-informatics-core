@@ -6,7 +6,6 @@ __all__ = [
 ]
 
 import re
-from dataclasses import dataclass
 from re import Pattern
 from typing import Any, ClassVar, Union, cast
 
@@ -15,20 +14,18 @@ from aibs_informatics_core.models.base import (
     CustomStringField,
     ListField,
     RawField,
-    SchemaModel,
+    PydanticBaseModel,
     UnionField,
     custom_field,
 )
 
 
-@dataclass
-class AttributeBaseExpression(SchemaModel):
+class AttributeBaseExpression(PydanticBaseModel):
     attr_class: str
     attr_name: Any = custom_field(mm_field=RawField())
 
 
-@dataclass
-class ConditionBaseExpression(SchemaModel):
+class ConditionBaseExpression(PydanticBaseModel):
     format: str = custom_field(mm_field=CustomStringField(str, strict_mode=True))
     operator: str = custom_field(mm_field=CustomStringField(str, strict_mode=True))
     # type: ignore[misc] # https://github.com/python/mypy/issues/731

@@ -1,29 +1,25 @@
 import re
-from dataclasses import dataclass
 
 from aibs_informatics_core.collections import ValidatedStr
-from aibs_informatics_core.models.base import IntegerField, ListField, SchemaModel, custom_field
+from aibs_informatics_core.models.base import IntegerField, ListField, PydanticBaseModel, custom_field
 
 
 class JobName(ValidatedStr):
     regex_pattern = re.compile(r"([a-zA-Z0-9][\w_-]{0,127})")
 
 
-@dataclass
-class ResourceRequirements(SchemaModel):
+class ResourceRequirements(PydanticBaseModel):
     GPU: int | None = custom_field(mm_field=IntegerField(strict=False), default=None)
     MEMORY: int | None = custom_field(mm_field=IntegerField(strict=False), default=None)
     VCPU: int | None = custom_field(mm_field=IntegerField(strict=False), default=None)
 
 
-@dataclass
-class KeyValuePairType(SchemaModel):
+class KeyValuePairType(PydanticBaseModel):
     Name: str
     Value: str
 
 
-@dataclass
-class ContainerDetail(SchemaModel):
+class ContainerDetail(PydanticBaseModel):
     Image: str = custom_field()
     Environment: list[KeyValuePairType] = custom_field(
         mm_field=ListField(KeyValuePairType.as_mm_field())
@@ -32,8 +28,7 @@ class ContainerDetail(SchemaModel):
     TaskArn: str = custom_field()
 
 
-@dataclass
-class AttemptContainerDetail(SchemaModel):
+class AttemptContainerDetail(PydanticBaseModel):
     ContainerInstanceArn: str | None = custom_field(default=None)
     TaskArn: str | None = custom_field(default=None)
     ExitCode: int | None = custom_field(default=None)
@@ -41,8 +36,7 @@ class AttemptContainerDetail(SchemaModel):
     LogStreamName: str | None = custom_field(default=None)
 
 
-@dataclass
-class AttemptDetail(SchemaModel):
+class AttemptDetail(PydanticBaseModel):
     Container: AttemptContainerDetail | None = custom_field(
         mm_field=AttemptContainerDetail.as_mm_field(), default=None
     )
@@ -69,8 +63,7 @@ class AttemptDetail(SchemaModel):
         return None
 
 
-@dataclass
-class BatchJobDetail(SchemaModel):
+class BatchJobDetail(PydanticBaseModel):
     JobName: str = custom_field()
     JobId: str = custom_field()
     JobQueue: str = custom_field()

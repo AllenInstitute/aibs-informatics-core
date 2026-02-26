@@ -1,7 +1,6 @@
-from dataclasses import dataclass
 from typing import Any, cast
 
-from aibs_informatics_core.models.base import SchemaModel, StringField, custom_field
+from aibs_informatics_core.models.base import PydanticBaseModel, StringField, custom_field
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
 from aibs_informatics_core.models.demand_execution.platform import ExecutionPlatform
@@ -13,8 +12,7 @@ from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.time import get_current_time
 
 
-@dataclass
-class DemandExecution(SchemaModel):
+class DemandExecution(PydanticBaseModel):
     execution_type: str = custom_field()
     execution_id: str = custom_field()
     execution_image: str = custom_field(mm_field=StringField())

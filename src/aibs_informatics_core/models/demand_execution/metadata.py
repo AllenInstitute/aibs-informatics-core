@@ -1,9 +1,10 @@
 import logging
-from dataclasses import dataclass
 from typing import Any, cast
 
+from pydantic import model_validator
+
 from aibs_informatics_core.models.aws.sfn import ExecutionArn
-from aibs_informatics_core.models.base import SchemaModel, custom_field, pre_load
+from aibs_informatics_core.models.base import PydanticBaseModel, custom_field
 from aibs_informatics_core.models.base.custom_fields import (
     BooleanField,
     CustomStringField,
@@ -15,8 +16,7 @@ from aibs_informatics_core.models.base.custom_fields import (
 from aibs_informatics_core.models.status import Status
 
 
-@dataclass
-class DemandExecutionMetadata(SchemaModel):
+class DemandExecutionMetadata(PydanticBaseModel):
     user: str | None = custom_field(default=None)
     arn: ExecutionArn | None = custom_field(mm_field=CustomStringField(ExecutionArn), default=None)
     tags: dict[str, str] | None = custom_field(
@@ -58,9 +58,9 @@ class DemandExecutionMetadata(SchemaModel):
             return ",".join([f"{k}={v}" if k != v else k for k, v in self.tags.items()])
         return None
 
+    @model_validator(mode="before")
     @classmethod
-    @pre_load
-    def sanitize_tags(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
+    def sanitize_tags(cls, data: dict[str, Any]) -> dict[str, Any]:
         """Sanitize tags and tag fields in the input data.
 
         If the `tag` field is present, it will be converted to a dictionary format. It supports
