@@ -1063,6 +1063,17 @@ class NativePydanticNestedMixedModel(BaseModel):
     pydantic_model: SimplePydanticModel
 
 
+@dataclass
+class DoubleNestedMixedModel(SchemaModel):
+    nested_mixed_model: PydanticNestedMixedModel = custom_field(
+        mm_field=PydanticField(PydanticNestedMixedModel)
+    )
+
+
+class DoubleNestedMixedModelPydantic(PydanticBaseModel):
+    nested_mixed_model: SchemaNestedMixedModel
+
+
 def test__SchemaNestedMixedModel__to_dict__from_dict():
     model = SchemaNestedMixedModel(
         schema_model=SimpleSchemaModel(str_value="s", int_value=1),
@@ -1095,4 +1106,48 @@ def test__PydanticNestedMixedModel__to_dict__from_dict():
     }
 
     new_model = PydanticNestedMixedModel.from_dict(model_dict)
+    assert new_model == model
+
+
+def test__DoubleNestedMixedModel__to_dict__from_dict():
+    model = DoubleNestedMixedModel(
+        nested_mixed_model=PydanticNestedMixedModel(
+            schema_model=SimpleSchemaModel(str_value="s", int_value=1),
+            pydantic_model=SimplePydanticModel(str_value="s", int_value=1),
+            native_pydantic_model=SimpleNativePydanticModel(str_value="s", int_value=1),
+        )
+    )
+    model_dict = model.to_dict()
+
+    assert model_dict == {
+        "nested_mixed_model": {
+            "schema_model": {"str_value": "s", "int_value": 1},
+            "pydantic_model": {"str_value": "s", "int_value": 1},
+            "native_pydantic_model": {"str_value": "s", "int_value": 1},
+        }
+    }
+
+    new_model = DoubleNestedMixedModel.from_dict(model_dict)
+    assert new_model == model
+
+
+def test__DoubleNestedMixedModelPydantic__to_dict__from_dict():
+    model = DoubleNestedMixedModelPydantic(
+        nested_mixed_model=SchemaNestedMixedModel(
+            schema_model=SimpleSchemaModel(str_value="s", int_value=1),
+            pydantic_model=SimplePydanticModel(str_value="s", int_value=1),
+            native_pydantic_model=SimpleNativePydanticModel(str_value="s", int_value=1),
+        )
+    )
+    model_dict = model.to_dict()
+
+    assert model_dict == {
+        "nested_mixed_model": {
+            "schema_model": {"str_value": "s", "int_value": 1},
+            "pydantic_model": {"str_value": "s", "int_value": 1},
+            "native_pydantic_model": {"str_value": "s", "int_value": 1},
+        }
+    }
+
+    new_model = DoubleNestedMixedModelPydantic.from_dict(model_dict)
     assert new_model == model
