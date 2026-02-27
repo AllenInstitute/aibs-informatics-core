@@ -12,6 +12,7 @@ import marshmallow as mm
 import pytest
 import yaml
 from marshmallow import ValidationError
+from pydantic import BaseModel
 
 from aibs_informatics_core.models.base import (
     MISSING,
@@ -26,6 +27,9 @@ from aibs_informatics_core.models.base import (
     UUIDField,
     field_metadata,
 )
+from aibs_informatics_core.models.base._pydantic_fields import PydanticField
+from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
+from aibs_informatics_core.models.base.field_utils import custom_field
 from aibs_informatics_core.utils.decorators import cache
 from aibs_informatics_core.utils.json import JSONObject
 
@@ -1016,3 +1020,79 @@ def test__SchemaModel__is_missing():
     assert Simple.is_missing(MISSING_)
     assert Simple.is_missing(...)
     assert not Simple.is_missing(1)
+
+
+# ----------------------------------------------------------
+#                       Mixed Model tests
+# ----------------------------------------------------------
+
+
+@dataclass
+class SimpleSchemaModel(SchemaModel):
+    str_value: str
+    int_value: int
+
+
+class SimplePydanticModel(PydanticBaseModel):
+    str_value: str
+    int_value: int
+
+
+class SimpleNativePydanticModel(BaseModel):
+    str_value: str
+    int_value: int
+
+
+@dataclass
+class SchemaNestedMixedModel(SchemaModel):
+    schema_model: SimpleSchemaModel = custom_field(mm_field=SimpleSchemaModel.as_mm_field())
+    pydantic_model: SimplePydanticModel = custom_field(mm_field=SimplePydanticModel.as_mm_field())
+    native_pydantic_model: SimpleNativePydanticModel = custom_field(
+        mm_field=PydanticField(SimpleNativePydanticModel)
+    )
+
+
+class PydanticNestedMixedModel(PydanticBaseModel):
+    schema_model: SimpleSchemaModel
+    pydantic_model: SimplePydanticModel
+    native_pydantic_model: SimpleNativePydanticModel
+
+
+class NativePydanticNestedMixedModel(BaseModel):
+    schema_model: SimpleSchemaModel
+    pydantic_model: SimplePydanticModel
+
+
+def test__SchemaNestedMixedModel__to_dict__from_dict():
+    model = SchemaNestedMixedModel(
+        schema_model=SimpleSchemaModel(str_value="s", int_value=1),
+        pydantic_model=SimplePydanticModel(str_value="s", int_value=1),
+        native_pydantic_model=SimpleNativePydanticModel(str_value="s", int_value=1),
+    )
+    model_dict = model.to_dict()
+    assert model_dict == {
+        "schema_model": {"str_value": "s", "int_value": 1},
+        "pydantic_model": {"str_value": "s", "int_value": 1},
+        "native_pydantic_model": {"str_value": "s", "int_value": 1},
+    }
+
+    new_model = SchemaNestedMixedModel.from_dict(model_dict)
+    assert new_model == model
+
+
+def test__PydanticNestedMixedModel__to_dict__from_dict():
+    model = PydanticNestedMixedModel(
+        schema_model=SimpleSchemaModel(str_value="s", int_value=1),
+        pydantic_model=SimplePydanticModel(str_value="s", int_value=1),
+        native_pydantic_model=SimpleNativePydanticModel(str_value="s", int_value=1),
+    )
+    model_dict = model.to_dict()
+
+    assert model_dict == {
+        "schema_model": {"str_value": "s", "int_value": 1},
+        "pydantic_model": {"str_value": "s", "int_value": 1},
+        "native_pydantic_model": {"str_value": "s", "int_value": 1},
+    }
+
+    new_model = PydanticNestedMixedModel.from_dict(model_dict)
+    assert new_model == model

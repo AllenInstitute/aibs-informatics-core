@@ -79,4 +79,3 @@ from aibs_informatics_core.models.base.model import (
     pre_load,
     validates_schema,
 )
-
