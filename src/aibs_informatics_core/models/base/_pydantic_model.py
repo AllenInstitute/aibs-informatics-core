@@ -1,8 +1,15 @@
+from __future__ import annotations
+
 import json
 import sys
 from typing import ClassVar
 
-from aibs_informatics_core.models.base.model import ModelBase
+from pydantic import AliasGenerator, ConfigDict
+from pydantic import BaseModel as _PydanticBaseModel
+from pydantic.alias_generators import to_camel
+
+from aibs_informatics_core.models.base._base_model import ModelBase
+from aibs_informatics_core.models.base._pydantic_fields import PydanticField
 from aibs_informatics_core.utils.json import JSONObject
 
 if sys.version_info < (3, 11):
@@ -10,67 +17,46 @@ if sys.version_info < (3, 11):
 else:
     from typing import Self
 
-try:
-    from pydantic import AliasGenerator, ConfigDict
-    from pydantic import BaseModel as _PydanticBaseModel
-    from pydantic.alias_generators import to_camel
 
-except ModuleNotFoundError:  # pragma: no cover
-    import types
+# --------------------------------------------------------------
+#                     PydanticModel
+# --------------------------------------------------------------
 
-    class _MissingPydantic(types.ModuleType):
-        """Stub that raises a helpful error when any attribute is accessed."""
 
-        __all__ = ()  # type: ignore
+class PydanticBaseModel(_PydanticBaseModel, ModelBase):
+    """Base class for Pydantic models that can be serialized to/from JSON"""
 
-        def __getattr__(self, item):
-            raise ImportError(
-                "Optional dependency 'pydantic' is required for "
-                "`aibs_informatics_core.models.base.PydanticBaseModel`. "
-                "Install it with: pip install 'aibs-informatics-core[pydantic]'"
-            )
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        populate_by_name=True,
+        extra="ignore",
+        alias_generator=AliasGenerator(
+            # Use custom alias generators for validation and serialization
+            # to ensure camelCase to snake_case conversion
+            # and vice versa, depending on the context.
+            validation_alias=to_camel,
+            serialization_alias=to_camel,
+        ),
+    )
 
-    # Ensure subsequent `import pydantic` resolves to the stub so recursive
-    # import attempts don’t continually re‑raise a generic ModuleNotFoundError.
-    sys.modules.setdefault("pydantic", _MissingPydantic("pydantic"))
+    @classmethod
+    def from_dict(cls, data: JSONObject, **kwargs) -> Self:
+        return cls.model_validate(data, **kwargs)
 
-else:
-    # --------------------------------------------------------------
-    #                     PydanticModel
-    # --------------------------------------------------------------
-
-    class PydanticBaseModel(_PydanticBaseModel, ModelBase):
-        """Base class for Pydantic models that can be serialized to/from JSON"""
-
-        model_config: ClassVar[ConfigDict] = ConfigDict(
-            populate_by_name=True,
-            extra="ignore",
-            alias_generator=AliasGenerator(
-                # Use custom alias generators for validation and serialization
-                # to ensure camelCase to snake_case conversion
-                # and vice versa, depending on the context.
-                validation_alias=to_camel,
-                serialization_alias=to_camel,
-            ),
+    def to_dict(self, **kwargs) -> JSONObject:
+        # Ensure None values are excluded by default to mirror DataClassJsonMixin settings
+        exclude_none = kwargs.pop("exclude_none", True)
+        mode = kwargs.pop("mode", "json")
+        return self.model_dump(
+            mode=mode,  # Use JSON serialization mode
+            exclude_none=exclude_none,  # Exclude None values by default
+            **kwargs,
         )
 
-        @classmethod
-        def from_dict(cls, data: JSONObject, **kwargs) -> Self:
-            return cls.model_validate(
-                data,
-                **kwargs,
-            )
+    @classmethod
+    def from_json(cls, data: str, **kwargs) -> Self:
+        return cls.from_dict(json.loads(data), **kwargs)
 
-        def to_dict(self, **kwargs) -> JSONObject:
-            # Ensure None values are excluded by default to mirror DataClassJsonMixin settings
-            exclude_none = kwargs.pop("exclude_none", True)
-            mode = kwargs.pop("mode", "json")
-            return self.model_dump(
-                mode=mode,  # Use JSON serialization mode
-                exclude_none=exclude_none,  # Exclude None values by default
-                **kwargs,
-            )
-
-        @classmethod
-        def from_json(cls, data: str, **kwargs) -> Self:
-            return cls.from_dict(json.loads(data), **kwargs)
+    @classmethod
+    def as_mm_field(cls, **kwargs) -> PydanticField:
+        """Helper method to create a Marshmallow field for this Pydantic model"""
+        return PydanticField(cls, **kwargs)

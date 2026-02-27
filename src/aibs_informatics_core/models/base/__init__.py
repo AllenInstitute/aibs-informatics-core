@@ -34,10 +34,8 @@ __all__ = [
     "PydanticBaseModel",
     "IsoDateTime",
     "IsoDate",
+    "PydanticField",
 ]
-
-
-import sys
 
 from aibs_informatics_core.models.base.custom_fields import (
     BooleanField,
@@ -48,10 +46,13 @@ from aibs_informatics_core.models.base.custom_fields import (
     FloatField,
     FrozenSetField,
     IntegerField,
+    IsoDate,
+    IsoDateTime,
     ListField,
     MappingField,
     NestedField,
     PathField,
+    PydanticField,
     RawField,
     StringField,
     TupleField,
@@ -71,6 +72,7 @@ from aibs_informatics_core.models.base.model import (
     DataClassModel,
     ModelBase,
     ModelProtocol,
+    PydanticBaseModel,
     SchemaModel,
     post_dump,
     pre_dump,
@@ -78,27 +80,3 @@ from aibs_informatics_core.models.base.model import (
     validates_schema,
 )
 
-try:
-    from aibs_informatics_core.models.base._pydantic_fields import (
-        IsoDate,
-        IsoDateTime,
-    )
-    from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
-except (ImportError, ModuleNotFoundError):
-    import types
-
-    class _MissingPydantic(types.ModuleType):
-        """Stub that raises a helpful error when any attribute is accessed."""
-
-        __all__ = ()
-
-        def __getattr__(self, item):
-            raise ImportError(
-                "Optional dependency 'pydantic' is required for "
-                "`aibs_informatics_core.models.base.PydanticBaseModel`. "
-                "Install it with: pip install 'aibs-informatics-core[pydantic]'"
-            )
-
-    # Ensure subsequent `import pydantic` resolves to the stub so recursive
-    # import attempts don’t continually re‑raise a generic ModuleNotFoundError.
-    sys.modules.setdefault("pydantic", _MissingPydantic("pydantic"))
