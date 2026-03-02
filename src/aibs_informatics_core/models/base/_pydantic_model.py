@@ -10,6 +10,7 @@ from pydantic.alias_generators import to_camel
 
 from aibs_informatics_core.models.base._base_model import ModelBase
 from aibs_informatics_core.models.base._pydantic_fields import PydanticField
+from aibs_informatics_core.utils.functions import filter_kwargs
 from aibs_informatics_core.utils.json import JSONObject
 
 if sys.version_info < (3, 11):
@@ -40,7 +41,7 @@ class PydanticBaseModel(_PydanticBaseModel, ModelBase):
 
     @classmethod
     def from_dict(cls, data: JSONObject, **kwargs) -> Self:
-        return cls.model_validate(data, **kwargs)
+        return cls.model_validate(data, **filter_kwargs(cls.model_validate, kwargs))
 
     def to_dict(self, **kwargs) -> JSONObject:
         # Ensure None values are excluded by default to mirror DataClassJsonMixin settings
@@ -49,7 +50,7 @@ class PydanticBaseModel(_PydanticBaseModel, ModelBase):
         return self.model_dump(
             mode=mode,  # Use JSON serialization mode
             exclude_none=exclude_none,  # Exclude None values by default
-            **kwargs,
+            **filter_kwargs(self.model_dump, kwargs),
         )
 
     @classmethod

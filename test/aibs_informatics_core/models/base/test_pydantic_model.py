@@ -419,3 +419,63 @@ def test__PydanticBaseModel__as_mm_field__serialize_wrong_type_raises():
     mm_field = Simple.as_mm_field()
     with pytest.raises(mm.ValidationError):
         mm_field._serialize("not_a_model", None, None)
+
+
+# ------------------------------------------------------------------
+#                  filter_kwargs (unsupported kwargs silently dropped)
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__from_dict__ignores_unsupported_kwargs():
+    """Extra kwargs not accepted by model_validate are silently dropped."""
+    model = Simple.from_dict(
+        {"str_value": "ok", "int_value": 1},
+        partial=True,  # not a valid model_validate kwarg
+        infer_missing=True,  # not a valid model_validate kwarg
+    )
+    assert model.str_value == "ok"
+    assert model.int_value == 1
+
+
+def test__PydanticBaseModel__to_dict__ignores_unsupported_kwargs():
+    """Extra kwargs not accepted by model_dump are silently dropped."""
+    model = Simple(str_value="ok", int_value=1)
+    result = model.to_dict(
+        partial=True,  # not a valid model_dump kwarg
+        infer_missing=True,  # not a valid model_dump kwarg
+    )
+    assert result == {"str_value": "ok", "int_value": 1}
+
+
+def test__PydanticBaseModel__from_dict__forwards_supported_kwargs():
+    """Supported kwargs like strict are still forwarded to model_validate."""
+    model = Simple.from_dict(
+        {"str_value": "ok", "int_value": 1},
+        strict=True,
+    )
+    assert model.str_value == "ok"
+    assert model.int_value == 1
+
+
+def test__PydanticBaseModel__to_dict__forwards_supported_kwargs():
+    """Supported kwargs like include/exclude are still forwarded to model_dump."""
+    model = Simple(str_value="ok", int_value=1)
+    result = model.to_dict(include={"str_value"})
+    assert result == {"str_value": "ok"}
+    assert "int_value" not in result
+
+
+def test__PydanticBaseModel__to_dict__mode_and_exclude_none_defaults():
+    """Verify custom defaults (mode='json', exclude_none=True) are applied."""
+    model = SimpleNested(
+        empty=Empty(),
+        required_simple=Simple(str_value="x", int_value=0),
+        optional_simple=None,
+    )
+    result = model.to_dict()
+    # exclude_none=True by default
+    assert "optional_simple" not in result
+
+    # override exclude_none
+    result_with_none = model.to_dict(exclude_none=False)
+    assert "optional_simple" in result_with_none
