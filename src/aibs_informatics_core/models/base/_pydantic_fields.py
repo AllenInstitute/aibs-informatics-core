@@ -98,6 +98,7 @@ class PydanticField(mm.fields.Field):
                 input=value,
                 input_type=type(value),
                 expected_type=self.pydantic_model_cls.__name__,
+                error="",
             )
 
     def _deserialize(self, value, attr, data, **kwargs):
