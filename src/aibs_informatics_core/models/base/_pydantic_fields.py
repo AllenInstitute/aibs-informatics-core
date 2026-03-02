@@ -67,6 +67,10 @@ import marshmallow as mm  # noqa: E402
 class PydanticField(mm.fields.Field):
     """Marshmallow field that uses a Pydantic model for validation and (de)serialization"""
 
+    default_error_messages = {
+        "invalid_type": "Expected {expected_type}, got {input_type}: {input!r}. {error}",
+    }
+
     def __init__(self, pydantic_model_cls: Type[BaseModel], *args, **kwargs):
         self.pydantic_model_cls = pydantic_model_cls
         super().__init__(*args, **kwargs)
@@ -77,14 +81,14 @@ class PydanticField(mm.fields.Field):
         if value is None:
             return None
         elif isinstance(value, self.pydantic_model_cls):
-            # if "partial" in kwargs:
-            #     # Remove 'partial' if present, as Pydantic doesn't use it
-            #     partial = kwargs.pop("partial")
-            #     if partial:
-            #         logging.warning(
-            #             "Received 'partial=True' in Marshmallow deserialization, but Pydantic "
-            #             "does not support partial validation. Ignoring 'partial' flag."
-            #         )
+            if "partial" in kwargs:
+                # Remove 'partial' if present, as Pydantic doesn't use it
+                partial = kwargs.pop("partial")
+                if partial:
+                    logging.warning(
+                        "Received 'partial=True' in Marshmallow deserialization, but Pydantic "
+                        "does not support partial validation. Ignoring 'partial' flag."
+                    )
             if isinstance(value, PydanticBaseModel):
                 return value.to_dict(**kwargs)
             return value.model_dump(mode="json", **kwargs)
@@ -114,8 +118,8 @@ class PydanticField(mm.fields.Field):
                             "does not support partial validation. Ignoring 'partial' flag."
                         )
                 if issubclass(self.pydantic_model_cls, PydanticBaseModel):
-                    return self.pydantic_model_cls.from_dict(value, **kwargs)
-                return self.pydantic_model_cls.model_validate(value, **kwargs)
+                    return self.pydantic_model_cls.from_dict(value)
+                return self.pydantic_model_cls.model_validate(value)
             except Exception as e:
                 raise self.make_error(
                     key="invalid_type",
