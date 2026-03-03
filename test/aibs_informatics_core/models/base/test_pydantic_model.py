@@ -265,3 +265,217 @@ def test__PydanticBaseModel__to_path__from_path():
         model.to_path(path)
         new_model = Simple.from_path(path)
     assert new_model == model
+
+
+# ------------------------------------------------------------------
+#                  from_json / to_json
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__to_json():
+    model = Simple(str_value="hello", int_value=42)
+    result = json.loads(model.to_json())
+    assert result == {"str_value": "hello", "int_value": 42}
+
+
+def test__PydanticBaseModel__from_json():
+    raw = json.dumps({"str_value": "hello", "int_value": 42})
+    model = Simple.from_json(raw)
+    assert model == Simple(str_value="hello", int_value=42)
+
+
+def test__PydanticBaseModel__to_json__from_json__roundtrip():
+    original = SimpleNested(
+        empty=Empty(),
+        required_simple=Simple(str_value="rt", int_value=7),
+    )
+    restored = SimpleNested.from_json(original.to_json())
+    assert restored == original
+
+
+# ------------------------------------------------------------------
+#                  camelCase alias handling
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__from_dict__camel_case_keys():
+    """Validation alias allows camelCase input."""
+    model = Simple.from_dict({"strValue": "camel", "intValue": 99})
+    assert model.str_value == "camel"
+    assert model.int_value == 99
+
+
+def test__PydanticBaseModel__from_dict__snake_case_keys():
+    """populate_by_name=True means original field names still work."""
+    model = Simple.from_dict({"str_value": "snake", "int_value": 1})
+    assert model.str_value == "snake"
+    assert model.int_value == 1
+
+
+def test__PydanticBaseModel__to_dict__by_alias():
+    """Serialization with by_alias=True emits camelCase keys."""
+    model = Simple(str_value="a", int_value=1)
+    result = model.to_dict(by_alias=True)
+    assert result == {"strValue": "a", "intValue": 1}
+
+
+# ------------------------------------------------------------------
+#                  extra="ignore" behaviour
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__from_dict__ignores_extra_keys():
+    model = Simple.from_dict({"str_value": "v", "int_value": 0, "unknown_key": "dropped"})
+    assert model.str_value == "v"
+    assert model.int_value == 0
+    assert not hasattr(model, "unknown_key")
+
+
+# ------------------------------------------------------------------
+#                  exclude_none default
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__to_dict__excludes_none_by_default():
+    model = SimpleNested(
+        empty=Empty(),
+        required_simple=Simple(str_value="x", int_value=0),
+        optional_simple=None,
+    )
+    result = model.to_dict()
+    assert "optional_simple" not in result
+
+
+def test__PydanticBaseModel__to_dict__includes_none_when_requested():
+    model = SimpleNested(
+        empty=Empty(),
+        required_simple=Simple(str_value="x", int_value=0),
+        optional_simple=None,
+    )
+    result = model.to_dict(exclude_none=False)
+    assert "optional_simple" in result
+    assert result["optional_simple"] is None
+
+
+# ------------------------------------------------------------------
+#                  as_mm_field (Marshmallow integration)
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__as_mm_field__returns_pydantic_field():
+    from aibs_informatics_core.models.base._pydantic_fields import PydanticField
+
+    mm_field = Simple.as_mm_field()
+    assert isinstance(mm_field, PydanticField)
+    assert mm_field.pydantic_model_cls is Simple
+
+
+def test__PydanticBaseModel__as_mm_field__deserialize():
+    mm_field = Simple.as_mm_field()
+    result = mm_field._deserialize({"str_value": "mm", "int_value": 5}, None, None)
+    assert isinstance(result, Simple)
+    assert result.str_value == "mm"
+    assert result.int_value == 5
+
+
+def test__PydanticBaseModel__as_mm_field__deserialize_camel_case():
+    mm_field = Simple.as_mm_field()
+    result = mm_field._deserialize({"strValue": "camel", "intValue": 3}, None, None)
+    assert isinstance(result, Simple)
+    assert result.str_value == "camel"
+    assert result.int_value == 3
+
+
+def test__PydanticBaseModel__as_mm_field__serialize():
+    mm_field = Simple.as_mm_field()
+    model = Simple(str_value="ser", int_value=10)
+    result = mm_field._serialize(model, None, None)
+    assert result == {"str_value": "ser", "int_value": 10}
+
+
+def test__PydanticBaseModel__as_mm_field__serialize_none():
+    mm_field = Simple.as_mm_field()
+    result = mm_field._serialize(None, None, None)
+    assert result is None
+
+
+def test__PydanticBaseModel__as_mm_field__deserialize_none():
+    mm_field = Simple.as_mm_field()
+    result = mm_field._deserialize(None, None, None)
+    assert result is None
+
+
+def test__PydanticBaseModel__as_mm_field__deserialize_invalid_raises():
+    import marshmallow as mm
+
+    mm_field = Simple.as_mm_field()
+    with pytest.raises(mm.ValidationError):
+        mm_field._deserialize({"str_value": 1, "int_value": 1}, None, None)
+
+
+def test__PydanticBaseModel__as_mm_field__serialize_wrong_type_raises():
+    import marshmallow as mm
+
+    mm_field = Simple.as_mm_field()
+    with pytest.raises(mm.ValidationError):
+        mm_field._serialize("not_a_model", None, None)
+
+
+# ------------------------------------------------------------------
+#                  filter_kwargs (unsupported kwargs silently dropped)
+# ------------------------------------------------------------------
+
+
+def test__PydanticBaseModel__from_dict__ignores_unsupported_kwargs():
+    """Extra kwargs not accepted by model_validate are silently dropped."""
+    model = Simple.from_dict(
+        {"str_value": "ok", "int_value": 1},
+        partial=True,  # not a valid model_validate kwarg
+        infer_missing=True,  # not a valid model_validate kwarg
+    )
+    assert model.str_value == "ok"
+    assert model.int_value == 1
+
+
+def test__PydanticBaseModel__to_dict__ignores_unsupported_kwargs():
+    """Extra kwargs not accepted by model_dump are silently dropped."""
+    model = Simple(str_value="ok", int_value=1)
+    result = model.to_dict(
+        partial=True,  # not a valid model_dump kwarg
+        infer_missing=True,  # not a valid model_dump kwarg
+    )
+    assert result == {"str_value": "ok", "int_value": 1}
+
+
+def test__PydanticBaseModel__from_dict__forwards_supported_kwargs():
+    """Supported kwargs like strict are still forwarded to model_validate."""
+    model = Simple.from_dict(
+        {"str_value": "ok", "int_value": 1},
+        strict=True,
+    )
+    assert model.str_value == "ok"
+    assert model.int_value == 1
+
+
+def test__PydanticBaseModel__to_dict__forwards_supported_kwargs():
+    """Supported kwargs like include/exclude are still forwarded to model_dump."""
+    model = Simple(str_value="ok", int_value=1)
+    result = model.to_dict(include={"str_value"})
+    assert result == {"str_value": "ok"}
+    assert "int_value" not in result
+
+
+def test__PydanticBaseModel__to_dict__mode_and_exclude_none_defaults():
+    """Verify custom defaults (mode='json', exclude_none=True) are applied."""
+    model = SimpleNested(
+        empty=Empty(),
+        required_simple=Simple(str_value="x", int_value=0),
+        optional_simple=None,
+    )
+    result = model.to_dict()
+    # exclude_none=True by default
+    assert "optional_simple" not in result
+
+    # override exclude_none
+    result_with_none = model.to_dict(exclude_none=False)
+    assert "optional_simple" in result_with_none

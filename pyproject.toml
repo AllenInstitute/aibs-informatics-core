@@ -19,20 +19,18 @@ license = { file = "LICENSE" }
 dynamic = ["version"]
 requires-python = ">=3.9"
 dependencies = [
+    # TODO: deprecate the use of marshmallow in favor of pydantic
     "marshmallow~=3.22.0",
+    # TODO: consider removing dataclasses-json in favor of pydantic 
     "dataclasses-json~=0.6.7",
     "pathlib-abc",
+    "pydantic >= 2.0.3, < 3",
     "python-dateutil",
     "pytz",
     "pyyaml~=6.0",
     "requests",
     "typing_inspect",
     "typing-extensions ~= 4.0; python_version < '3.11'",
-]
-
-[project.optional-dependencies]
-pydantic = [
-    "pydantic >= 2.0.3, < 3",
 ]
 
 [dependency-groups]
