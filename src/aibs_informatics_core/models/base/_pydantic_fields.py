@@ -6,6 +6,7 @@ from typing import Annotated, Type
 
 from pydantic import BaseModel, BeforeValidator, PlainSerializer
 
+from aibs_informatics_core.utils.functions import filter_kwargs
 from aibs_informatics_core.utils.time import from_isoformat_8601
 
 
@@ -91,7 +92,9 @@ class PydanticField(mm.fields.Field):
                     )
             if isinstance(value, PydanticBaseModel):
                 return value.to_dict(**kwargs)
-            return value.model_dump(mode="json", **kwargs)
+            filtered_kwargs = filter_kwargs(value.model_dump, kwargs)
+            filtered_kwargs["mode"] = "json"  # Ensure JSON serialization mode for nested models
+            return value.model_dump(**filtered_kwargs)
         else:
             raise self.make_error(
                 key="invalid_type",
