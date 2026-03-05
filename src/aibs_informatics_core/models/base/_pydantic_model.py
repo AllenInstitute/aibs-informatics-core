@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import json
-import sys
-from typing import ClassVar
+from typing import ClassVar, Self
 
 from pydantic import AliasGenerator, ConfigDict
 from pydantic import BaseModel as _PydanticBaseModel
@@ -12,12 +11,6 @@ from aibs_informatics_core.models.base._base_model import ModelBase
 from aibs_informatics_core.models.base._pydantic_fields import PydanticField
 from aibs_informatics_core.utils.functions import filter_kwargs
 from aibs_informatics_core.utils.json import JSONObject
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self  # type: ignore[import-untyped]
-else:
-    from typing import Self
-
 
 # --------------------------------------------------------------
 #                     PydanticModel

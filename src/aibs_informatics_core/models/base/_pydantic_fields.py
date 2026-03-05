@@ -14,7 +14,7 @@ def _parse_isoish_dt(v: str | int | float | datetime.datetime) -> datetime.datet
     """Handle epoch milliseconds, ISO 8601 strings, and plain `datetime` values."""
     # Convert epoch‑milliseconds first
     if isinstance(v, (int, float)):
-        return datetime.datetime.fromtimestamp(v / 1_000, datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(v / 1_000, datetime.UTC)
     # Handle ISO 8601 date‑time strings
 
     # Clean up iso‑format strings that may include a fractional component like ".0"

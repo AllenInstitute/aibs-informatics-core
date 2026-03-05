@@ -12,7 +12,6 @@ __all__ = [
 
 import inspect
 import json
-import sys
 from dataclasses import MISSING as dataclass_MISSING
 from dataclasses import Field, dataclass, fields
 from functools import wraps
@@ -21,27 +20,21 @@ from typing import (
     Any,
     ClassVar,
     Protocol,
+    Self,
     TypeVar,
     cast,
     get_type_hints,
 )
-
-from pydantic import GetCoreSchemaHandler
-from pydantic_core import CoreSchema, core_schema
-
-from aibs_informatics_core.models.base._base_model import ModelBase
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self  # type: ignore[import-untyped]
-else:
-    from typing import Self
 
 import marshmallow as mm
 from dataclasses_json import DataClassJsonMixin, Undefined, config
 from dataclasses_json.core import _ExtendedEncoder
 from marshmallow import post_dump, pre_dump, pre_load, validates_schema
 from marshmallow.decorators import POST_LOAD
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
 
+from aibs_informatics_core.models.base._base_model import ModelBase
 from aibs_informatics_core.models.base.custom_fields import NestedField
 from aibs_informatics_core.models.base.field_utils import FieldProps
 from aibs_informatics_core.utils.decorators import cache
