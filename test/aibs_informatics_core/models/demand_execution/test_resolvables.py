@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple, Type, Union
+from typing import Any
 
 import marshmallow as mm
 from pytest import mark, param, raises
@@ -61,7 +61,7 @@ from test.base import does_not_raise
 )
 def test__StringifiedResolvable__parses_source_and_destination(
     value: str,
-    expected: Optional[Tuple[str, str]],
+    expected: tuple[str, str] | None,
     raises_error,
 ):
     with raises_error:
@@ -112,8 +112,8 @@ def test__StringifiedResolvable__parses_source_and_destination(
 )
 def test__StringifiedResolvable__parses_local_and_remote(
     value: str,
-    cls: Union[StringifiedDownloadable, StringifiedUploadable],
-    expected: Optional[Tuple[str, str]],
+    cls: StringifiedDownloadable | StringifiedUploadable,
+    expected: tuple[str, str] | None,
     raises_error,
 ):
     with raises_error:
@@ -182,7 +182,7 @@ def test__StringifiedResolvable__parses_local_and_remote(
 def test__get_resolvable_from_value__parses_stuff(
     value: Any,
     resolvable_classes: list,
-    expected: Optional[Tuple[str, str]],
+    expected: tuple[str, str] | None,
     raises_error,
 ):
     with raises_error:
@@ -233,11 +233,11 @@ def test__get_resolvable_from_value__parses_stuff(
     ],
 )
 def test__from_any__works_as_intended(
-    resolvable_class: Type[R],
+    resolvable_class: type[R],
     value: Any,
-    default_local: Optional[str],
-    default_remote: Optional[str],
-    expected: Optional[Resolvable],
+    default_local: str | None,
+    default_remote: str | None,
+    expected: Resolvable | None,
     raise_expectation,
 ):
     with raise_expectation:

@@ -1,7 +1,8 @@
 import re
 from dataclasses import dataclass
 from functools import total_ordering
-from typing import ClassVar, Optional, Pattern
+from re import Pattern
+from typing import ClassVar
 
 from aibs_informatics_core.collections import ValidatedStr
 
@@ -10,8 +11,8 @@ from aibs_informatics_core.collections import ValidatedStr
 @dataclass
 class Version:
     major_version: int
-    minor_version: Optional[int] = None
-    revision: Optional[int] = None
+    minor_version: int | None = None
+    revision: int | None = None
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Version):
@@ -68,11 +69,11 @@ class VersionStr(ValidatedStr):
         return self.version.major_version
 
     @property
-    def minor_version(self) -> Optional[int]:
+    def minor_version(self) -> int | None:
         return self.version.minor_version
 
     @property
-    def revision(self) -> Optional[int]:
+    def revision(self) -> int | None:
         return self.version.revision
 
     def __eq__(self, other: object) -> bool:

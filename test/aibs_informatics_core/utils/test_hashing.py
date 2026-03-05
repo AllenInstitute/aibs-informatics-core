@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Pattern, Union
+from re import Pattern
 
 from pytest import mark, param, raises
 
@@ -63,7 +63,7 @@ from test.base import BaseTest, does_not_raise
         ),
     ],
 )
-def test__sha256_hexdigest(value: Optional[JSON], expected: Union[str, Pattern], raises_error):
+def test__sha256_hexdigest(value: JSON | None, expected: str | Pattern, raises_error):
     with raises_error:
         actual = sha256_hexdigest(value)
         actual_again = sha256_hexdigest(value)

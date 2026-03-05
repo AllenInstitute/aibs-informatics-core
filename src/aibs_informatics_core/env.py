@@ -20,7 +20,7 @@ __all__ = [
 
 import re
 from enum import Enum
-from typing import Generic, Literal, Optional, Tuple, Type, TypeVar, Union, overload
+from typing import Generic, Literal, TypeVar, overload
 
 from aibs_informatics_core.collections import StrEnum, ValidatedStr
 from aibs_informatics_core.exceptions import ApplicationException
@@ -58,7 +58,7 @@ class EnvBase(ValidatedStr):
         return self.to_type_and_label()[0]
 
     @property
-    def env_label(self) -> Optional[str]:
+    def env_label(self) -> str | None:
         return self.to_type_and_label()[1]
 
     def get_construct_id(self, *names: str) -> str:
@@ -132,17 +132,17 @@ class EnvBase(ValidatedStr):
         """Write as environnment variable"""
         set_env_var(ENV_BASE_KEY, self)
 
-    def to_type_and_label(self) -> Tuple[EnvType, Optional[str]]:
+    def to_type_and_label(self) -> tuple[EnvType, str | None]:
         env_type, env_label = self.get_match_groups()
         return (EnvType(env_type), env_label)
 
     @classmethod
-    def from_type_and_label(cls: Type[E], env_type: EnvType, env_label: Optional[str] = None) -> E:
+    def from_type_and_label(cls: type[E], env_type: EnvType, env_label: str | None = None) -> E:
         """Returns <env_name>[-<env_label>]"""
         return cls(f"{env_type.value}-{env_label}" if env_label else env_type.value)
 
     @classmethod
-    def from_env(cls: Type[E]) -> E:
+    def from_env(cls: type[E]) -> E:
         """Get value from environment variables
 
         1. Checks for env base variables.
@@ -181,7 +181,7 @@ class EnvBase(ValidatedStr):
         return EnvType(env_type)
 
     @classmethod
-    def load_env_label__from_env(cls) -> Optional[str]:
+    def load_env_label__from_env(cls) -> str | None:
         return get_env_var(ENV_LABEL_KEY, ENV_LABEL_KEY_ALIAS, LABEL_KEY, LABEL_KEY_ALIAS)
 
 
@@ -202,7 +202,7 @@ class EnvBaseMixinsBase(Generic[E]):
             return self._env_base
 
     @env_base.setter
-    def env_base(self, env_base: Optional[E] = None):
+    def env_base(self, env_base: E | None = None):
         """Sets env base
 
         If None is provided, env variables are read to infer env base
@@ -213,7 +213,7 @@ class EnvBaseMixinsBase(Generic[E]):
         self._env_base = get_env_base(env_base, env_base_class=self._env_base_class())
 
     @classmethod
-    def _env_base_class(cls) -> Type[E]:
+    def _env_base_class(cls) -> type[E]:
         return cls.__orig_bases__[0].__args__[0]  # type: ignore
 
 
@@ -224,14 +224,12 @@ class EnvBaseMixinsBase(Generic[E]):
 
 class EnvBaseMixins(EnvBaseMixinsBase[EnvBase]):
     @classmethod
-    def _env_base_class(cls) -> Type[EnvBase]:
+    def _env_base_class(cls) -> type[EnvBase]:
         return EnvBase
 
 
 class EnvBaseEnumMixins:
-    def prefix_with(
-        self, env_base: Optional[E] = None, env_base_class: Optional[Type[E]] = None
-    ) -> str:
+    def prefix_with(self, env_base: E | None = None, env_base_class: type[E] | None = None) -> str:
         env_base_ = get_env_base(env_base, env_base_class)
         if isinstance(self, Enum):
             return env_base_.prefixed(self.value)
@@ -257,7 +255,7 @@ def get_env_base() -> EnvBase: ...
 
 
 @overload
-def get_env_base(env_base: Union[str, EnvBase]) -> EnvBase: ...
+def get_env_base(env_base: str | EnvBase) -> EnvBase: ...
 
 
 @overload
@@ -269,23 +267,23 @@ def get_env_base(env_base: Literal[None], env_base_class: Literal[None]) -> EnvB
 
 
 @overload
-def get_env_base(env_base: Literal[None], env_base_class: Type[E]) -> E: ...
+def get_env_base(env_base: Literal[None], env_base_class: type[E]) -> E: ...
 
 
 @overload
-def get_env_base(env_base: Union[str, E], env_base_class: Type[E]) -> E: ...
+def get_env_base(env_base: str | E, env_base_class: type[E]) -> E: ...
 
 
 @overload
-def get_env_base(env_base: Union[str, E], env_base_class: Literal[None]) -> EnvBase: ...
+def get_env_base(env_base: str | E, env_base_class: Literal[None]) -> EnvBase: ...
 
 
 def get_env_base(
-    env_base: Optional[Union[str, E]] = None,
-    env_base_class: Optional[Type[Union[E, EnvBase]]] = None,
-) -> Union[E, EnvBase]:
+    env_base: str | E | None = None,
+    env_base_class: type[E | EnvBase] | None = None,
+) -> E | EnvBase:
     """Will look for the env_base as an environment variable."""
-    env_base_cls: Type[E] = env_base_class or EnvBase  # type: ignore[assignment]
+    env_base_cls: type[E] = env_base_class or EnvBase  # type: ignore[assignment]
     if env_base:
         if isinstance(env_base, env_base_cls):
             return env_base
@@ -295,9 +293,9 @@ def get_env_base(
 
 
 def get_env_type(
-    env_type: Optional[Union[str, EnvType]] = None,
-    default_env_type: Optional[EnvType] = None,
-    env_base_class: Optional[E] = None,
+    env_type: str | EnvType | None = None,
+    default_env_type: EnvType | None = None,
+    env_base_class: E | None = None,
 ) -> EnvType:
     """Loads EnvType from environment or normalizes input
 
@@ -322,9 +320,9 @@ MISSING = _Missing()
 
 
 def get_env_label(
-    env_label: Union[Optional[str], _Missing] = MISSING,
-    env_base_class: Optional[E] = None,
-) -> Optional[str]:
+    env_label: str | None | _Missing = MISSING,
+    env_base_class: E | None = None,
+) -> str | None:
     """Get Environment label
 
     If not specified, it will be loaded from envirionment (First checking for env base, then label)

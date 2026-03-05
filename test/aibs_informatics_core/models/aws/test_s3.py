@@ -1,7 +1,6 @@
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union
 
 import pytest
 
@@ -589,7 +588,7 @@ def test__S3Key__rtruediv__works(this: S3Key, other, expected, raise_expectation
         ),
     ],
 )
-def test__S3URI__add__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
+def test__S3URI__add__works(this: S3Path, other: str | S3Path, expected: S3Path):
     assert this + other == expected
 
 
@@ -616,7 +615,7 @@ def test__S3URI__add__works(this: S3Path, other: Union[str, S3Path], expected: S
         ),
     ],
 )
-def test__S3URI__truediv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
+def test__S3URI__truediv__works(this: S3Path, other: str | S3Path, expected: S3Path):
     assert this / other == expected
 
 
@@ -643,7 +642,7 @@ def test__S3URI__truediv__works(this: S3Path, other: Union[str, S3Path], expecte
         ),
     ],
 )
-def test__S3URI__floordiv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
+def test__S3URI__floordiv__works(this: S3Path, other: str | S3Path, expected: S3Path):
     assert this // other == expected
 
 
