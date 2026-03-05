@@ -5,8 +5,8 @@ from pathlib import Path
 
 import marshmallow as mm
 import pytest
-from marshmallow.exceptions import ValidationError
 
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI
 from aibs_informatics_core.models.base.custom_fields import (
     CustomAwareDateTime,
@@ -33,7 +33,7 @@ def test__CustomStringField__serialize_works():
     data = dict(attr="abc", another_attr=None)
     assert CustomStringField(CustomString).serialize("attr", data) == "abc"
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         CustomStringField(CustomString, strict_mode=True).serialize("attr", data)
 
     assert CustomStringField(CustomString).serialize("another_attr", data) is None
@@ -48,10 +48,10 @@ def test__CustomAwareDateTime__deserialize_works():
     assert CustomAwareDateTime(format="iso8601").deserialize(data["t1_dt"], "t1_dt", data) == t1
     assert CustomAwareDateTime(format="iso8601").deserialize(data["t1_str"], "t1_str", data) == t1
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         assert CustomAwareDateTime(format="iso8601").deserialize(data["t2_dt"], "t2_dt", data)
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         assert CustomAwareDateTime(format="iso8601").deserialize(data["t2_str"], "t2_str", data)
 
 
@@ -63,7 +63,7 @@ def test__UnionField__deserialize_tests():
     assert uf.deserialize(None, "my_optional", data) is None
     assert uf.deserialize(data["my_int"], "my_int", data) == 123
     assert uf.deserialize(data["my_int"], "my_int", data) == 123
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         uf.deserialize(data["my_bool"], "my_bool", data)
 
 
@@ -76,7 +76,7 @@ def test__UnionField__serialize():
     assert uf.serialize("my_str", data) == "abc"
     assert uf.serialize("my_int", data) == 123
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         uf.serialize("my_list", data)
 
 
@@ -93,9 +93,9 @@ def test__EnumField__serialize():
 
     assert ef.serialize("my_enum", data) == "foo"
     assert ef.serialize("missing", data) is None
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         ef.serialize("my_str", data)
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         ef.serialize("my_enum", dict(my_enum="not a valid enum"))
 
 
@@ -107,7 +107,7 @@ def test__EnumField__deserialize():
     assert ef.deserialize(ClassEnum.FOO, "my_enum", data) == ClassEnum.FOO
     assert ef.deserialize("foo", "my_str", data) == ClassEnum.FOO
     assert ef.deserialize(None, "missing", data) is None
-    with pytest.raises(ValidationError):
+    with pytest.raises(mm.ValidationError):
         ef.deserialize("not a valid enum", "my_enum", data)
 
 
@@ -147,7 +147,7 @@ def test__FrozenSetField__serialize_deserialize():
             {"uid": "im the wrong type"},
             # raise_expectation
             pytest.raises(
-                ValidationError,
+                mm.ValidationError,
                 match=(
                     r"'im the wrong type' \(type: <class 'str'>\) is not a "
                     r"<class '(.*).UniqueID'> type!"
@@ -175,7 +175,7 @@ def test__FrozenSetField__serialize_deserialize():
             {"uid": S3URI.build("bucket", "key")},
             # raise_expectation
             pytest.raises(
-                ValidationError,
+                mm.ValidationError,
                 match=(
                     r"'(.+)' \(type: <class '(.+)'>\) is not a " r"<class '(.*).UniqueID'> type!"
                 ),
@@ -229,7 +229,7 @@ def test_unique_id_field_serialize(uid_field, input_value, raise_expectation, ex
             # input_value
             {"uid": "im_not_a_valid_uuid"},
             # raise_expectation,
-            pytest.raises(mm.ValidationError, match=r"(.+) is not a valid (.+) \(uuid4\)!"),
+            pytest.raises(ValidationError, match=r"(.+) is not a valid (.+) \(uuid4\)!"),
             # expected
             None,
             id="Trying to deserialize an invalid input fails",
@@ -254,14 +254,14 @@ def test_unique_id_field_deserialize(uid_field, input_value, raise_expectation, 
             # input_value
             "2022-03-11 08:23:51.248794",
             # raise_expectation
-            pytest.raises(ValidationError, match="Not a valid aware datetime"),
+            pytest.raises(mm.ValidationError, match="Not a valid aware datetime"),
             # expected
             None,
             id="Not timezone aware str not in iso8601",
         ),
         pytest.param(
             "2022-03-11T08:23:51.248794",
-            pytest.raises(ValidationError, match="Not a valid aware datetime"),
+            pytest.raises(mm.ValidationError, match="Not a valid aware datetime"),
             None,
             id="Not timezone aware str in iso8601",
         ),
@@ -279,7 +279,7 @@ def test_unique_id_field_deserialize(uid_field, input_value, raise_expectation, 
         ),
         pytest.param(
             dt.datetime(2022, 3, 11, 8, 23, 51, 248794),
-            pytest.raises(ValidationError, match="Not a valid aware datetime"),
+            pytest.raises(mm.ValidationError, match="Not a valid aware datetime"),
             None,
             id="Timezone naive datetime as input",
         ),

@@ -37,23 +37,8 @@ from typing import (
     cast,
 )
 
-try:
-    from pydantic import GetCoreSchemaHandler
-    from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
-
-    class PydanticStrMixin:  # type: ignore  # Complains about duplicate class definition, but this is intentional
-        """Mixin for Pydantic models that provides a custom CoreSchema for string validation."""
-
-        @classmethod
-        def __get_pydantic_core_schema__(
-            cls, source_type: object, handler: GetCoreSchemaHandler
-        ) -> CoreSchema:
-            return no_info_after_validator_function(cls, handler(str))
-except ModuleNotFoundError:  # pragma: no cover
-
-    class PydanticStrMixin:  # type: ignore  # Stub for PydanticStrMixin when Pydantic is not available
-        pass
-
+from pydantic import GetCoreSchemaHandler
+from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
 
 from aibs_informatics_core.exceptions import ValidationError
 
@@ -169,6 +154,16 @@ class PostInitMixin:
             pass
         else:
             post_init(*args, **kwargs)
+
+
+class PydanticStrMixin:
+    """Mixin for Pydantic models that provides a custom CoreSchema for string validation."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: object, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return no_info_after_validator_function(lambda x: cls(x), handler(str))  # type: ignore[call-arg] # Mixin is intended to be used with string subclasses, so this will work as long as the subclass can be instantiated with a single string argument.
 
 
 class ValidatedStr(str, PostInitMixin, PydanticStrMixin):

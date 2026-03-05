@@ -1,10 +1,11 @@
 import os
 import uuid
 
-import marshmallow as mm
 import pytest
 from aibs_informatics_test_resources import reset_environ_after_test
 
+from aibs_informatics_core.exceptions import ValidationError
+from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 from aibs_informatics_core.models.unique_ids import UniqueID
 from test.base import does_not_raise
 
@@ -42,7 +43,7 @@ from test.base import does_not_raise
             # expected_as_uuid
             None,
             # raise_expectation
-            pytest.raises(mm.ValidationError, match=r"(.+) is not a valid (.+) \(uuid4\)!"),
+            pytest.raises(ValidationError, match=r"(.+) is not a valid (.+) \(uuid4\)!"),
             id="Test invalid uuid4 as instantiation input",
         ),
     ],
@@ -86,3 +87,14 @@ def test__UniqueID__as_mm_field():
     uuid_str = "e31ed78e-f165-4bf6-9236-dc4a877c20c0"
     uuid_obj = UniqueID(uuid_str)
     assert field.deserialize(uuid_str) == uuid_obj
+
+
+def test__UniqueID__pydantic_core_schema():
+    class TestModel(PydanticBaseModel):
+        unique_id: UniqueID
+
+    uuid_str = "e31ed78e-f165-4bf6-9236-dc4a877c20c0"
+    model = TestModel.from_dict({"unique_id": uuid_str})
+    assert isinstance(model.unique_id, UniqueID)
+    assert model.unique_id == uuid_str
+    assert model.unique_id.as_uuid() == uuid.UUID(uuid_str, version=4)
