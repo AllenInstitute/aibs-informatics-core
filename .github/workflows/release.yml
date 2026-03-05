@@ -142,3 +142,18 @@ jobs:
           path: dist/
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [bump, publish-to-pypi]
+    if: ${{ github.event.inputs.dry-run == 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.bump.outputs.VERSION_TAG }}
+          name: ${{ needs.bump.outputs.VERSION_TAG }}
+          generate_release_notes: true
