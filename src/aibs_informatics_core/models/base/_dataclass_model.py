@@ -123,7 +123,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
         if hasattr(source_type, "__dataclass_fields__"):
             try:
                 type_hints = get_type_hints(source_type)
-                td_fields: Dict[str, Any] = {}
+                td_fields: dict[str, Any] = {}
                 for f in fields(source_type):
                     if f.name.startswith("_"):
                         continue
@@ -138,7 +138,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
                         f.default is dataclass_MISSING
                         and f.default_factory is dataclass_MISSING
                     )
-                    td_field_kwargs: Dict[str, Any] = {}
+                    td_field_kwargs: dict[str, Any] = {}
                     if not is_required:
                         td_field_kwargs["required"] = False
                     td_fields[f.name] = core_schema.typed_dict_field(
