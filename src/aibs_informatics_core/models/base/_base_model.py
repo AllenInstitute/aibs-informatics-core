@@ -9,14 +9,8 @@ __all__ = [
 
 import abc
 import json
-import sys
 from pathlib import Path
-from typing import Protocol, TypeVar, runtime_checkable
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self  # type: ignore[import-untyped]
-else:
-    from typing import Self
+from typing import Protocol, Self, TypeVar, runtime_checkable
 
 import yaml  # type: ignore[import-untyped]
 from marshmallow import post_dump, pre_dump, pre_load, validates_schema

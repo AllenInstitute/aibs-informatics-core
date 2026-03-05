@@ -22,7 +22,6 @@ __all__ = [
 ]
 
 import re
-import sys
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
@@ -34,6 +33,7 @@ from typing import (
     ClassVar,
     Generic,
     Literal,
+    NotRequired,
     Protocol,
     TypedDict,
     TypeVar,
@@ -41,15 +41,11 @@ from typing import (
 )
 from urllib.parse import quote
 
-from aibs_informatics_core.exceptions import ValidationError
-
-if sys.version_info >= (3, 11):
-    from typing import NotRequired
-
 import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
 
 from aibs_informatics_core.collections import OrderedStrEnum, ValidatedStr
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.base import CustomStringField, EnumField
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -61,24 +57,10 @@ else:
     S3_Object = object
 
 
-if sys.version_info >= (3, 11):
-
-    class BucketAndKey(TypedDict):
-        Bucket: str
-        Key: str
-        VersionId: NotRequired[str]
-
-else:  # pragma: no cover
-
-    class _BucketAndKeyOpt(TypedDict, total=False):
-        VersionId: str
-
-    class _BucketAndKeyReq(TypedDict):
-        Bucket: str
-        Key: str
-
-    class BucketAndKey(_BucketAndKeyReq, _BucketAndKeyOpt):
-        pass
+class BucketAndKey(TypedDict):
+    Bucket: str
+    Key: str
+    VersionId: NotRequired[str]
 
 
 @dataclass
