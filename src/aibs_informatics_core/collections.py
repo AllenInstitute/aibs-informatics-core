@@ -38,7 +38,7 @@ from typing import (
 )
 
 from pydantic import GetCoreSchemaHandler
-from pydantic_core.core_schema import CoreSchema, no_info_plain_validator_function
+from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
 
 from aibs_informatics_core.exceptions import ValidationError
 
@@ -156,7 +156,17 @@ class PostInitMixin:
             post_init(*args, **kwargs)
 
 
-class ValidatedStr(str, PostInitMixin):
+class PydanticStrMixin:
+    """Mixin for Pydantic models that provides a custom CoreSchema for string validation."""
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: object, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return no_info_after_validator_function(lambda x: cls(x), handler(str))  # type: ignore[call-arg] # Mixin is intended to be used with string subclasses, so this will work as long as the subclass can be instantiated with a single string argument.
+
+
+class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
     regex_pattern: ClassVar[Pattern]
     min_len: ClassVar[Optional[int]] = None
     max_len: ClassVar[Optional[int]] = None
@@ -185,13 +195,6 @@ class ValidatedStr(str, PostInitMixin):
     def __post_init__(self, *args, **kwargs):
         super().__post_init__(*args, **kwargs)
         self._validate()
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type: object, handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        """Pydantic v2 CoreSchema method to enable use of ValidatedStr subclasses as types in Pydantic models."""  # noqa: E501
-        return no_info_plain_validator_function(lambda x: cls(x))
 
     @classmethod
     def _sanitize(cls, value: str, *args, **kwargs) -> str:
