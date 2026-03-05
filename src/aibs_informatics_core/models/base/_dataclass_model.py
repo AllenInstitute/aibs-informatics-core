@@ -114,7 +114,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
         return value is dataclass_MISSING or value is MISSING or value is ...
 
     @classmethod
-    def __get_pydantic_core_schema__(
+    def __get_pydantic_core_schema__( # noqa: C901
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> CoreSchema:
         # 1. Define how to turn incoming data into an instance
@@ -130,10 +130,41 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
                 return cls.from_json(value)
             raise ValueError(f"Cannot convert {type(value)} to {cls.__name__}")
 
-        # 2. Build the core schema
+        # 2. Build a typed-dict schema from dataclass fields for JSON schema generation
+        json_input_schema: CoreSchema = core_schema.dict_schema()
+        if hasattr(source_type, "__dataclass_fields__"):
+            try:
+                type_hints = get_type_hints(source_type)
+                td_fields: Dict[str, Any] = {}
+                for f in fields(source_type):
+                    if f.name.startswith("_"):
+                        continue
+                    field_type = type_hints.get(f.name)
+                    if field_type is None:
+                        continue
+                    try:
+                        field_schema = handler(field_type)
+                    except Exception:
+                        field_schema = core_schema.any_schema()
+                    is_required = (
+                        f.default is dataclass_MISSING
+                        and f.default_factory is dataclass_MISSING
+                    )
+                    td_field_kwargs: Dict[str, Any] = {}
+                    if not is_required:
+                        td_field_kwargs["required"] = False
+                    td_fields[f.name] = core_schema.typed_dict_field(
+                        schema=field_schema,
+                        **td_field_kwargs,
+                    )
+                json_input_schema = core_schema.typed_dict_schema(td_fields)
+            except Exception:
+                pass  # Fall back to generic dict schema
+
+        # 3. Build the core schema
         return core_schema.no_info_plain_validator_function(
             validate,
-            # 3. Define how to serialize it back out
+            # 4. Define how to serialize it back out
             serialization=core_schema.plain_serializer_function_ser_schema(
                 # Use your custom to_dict method for serialization
                 lambda instance: instance.to_dict(),
@@ -141,6 +172,8 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
                 # Tell Pydantic to treat the serialized output as a dictionary
                 return_schema=core_schema.dict_schema(),
             ),
+            # 5. Provide structured schema for JSON schema generation
+            json_schema_input_schema=json_input_schema,
         )
 
 
