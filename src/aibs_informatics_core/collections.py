@@ -37,23 +37,8 @@ from typing import (
     cast,
 )
 
-try:
-    from pydantic import GetCoreSchemaHandler
-    from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
-
-    class PydanticStrMixin:  # type: ignore  # Complains about duplicate class definition, but this is intentional
-        """Mixin for Pydantic models that provides a custom CoreSchema for string validation."""
-
-        @classmethod
-        def __get_pydantic_core_schema__(
-            cls, source_type: object, handler: GetCoreSchemaHandler
-        ) -> CoreSchema:
-            return no_info_after_validator_function(cls, handler(str))
-except ModuleNotFoundError:  # pragma: no cover
-
-    class PydanticStrMixin:  # type: ignore  # Stub for PydanticStrMixin when Pydantic is not available
-        pass
-
+from pydantic import GetCoreSchemaHandler
+from pydantic_core.core_schema import CoreSchema, no_info_plain_validator_function
 
 from aibs_informatics_core.exceptions import ValidationError
 
@@ -171,7 +156,7 @@ class PostInitMixin:
             post_init(*args, **kwargs)
 
 
-class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
+class ValidatedStr(str, PostInitMixin):
     regex_pattern: ClassVar[Pattern]
     min_len: ClassVar[Optional[int]] = None
     max_len: ClassVar[Optional[int]] = None
@@ -200,6 +185,13 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
     def __post_init__(self, *args, **kwargs):
         super().__post_init__(*args, **kwargs)
         self._validate()
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: object, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        """Pydantic v2 CoreSchema method to enable use of ValidatedStr subclasses as types in Pydantic models."""  # noqa: E501
+        return no_info_plain_validator_function(lambda x: cls(x))
 
     @classmethod
     def _sanitize(cls, value: str, *args, **kwargs) -> str:

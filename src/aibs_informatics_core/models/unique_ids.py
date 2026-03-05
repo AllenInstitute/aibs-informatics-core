@@ -2,6 +2,8 @@ import uuid
 from typing import ClassVar, List, Optional, Type, TypeVar, Union
 
 import marshmallow as mm
+from pydantic import GetCoreSchemaHandler
+from pydantic_core.core_schema import CoreSchema, no_info_plain_validator_function
 
 from aibs_informatics_core.models.base import CustomStringField
 from aibs_informatics_core.utils.hashing import uuid_str
@@ -46,3 +48,9 @@ class UniqueID(str):
                 f"Could not find environment variable for {cls} given ENV VARS: {cls.ENV_VARS}"
             )
         return cls(env_var)
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: object, handler: GetCoreSchemaHandler
+    ) -> CoreSchema:
+        return no_info_plain_validator_function(lambda x: cls(x))
