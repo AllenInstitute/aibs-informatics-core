@@ -77,7 +77,6 @@ class ModelBase:
     @classmethod
     def from_path(cls, path: Path, **kwargs) -> Self:
         if path.suffix in (".yml", ".yaml"):
-            path.read_text()
             with open(path) as f:
                 return cls.from_dict(yaml.safe_load(f), **kwargs)
         else:
