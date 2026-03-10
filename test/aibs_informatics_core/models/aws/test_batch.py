@@ -1,7 +1,7 @@
-from marshmallow import ValidationError as MarshmallowValidationError
 from pytest import mark, param, raises
 from test.base import does_not_raise
 
+# from pydantic import ValidationError
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.batch import (
     AttemptContainerDetail,
@@ -140,7 +140,7 @@ def test__BatchJobDetail__from_dict():
 
 
 def test__from_dict__invalid_container_type():
-    with raises(MarshmallowValidationError):
+    with raises(ValidationError):
         BatchJobDetail.from_dict(
             dict(
                 jobDefinition="asdf",

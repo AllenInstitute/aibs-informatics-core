@@ -5,5 +5,5 @@ class ApplicationException(Exception):
     """Generic Exception for Application Errors"""
 
 
-class ValidationError(ApplicationException, ValueError):
+class ValidationError(ValueError):
     """Generic validation error class"""

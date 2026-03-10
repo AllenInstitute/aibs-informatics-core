@@ -6,47 +6,22 @@ __all__ = [
 ]
 
 import re
-from dataclasses import dataclass
 from re import Pattern
 from typing import Any, ClassVar, Union, cast
 
 from aibs_informatics_core.collections import ValidatedStr
-from aibs_informatics_core.models.base import (
-    CustomStringField,
-    ListField,
-    RawField,
-    SchemaModel,
-    UnionField,
-    custom_field,
-)
+from aibs_informatics_core.models.base import PydanticBaseModel
 
 
-@dataclass
-class AttributeBaseExpression(SchemaModel):
+class AttributeBaseExpression(PydanticBaseModel):
     attr_class: str
-    attr_name: Any = custom_field(mm_field=RawField())
+    attr_name: Any
 
 
-@dataclass
-class ConditionBaseExpression(SchemaModel):
-    format: str = custom_field(mm_field=CustomStringField(str, strict_mode=True))
-    operator: str = custom_field(mm_field=CustomStringField(str, strict_mode=True))
-    # type: ignore[misc] # https://github.com/python/mypy/issues/731
-    values: list[Union["ConditionBaseExpression", AttributeBaseExpression, Any]] = custom_field(
-        mm_field=ListField(
-            UnionField(
-                [
-                    (
-                        lambda: ConditionBaseExpression,
-                        lambda: ConditionBaseExpression.as_mm_field(),
-                    ),
-                    (AttributeBaseExpression, AttributeBaseExpression.as_mm_field()),
-                    ((str, bool, int), RawField()),
-                    ((list, set), ListField(RawField())),
-                ]
-            )
-        )
-    )
+class ConditionBaseExpression(PydanticBaseModel):
+    format: str
+    operator: str
+    values: list[Union["ConditionBaseExpression", AttributeBaseExpression, Any]]
 
 
 class ConditionBaseExpressionString(ValidatedStr):
@@ -78,7 +53,9 @@ class ConditionBaseExpressionString(ValidatedStr):
     def condition_values(  # noqa: C901
         self,
     ) -> list[ConditionBaseExpression | AttributeBaseExpression | Any]:
-        condition_values = [AttributeBaseExpression("Attr", self.condition_name)]
+        condition_values = [
+            AttributeBaseExpression(attr_class="Attr", attr_name=self.condition_name)
+        ]
         value = self.get_match_groups()[2]
 
         def is_enclosed(s: str, b: str, e: str) -> bool:

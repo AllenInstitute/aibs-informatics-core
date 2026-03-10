@@ -13,18 +13,19 @@ __all__ = [
 import re
 from abc import abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass
 from enum import Enum
 from re import Pattern
 from typing import Any, ClassVar, Generic, TypeVar
 
-import marshmallow as mm
+from pydantic import SerializerFunctionWrapHandler, model_serializer, model_validator
+from pydantic import ValidationError as PydanticValidationError
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI
-from aibs_informatics_core.models.base import SchemaModel, custom_field
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.utils.hashing import sha256_hexdigest
+from aibs_informatics_core.utils.json import JSON
 
 ACTION_PATTERN = " @ "
 URI_PATTERN = r"(?:\w+:)?(?:\/?\/?)[^\s]+"
@@ -114,10 +115,9 @@ class ResolvableAction(str, Enum):
 
 # TODO: rename to rename resolvable subclasses to uploadable
 #       Also add action and maybe a type field (s3, gfs, etc.)
-@dataclass  # type: ignore[misc] # mypy #5374
-class ResolvableBase(SchemaModel, Generic[T]):
-    local: str = custom_field()
-    remote: T = custom_field()
+class ResolvableBase(PydanticBaseModel, Generic[T]):
+    local: str
+    remote: T
 
     @classmethod
     def get_action(cls) -> ResolvableAction:
@@ -125,7 +125,17 @@ class ResolvableBase(SchemaModel, Generic[T]):
 
     @classmethod
     def get_resolvable_type(cls: type[RESOLVABLE]) -> type[T]:
-        return cls.__orig_bases__[0].__args__[0]  # type: ignore[attr-defined]
+        # Use the concrete annotation on the 'remote' field rather than
+        # __orig_bases__, which Pydantic v2's metaclass can strip __args__ from.
+        annotation = cls.model_fields["remote"].annotation
+        if annotation is not None and not isinstance(annotation, TypeVar):
+            return annotation  # type: ignore[return-value]
+        # Fallback: walk __orig_bases__ looking for a parameterised generic
+        for base in getattr(cls, "__orig_bases__", ()):
+            args = getattr(base, "__args__", None)
+            if args:
+                return args[0]
+        raise TypeError(f"Could not determine resolvable type for {cls}")
 
     @classmethod
     def from_any(
@@ -137,11 +147,13 @@ class ResolvableBase(SchemaModel, Generic[T]):
         if isinstance(value, cls):
             return value
         elif isinstance(value, dict):
-            obj = cls.from_dict(value, partial=True)
-            if obj.local is None or cls.is_missing(obj.local):
-                if default_local is None:
-                    raise ValueError(f"Local is None for {value}. No default provided")
-                obj.local = default_local
+            defaults = {}
+            if default_local is not None:
+                defaults["local"] = default_local
+            if default_remote is not None:
+                defaults["remote"] = default_remote
+            value = {**defaults, **value}
+            obj = cls.from_dict(value)
             obj.remote = obj.remote or default_remote
             obj.to_dict(validate=True)
             return obj
@@ -183,15 +195,17 @@ class ResolvableBase(SchemaModel, Generic[T]):
                 source=self.local, destination=self.remote
             )
 
-    @classmethod
-    @mm.post_dump
-    def _post_dump__inject_action(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
-        data["action"] = cls.get_action()
+    @model_serializer(mode="wrap")
+    def _model_serializer__inject_action(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, JSON]:
+        data = handler(self)
+        data["action"] = self.get_action()
         return data
 
+    @model_validator(mode="before")
     @classmethod
-    @mm.pre_load
-    def _pre_load__pop_action(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
+    def _model_validator__pop_action(cls, data: dict[str, Any]) -> dict[str, Any]:
         if "action" in data:
             assert data["action"] == cls.get_action()
             del data["action"]
@@ -230,25 +244,22 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[type[R]])
     for resolvable_class in resolvable_classes:
         try:
             return resolvable_class.from_any(value)
-        except (mm.ValidationError, ValidationError, ValueError) as e:
+        except (PydanticValidationError, ValidationError, ValueError) as e:
             errors[resolvable_class.__name__] = e
     else:
-        raise mm.ValidationError(
+        raise ValidationError(
             {**{"ALL": f"Could not create any {resolvable_classes} from {value}"}, **errors}, "n/a"
         )
 
 
-@dataclass
 class Resolvable(ResolvableBase[str]):
-    remote: str = custom_field()
+    remote: str
 
 
-@dataclass
 class S3Resolvable(ResolvableBase[S3URI]):
-    remote: S3URI = custom_field(mm_field=S3URI.as_mm_field())
+    remote: S3URI
 
 
-@dataclass
 class Uploadable(Resolvable):
     @classmethod
     def get_action(cls) -> ResolvableAction:

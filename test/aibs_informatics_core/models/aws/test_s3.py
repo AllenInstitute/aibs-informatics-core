@@ -24,8 +24,6 @@ from aibs_informatics_core.models.aws.s3 import (
     S3UploadRequest,
     S3UploadResponse,
 )
-from aibs_informatics_core.models.base import CustomStringField
-from aibs_informatics_core.models.base.custom_fields import EnumField
 
 
 def test__S3PathStats__getitem__works():
@@ -650,10 +648,6 @@ def test__S3URI__as_dict__works():
     assert S3Path("s3://my-bucket/my-key").as_dict() == {"Bucket": "my-bucket", "Key": "my-key"}
 
 
-def test__S3URI__as_mm_field__works():
-    assert isinstance(S3Path("s3://my-bucket/my-key").as_mm_field(), CustomStringField)
-
-
 def test__S3URI__with_folder_suffix__works():
     this = S3Path("s3://my-bucket/my-key")
     expected = S3Path("s3://my-bucket/my-key/")
@@ -744,10 +738,6 @@ def test__list_transitionable_storage_classes__works():
 
 def test__list_archive_storage_classes__works():
     assert S3StorageClass.GLACIER in S3StorageClass.list_archive_storage_classes()
-
-
-def test__S3StorageClass__as_mm_field__works():
-    assert isinstance(S3StorageClass.as_mm_field(), EnumField)
 
 
 def test__S3RestoreStatus__works():

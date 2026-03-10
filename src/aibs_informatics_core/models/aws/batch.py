@@ -1,54 +1,46 @@
 import re
-from dataclasses import dataclass
+
+from pydantic import Field
 
 from aibs_informatics_core.collections import ValidatedStr
-from aibs_informatics_core.models.base import IntegerField, ListField, SchemaModel, custom_field
+from aibs_informatics_core.models.base import PydanticBaseModel
 
 
 class JobName(ValidatedStr):
     regex_pattern = re.compile(r"([a-zA-Z0-9][\w_-]{0,127})")
 
 
-@dataclass
-class ResourceRequirements(SchemaModel):
-    GPU: int | None = custom_field(mm_field=IntegerField(strict=False), default=None)
-    MEMORY: int | None = custom_field(mm_field=IntegerField(strict=False), default=None)
-    VCPU: int | None = custom_field(mm_field=IntegerField(strict=False), default=None)
+class ResourceRequirements(PydanticBaseModel):
+    GPU: int | None = None
+    MEMORY: int | None = None
+    VCPU: int | None = None
 
 
-@dataclass
-class KeyValuePairType(SchemaModel):
+class KeyValuePairType(PydanticBaseModel):
     Name: str
     Value: str
 
 
-@dataclass
-class ContainerDetail(SchemaModel):
-    Image: str = custom_field()
-    Environment: list[KeyValuePairType] = custom_field(
-        mm_field=ListField(KeyValuePairType.as_mm_field())
-    )
-    ContainerInstanceArn: str = custom_field()
-    TaskArn: str = custom_field()
+class ContainerDetail(PydanticBaseModel):
+    Image: str
+    Environment: list[KeyValuePairType]
+    ContainerInstanceArn: str
+    TaskArn: str
 
 
-@dataclass
-class AttemptContainerDetail(SchemaModel):
-    ContainerInstanceArn: str | None = custom_field(default=None)
-    TaskArn: str | None = custom_field(default=None)
-    ExitCode: int | None = custom_field(default=None)
-    Reason: str | None = custom_field(default=None)
-    LogStreamName: str | None = custom_field(default=None)
+class AttemptContainerDetail(PydanticBaseModel):
+    ContainerInstanceArn: str | None = None
+    TaskArn: str | None = None
+    ExitCode: int | None = None
+    Reason: str | None = None
+    LogStreamName: str | None = None
 
 
-@dataclass
-class AttemptDetail(SchemaModel):
-    Container: AttemptContainerDetail | None = custom_field(
-        mm_field=AttemptContainerDetail.as_mm_field(), default=None
-    )
-    StartedAt: int | None = custom_field(default=None)
-    StoppedAt: int | None = custom_field(default=None)
-    StatusReason: str | None = custom_field(default=None)
+class AttemptDetail(PydanticBaseModel):
+    Container: AttemptContainerDetail | None = None
+    StartedAt: int | None = None
+    StoppedAt: int | None = None
+    StatusReason: str | None = None
 
     @property
     def duration(self) -> int | None:
@@ -69,29 +61,24 @@ class AttemptDetail(SchemaModel):
         return None
 
 
-@dataclass
-class BatchJobDetail(SchemaModel):
-    JobName: str = custom_field()
-    JobId: str = custom_field()
-    JobQueue: str = custom_field()
-    Status: str = custom_field()
-    StartedAt: int = custom_field()
-    JobDefinition: str = custom_field()
+class BatchJobDetail(PydanticBaseModel):
+    JobName: str
+    JobId: str
+    JobQueue: str
+    Status: str
+    StartedAt: int
+    JobDefinition: str
 
     # Optional
-    JobArn: str | None = custom_field(default=None, repr=False)
-    StatusReason: str | None = custom_field(default=None, repr=False)
-    Attempts: list[AttemptDetail] = custom_field(
-        mm_field=ListField(AttemptDetail.as_mm_field()), default_factory=list, repr=False
-    )
-    Container: ContainerDetail | None = custom_field(
-        mm_field=ContainerDetail.as_mm_field(), default=None, repr=False
-    )
-    Parameters: dict[str, str] = custom_field(default_factory=dict, repr=False)
-    CreatedAt: int | None = custom_field(default=None, repr=False)
-    StoppedAt: int | None = custom_field(default=None, repr=False)
-    IsCancelled: bool | None = custom_field(default=None, repr=False)
-    IsTerminated: bool | None = custom_field(default=None, repr=False)
+    JobArn: str | None = Field(default=None, repr=False)
+    StatusReason: str | None = Field(default=None, repr=False)
+    Attempts: list[AttemptDetail] = Field(default_factory=list, repr=False)
+    Container: ContainerDetail | None = Field(default=None, repr=False)
+    Parameters: dict[str, str] = Field(default_factory=dict, repr=False)
+    CreatedAt: int | None = Field(default=None, repr=False)
+    StoppedAt: int | None = Field(default=None, repr=False)
+    IsCancelled: bool | None = Field(default=None, repr=False)
+    IsTerminated: bool | None = Field(default=None, repr=False)
 
     @property
     def duration(self) -> int | None:
