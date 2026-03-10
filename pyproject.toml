@@ -19,10 +19,6 @@ license = { file = "LICENSE" }
 dynamic = ["version"]
 requires-python = ">=3.11"
 dependencies = [
-    # TODO: deprecate the use of marshmallow in favor of pydantic
-    "marshmallow~=3.22.0",
-    # TODO: consider removing dataclasses-json in favor of pydantic 
-    "dataclasses-json~=0.6.7",
     "pathlib-abc",
     "pydantic >= 2.0.3, < 3",
     "python-dateutil",
@@ -30,14 +26,11 @@ dependencies = [
     "pyyaml~=6.0",
     "requests",
     "typing_inspect",
-    "typing-extensions ~= 4.0; python_version < '3.11'",
 ]
 
 [dependency-groups]
 
 dev = [
-    # Need to include core with pydantic extra here to ensure it's installed in dev envs
-    "aibs-informatics-core[pydantic]",
     "aibs-informatics-test-resources~=0.1",
     { include-group = 'linting' },
     { include-group = 'typing' },
