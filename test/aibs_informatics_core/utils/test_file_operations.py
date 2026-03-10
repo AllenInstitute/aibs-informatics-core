@@ -260,7 +260,7 @@ class FileOperationsTests(FileOperationsBaseTest):
         self.assertIn(str(root / "sub"), result)
         self.assertIn(str(root / "sub" / "c.txt"), result)
 
-    def test__find_paths__returns_only_files(self):
+    def test__find_paths__returns_only_dirs(self):
         root = self.tmp_path()
         self.create_dir(root, ["a.txt", "sub/b.txt"])
         result = find_paths(root, include_dirs=True, include_files=False)
@@ -268,7 +268,7 @@ class FileOperationsTests(FileOperationsBaseTest):
         self.assertNotIn(str(root / "a.txt"), result)
         self.assertNotIn(str(root / "sub" / "b.txt"), result)
 
-    def test__find_paths__returns_only_dirs(self):
+    def test__find_paths__returns_only_files(self):
         root = self.tmp_path()
         self.create_dir(root, ["a.txt", "sub/b.txt"])
         result = find_paths(root, include_dirs=False, include_files=True)

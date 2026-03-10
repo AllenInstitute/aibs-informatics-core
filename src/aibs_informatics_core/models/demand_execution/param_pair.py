@@ -51,9 +51,10 @@ def _coerce_to_frozenset(v: Any) -> frozenset[str]:
         return v
     if isinstance(v, (set, list, tuple)):
         return frozenset(v)
-    if isinstance(v, dict):
-        return frozenset()
-    return frozenset(v)
+    # If it is an iterable that is not a string, convert to frozenset
+    if isinstance(v, Iterable) and not isinstance(v, str):
+        return frozenset(v)
+    raise TypeError(f"Value {v} cannot be coerced to frozenset[str]")
 
 
 class ParamSetPair(PydanticBaseModel):

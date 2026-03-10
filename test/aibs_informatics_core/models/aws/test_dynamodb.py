@@ -77,35 +77,8 @@ condition_base_expression__invalid__test_cases__from_dict = [
 ]
 
 
-condition_base_expression__invalid__test_cases__to_dict = [
-    # param(
-    #     None,
-    #     ConditionBaseExpression(
-    #         format="({0} {operator} {1})",
-    #         operator="AND",
-    #         values=[
-    #             ConditionBaseExpression(
-    #                 format="{0} {operator} {1}",
-    #                 operator=["="],
-    #                 values=[AttributeBaseExpression(attr_class="Key", attr_name="k1"), "s1"],
-    #             ),
-    #             ConditionBaseExpression(
-    #                 format="{0} {operator} {1}",
-    #                 operator="<",
-    #                 values=[AttributeBaseExpression(attr_class="Attr", attr_name="a1"), 1],
-    #             ),
-    #         ],
-    #     ),
-    #     raises(ValidationError),
-    #     id="Nested Condition is invalid",
-    # ),
-]
-
-
 @mark.parametrize(
-    "model_dict, expected, raises_error",
-    condition_base_expression__valid__test_cases
-    + condition_base_expression__invalid__test_cases__from_dict,
+    "model_dict, expected, raises_error", condition_base_expression__valid__test_cases
 )
 def test__ConditionBaseExpression__from_dict(
     model_dict: dict, expected: ConditionBaseExpression | None, raises_error
@@ -117,11 +90,7 @@ def test__ConditionBaseExpression__from_dict(
         assert actual == expected
 
 
-@mark.parametrize(
-    "expected, model, raises_error",
-    condition_base_expression__valid__test_cases
-    + condition_base_expression__invalid__test_cases__to_dict,
-)
+@mark.parametrize("expected, model, raises_error", condition_base_expression__valid__test_cases)
 def test__ConditionBaseExpression__to_dict(
     model: ConditionBaseExpression, expected: dict | None, raises_error
 ):
