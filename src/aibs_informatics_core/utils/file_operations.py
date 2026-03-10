@@ -6,7 +6,6 @@ __all__ = [
     "copy_path",
     "remove_path",
     "get_path_size_bytes",
-    "get_path_hash",
     "find_paths",
     "get_path_with_root",
     "strip_path_root",
@@ -33,7 +32,6 @@ from pathlib import Path
 from re import Pattern
 from typing import Literal, Union, cast
 
-from aibs_informatics_core.utils.decorators import deprecated
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
 ArchiveFile = Union[tarfile.TarFile, zipfile.ZipFile]
@@ -351,33 +349,6 @@ def get_path_size_bytes(path: Path) -> int:
     return size_bytes
 
 
-@deprecated("Please use `generate_path_hash` from `aibs_informatics_core.utils.hashing` instead")
-def get_path_hash(
-    path: Path | str,
-    includes: Sequence[Pattern | str] | None = None,
-    excludes: Sequence[Pattern | str] | None = None,
-) -> str:
-    """Generate the hash based on files found under a given path.
-
-    Args:
-        path (str): path to compute a hash
-        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
-
-    Returns:
-        hash value
-    """
-    from aibs_informatics_core.utils.hashing import generate_file_hash
-
-    paths_to_hash = find_paths(root=path, include_dirs=False, includes=includes, excludes=excludes)
-
-    path_hash = hashlib.sha256()
-    for path in paths_to_hash:
-        path_hash.update(generate_file_hash(path).encode("utf-8"))
-
-    return path_hash.hexdigest()
-
-
 def find_paths(
     root: str | Path,
     include_dirs: bool = True,
@@ -548,32 +519,3 @@ class PathLock:
         remove_path(self._lock_path)
 
         logger.info("Lock released!")
-
-
-# ---------------
-# Helpers
-
-
-@deprecated("Please use `generate_file_hash` from `aibs_informatics_core.utils.hashing` instead")
-def sha256sum(filename: str, bufsize: int = 128 * 1024) -> str:
-    """
-
-    https://stackoverflow.com/a/70215084/4544508
-
-    Args:
-        filename (str): file to hash
-        bufsize (int, optional): buffer size. Defaults to 128*1024.
-
-    Returns:
-        hash value of file
-    """
-    h = hashlib.sha256()
-    buffer = bytearray(bufsize)
-    buffer_view = memoryview(buffer)
-    with open(filename, "rb", buffering=0) as f:
-        while True:
-            n = f.readinto(buffer_view)  # type: ignore
-            if not n:
-                break
-            h.update(buffer_view[:n])
-    return h.hexdigest()
