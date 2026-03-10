@@ -12,7 +12,7 @@ from test.base import BaseTest
 class YetAnotherDC(SchemaModel):
     req: str
     opt: str | None
-    another_opt: int | int | None | bool
+    another_opt: int | None | bool
     opt_with_default: str | None = None
     non_opt_with_default: str = "empty_sm"
 
