@@ -6,17 +6,11 @@ from functools import partial
 from typing import Any, cast
 
 import marshmallow as mm
+from pydantic import Field
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
-from aibs_informatics_core.models.base import (
-    DictField,
-    ListField,
-    SchemaModel,
-    StringField,
-    custom_field,
-)
-from aibs_informatics_core.models.base.custom_fields import UnionField
+from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import (
     DownloadableJobParam,
     JobParam,
@@ -71,24 +65,15 @@ class refresh_params:
 
 
 @dataclass
-class DemandExecutionParameters(SchemaModel):
-    command: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    params: dict[str, Any] = custom_field(default_factory=dict, mm_field=DictField(StringField))
-    inputs: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    outputs: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    outputs_metadata: dict[str, dict[str, JSON]] = custom_field(
-        default_factory=dict, mm_field=DictField(keys=StringField(), values=DictField(StringField))
-    )
-    output_s3_prefix: S3URI | None = custom_field(default=None, mm_field=S3URI.as_mm_field())
-    param_pair_overrides: list[ParamSetPair | ParamPair] | None = custom_field(
-        default=None,
-        mm_field=ListField(
-            UnionField(
-                [(ParamSetPair, ParamSetPair.as_mm_field()), (ParamPair, ParamPair.as_mm_field())]
-            )
-        ),
-    )
-    verbosity: bool = custom_field(default=False)
+class DemandExecutionParameters(PydanticBaseModel):
+    command: list[str]
+    params: dict[str, Any]
+    inputs: list[str] = Field(default_factory=list)
+    outputs: list[str] = Field(default_factory=list)
+    outputs_metadata: dict[str, dict[str, JSON]] = Field(default_factory=dict)
+    output_s3_prefix: S3URI | None = Field(default=None)
+    param_pair_overrides: list[ParamSetPair | ParamPair] | None = Field(default=None)
+    verbosity: bool = Field(default=False)
 
     def __post_init__(self):
         self._refresh_hash = self._compute_refresh_hash()

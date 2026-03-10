@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import datetime
-import logging
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, BeforeValidator, PlainSerializer
+from pydantic import BeforeValidator, PlainSerializer
 
-from aibs_informatics_core.utils.functions import filter_kwargs
 from aibs_informatics_core.utils.time import from_isoformat_8601
 
 
@@ -78,80 +76,3 @@ IsoDate = Annotated[
         when_used="json",  # only affects JSON/dict output, not Python copy
     ),
 ]
-
-
-# --------------------------------------------------------------
-#           Pydantic Marshmallow Compatibility Fields
-# --------------------------------------------------------------
-
-
-import marshmallow as mm  # noqa: E402
-
-
-class PydanticField(mm.fields.Field):
-    """Marshmallow field that uses a Pydantic model for validation and (de)serialization"""
-
-    default_error_messages = {
-        "invalid_type": "Expected {expected_type}, got {input_type}: {input!r}. {error}",
-    }
-
-    def __init__(self, pydantic_model_cls: type[BaseModel], *args, **kwargs):
-        self.pydantic_model_cls = pydantic_model_cls
-        super().__init__(*args, **kwargs)
-
-    def _serialize(self, value, attr, obj, **kwargs):
-        from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
-
-        if value is None:
-            return None
-        elif isinstance(value, self.pydantic_model_cls):
-            if "partial" in kwargs:
-                # Remove 'partial' if present, as Pydantic doesn't use it
-                partial = kwargs.pop("partial")
-                if partial:
-                    logging.warning(
-                        "Received 'partial=True' in Marshmallow deserialization, but Pydantic "
-                        "does not support partial validation. Ignoring 'partial' flag."
-                    )
-            if isinstance(value, PydanticBaseModel):
-                return value.to_dict(**kwargs)
-            filtered_kwargs = filter_kwargs(value.model_dump, kwargs)
-            filtered_kwargs["mode"] = "json"  # Ensure JSON serialization mode for nested models
-            return value.model_dump(**filtered_kwargs)
-        else:
-            raise self.make_error(
-                key="invalid_type",
-                input=value,
-                input_type=type(value),
-                expected_type=self.pydantic_model_cls.__name__,
-                error="",
-            )
-
-    def _deserialize(self, value, attr, data, **kwargs):
-        from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
-
-        if value is None:
-            return None
-        elif isinstance(value, self.pydantic_model_cls):
-            return value
-        else:
-            try:
-                if "partial" in kwargs:
-                    # Remove 'partial' if present, as Pydantic doesn't use it
-                    partial = kwargs.pop("partial")
-                    if partial:
-                        logging.warning(
-                            "Received 'partial=True' in Marshmallow deserialization, but Pydantic "
-                            "does not support partial validation. Ignoring 'partial' flag."
-                        )
-                if issubclass(self.pydantic_model_cls, PydanticBaseModel):
-                    return self.pydantic_model_cls.from_dict(value)
-                return self.pydantic_model_cls.model_validate(value)
-            except Exception as e:
-                raise self.make_error(
-                    key="invalid_type",
-                    input=value,
-                    input_type=type(value),
-                    expected_type=self.pydantic_model_cls.__name__,
-                    error=e,
-                ) from e

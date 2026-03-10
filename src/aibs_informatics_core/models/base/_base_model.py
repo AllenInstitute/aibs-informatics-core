@@ -1,10 +1,7 @@
 __all__ = [
     "ModelProtocol",
     "ModelBase",
-    "post_dump",
-    "pre_dump",
-    "pre_load",
-    "validates_schema",
+    "M",
 ]
 
 import abc
@@ -13,7 +10,6 @@ from pathlib import Path
 from typing import Protocol, Self, TypeVar, runtime_checkable
 
 import yaml  # type: ignore[import-untyped]
-from marshmallow import post_dump, pre_dump, pre_load, validates_schema
 
 from aibs_informatics_core.utils.json import JSONObject
 
@@ -88,3 +84,20 @@ class ModelBase:
 
     def to_path(self, path: Path, **kwargs):
         path.write_text(self.to_json(**kwargs))
+
+    @classmethod
+    def is_valid(cls, data: JSONObject, **kwargs) -> bool:
+        """Checks whether model is valid.
+
+        Args:
+            data (JSONObject): data to validate against model
+            **kwargs: additional kwargs to pass to from_dict method for validation
+
+        Returns:
+            bool: True if the model is valid, False otherwise.
+        """
+        try:
+            cls.from_dict(data, **kwargs)
+            return True
+        except Exception:
+            return False
