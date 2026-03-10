@@ -11,8 +11,7 @@ __all__ = [
     "uppercase",
 ]
 
-
-from dataclasses_json import stringcase
+import stringcase
 
 
 def is_prefixed(value: str, prefix: str) -> bool:
