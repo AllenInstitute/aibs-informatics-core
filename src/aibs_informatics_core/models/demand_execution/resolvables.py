@@ -248,7 +248,7 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[type[R]])
             errors[resolvable_class.__name__] = e
     else:
         raise ValidationError(
-            {**{"ALL": f"Could not create any {resolvable_classes} from {value}"}, **errors}, "n/a"
+            str({**{"ALL": f"Could not create any {resolvable_classes} from {value}"}, **errors})
         )
 
 
