@@ -37,9 +37,10 @@ class FileOperationsBaseTest(BaseTest):
     def create_tar_archive(
         self,
         root_path: Path,
-        relative_paths: list[str] = [],
+        relative_paths: list[str] | None = None,
         compression: Literal["", "gz"] = "gz",
     ) -> Path:
+        relative_paths = relative_paths or []
         self.create_dir(root_path, relative_paths)
 
         tar_name = self.tmp_path() / "archive"
@@ -51,7 +52,8 @@ class FileOperationsBaseTest(BaseTest):
                     tar_handle.add(os.path.join(relative_root, file), arcname=arcname)
         return tar_name
 
-    def create_zip_archive(self, root_path: Path, relative_paths: list[str] = []) -> Path:
+    def create_zip_archive(self, root_path: Path, relative_paths: list[str] | None = None) -> Path:
+        relative_paths = relative_paths or []
         self.create_dir(root_path, relative_paths)
 
         zip_name = self.tmp_path() / "archive"
