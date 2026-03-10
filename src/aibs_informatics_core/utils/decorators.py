@@ -84,6 +84,15 @@ def retry(
 
 
 def deprecated(msg, klass=PendingDeprecationWarning):
+    """Decorator to mark a function as deprecated.
+
+    Emits a deprecation warning when the decorated function is called.
+
+    Args:
+        msg: Warning message to display.
+        klass: Warning class to use. Defaults to ``PendingDeprecationWarning``.
+    """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):

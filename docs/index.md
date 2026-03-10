@@ -13,7 +13,7 @@ The AIBS Informatics Core library provides a collection of core functionalities 
 
 - **Collections** - Specialized collection classes including `DeepChainMap`, `Tree`, `ValidatedStr`, and various enum base classes
 - **Environment** - `EnvBase` for creating isolated namespaces based on environment type and name
-- **Models** - Base classes for data serialization/deserialization using dataclasses and marshmallow schemas
+- **Models** - Base classes for data serialization/deserialization using Pydantic
 - **Executors** - Base classes for creating and running task executors with input/output validation
 - **Utils** - Comprehensive utility functions for file operations, logging, hashing, JSON handling, and more
 

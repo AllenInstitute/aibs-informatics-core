@@ -11,11 +11,27 @@ BEGINNING_OF_TIME = dt.datetime.fromtimestamp(0.0, tz=dt.timezone.utc)
 
 
 def get_current_time(tz: dt.timezone | None = None) -> dt.datetime:
-    """Returns current time (in UTC) as a timezone aware datetime instance"""
+    """Return the current time as a timezone-aware datetime.
+
+    Args:
+        tz: Timezone to use. Defaults to UTC.
+
+    Returns:
+        The current ``datetime`` in the specified timezone.
+    """
     return dt.datetime.now(tz=tz or dt.timezone.utc)
 
 
 def get_duration_in_secs(start: dt.datetime, stop: dt.datetime | None = None) -> int:
+    """Calculate the duration between two datetimes in seconds.
+
+    Args:
+        start: Start datetime.
+        stop: End datetime. Defaults to the current time.
+
+    Returns:
+        The rounded number of seconds between ``start`` and ``stop``.
+    """
     return round(((stop or get_current_time()) - start).total_seconds())
 
 

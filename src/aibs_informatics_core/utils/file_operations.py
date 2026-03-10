@@ -52,6 +52,12 @@ ArchiveFormat = Literal[
 
 
 class ArchiveType(Enum):
+    """Enumeration of supported archive formats.
+
+    Maps to formats recognized by :func:`shutil.make_archive` and
+    :func:`shutil.unpack_archive`.
+    """
+
     # https://docs.python.org/3/library/shutil.html#shutil.get_archive_formats
     TAR = "tar"
     TAR_BZ = "bztar"
@@ -61,9 +67,18 @@ class ArchiveType(Enum):
 
     @property
     def archive_format(self) -> ArchiveFormat:
+        """Return the ``shutil``-compatible archive format string."""
         return cast(ArchiveFormat, self.value)
 
     def is_archive_type(self, path: Path) -> bool:
+        """Check if a path matches this archive type.
+
+        Args:
+            path: Path to check.
+
+        Returns:
+            True if ``path`` is an archive of this type.
+        """
         try:
             return self == self.from_path(path)
         except Exception:
@@ -71,6 +86,14 @@ class ArchiveType(Enum):
 
     @classmethod
     def is_archive(cls, path: Path) -> bool:
+        """Check if a path is any supported archive type.
+
+        Args:
+            path: Path to check.
+
+        Returns:
+            True if ``path`` is a recognized archive.
+        """
         try:
             cls.from_path(path)
         except Exception:
@@ -80,6 +103,17 @@ class ArchiveType(Enum):
 
     @classmethod
     def from_path(cls, path: Path) -> "ArchiveType":
+        """Infer the archive type from a file path.
+
+        Args:
+            path: Path to an existing archive file.
+
+        Returns:
+            The inferred ``ArchiveType``.
+
+        Raises:
+            ValueError: If the path does not exist, is a directory, or is not a recognized archive.
+        """
         if not path.exists() or path.is_dir():
             raise ValueError(f"Path {path} does not exist or is a directory")
         if tarfile.is_tarfile(path):
@@ -255,7 +289,12 @@ def copy_path(source_path: Path, destination_path: Path, exists_ok: bool = False
 
 
 def remove_path(path: Path, ignore_errors: bool = True):
-    """Removes the contents at the path, if it exists"""
+    """Remove a file or directory at the given path.
+
+    Args:
+        path: The path to remove.
+        ignore_errors: If True, errors are logged but not raised. Defaults to True.
+    """
     try:
         if path.exists():
             if path.is_dir():
@@ -276,6 +315,16 @@ def remove_path(path: Path, ignore_errors: bool = True):
 
 
 def get_path_size_bytes(path: Path) -> int:
+    """Calculate the total size in bytes of all files under a path.
+
+    Handles ``FileNotFoundError`` and stale NFS file handles gracefully.
+
+    Args:
+        path: A file or directory path.
+
+    Returns:
+        The total size in bytes.
+    """
     size_bytes = 0
     file_paths = deque(find_all_paths(path, include_dirs=False, include_files=True))
     while file_paths:
@@ -375,6 +424,18 @@ def find_paths(
 
 
 def get_path_with_root(path: str | Path, root: str | Path) -> str:
+    """Ensure a path is rooted under the given directory.
+
+    If ``path`` is already relative to ``root``, it is returned unchanged.
+    Otherwise, the path is made relative and joined with ``root``.
+
+    Args:
+        path: The path to adjust.
+        root: The root directory.
+
+    Returns:
+        The normalized path string under ``root``.
+    """
     orig_path = path
     root = Path(root)
     path = Path(path)
@@ -403,6 +464,8 @@ def strip_path_root(path: str | Path, root: str | Path | None = None) -> str:
 
 
 class CannotAcquirePathLockError(Exception):
+    """Raised when a path lock cannot be acquired."""
+
     pass
 
 
@@ -449,6 +512,11 @@ class PathLock:
         self.release()
 
     def acquire(self):
+        """Acquire the file lock.
+
+        Raises:
+            CannotAcquirePathLockError: If the lock cannot be acquired.
+        """
         logger.info("Acquiring lock...")
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -465,6 +533,7 @@ class PathLock:
             raise CannotAcquirePathLockError(msg) from e
 
     def release(self):
+        """Release the file lock and remove the lock file."""
         logger.info("Releasing lock...")
 
         if self._lock_file and not self._lock_file.closed:
