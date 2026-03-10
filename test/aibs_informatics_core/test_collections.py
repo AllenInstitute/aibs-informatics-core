@@ -1,6 +1,7 @@
 import unittest
 from dataclasses import dataclass
-from typing import ClassVar, Pattern
+from re import Pattern
+from typing import ClassVar
 
 from aibs_informatics_core.collections import (
     BaseEnum,

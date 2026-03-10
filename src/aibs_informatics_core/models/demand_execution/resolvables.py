@@ -12,9 +12,11 @@ __all__ = [
 
 import re
 from abc import abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, ClassVar, Dict, Generic, Optional, Pattern, Sequence, Type, TypeVar, Union
+from re import Pattern
+from typing import Any, ClassVar, Generic, TypeVar
 
 import marshmallow as mm
 
@@ -63,22 +65,22 @@ class StringifiedResolvable(ValidatedStr):
         return self.get_match_groups()[0] or self.get_match_groups()[-1]
 
     @property
-    def destination(self) -> Optional[str]:
+    def destination(self) -> str | None:
         return self.get_match_groups()[1]
 
     @property
     @abstractmethod
-    def local(self) -> Optional[str]:
+    def local(self) -> str | None:
         raise NotImplementedError("please implement")
 
     @property
     @abstractmethod
-    def remote(self) -> Optional[str]:
+    def remote(self) -> str | None:
         raise NotImplementedError("please implement")
 
     @classmethod
     def from_components(
-        cls: Type[STRINGIFIED_RESOLVABLE], source: str, destination: Optional[str]
+        cls: type[STRINGIFIED_RESOLVABLE], source: str, destination: str | None
     ) -> STRINGIFIED_RESOLVABLE:
         if destination:
             return cls(f"{source}{ACTION_PATTERN}{destination}")
@@ -101,7 +103,7 @@ class StringifiedUploadable(StringifiedResolvable):
         return self.source
 
     @property
-    def remote(self) -> Optional[str]:
+    def remote(self) -> str | None:
         return self.destination
 
 
@@ -122,15 +124,15 @@ class ResolvableBase(SchemaModel, Generic[T]):
         return ResolvableAction.LOCALIZE
 
     @classmethod
-    def get_resolvable_type(cls: Type[RESOLVABLE]) -> Type[T]:
+    def get_resolvable_type(cls: type[RESOLVABLE]) -> type[T]:
         return cls.__orig_bases__[0].__args__[0]  # type: ignore[attr-defined]
 
     @classmethod
     def from_any(
-        cls: Type[RESOLVABLE],
+        cls: type[RESOLVABLE],
         value: Any,
-        default_local: Optional[str] = None,
-        default_remote: Optional[T] = None,
+        default_local: str | None = None,
+        default_remote: T | None = None,
     ) -> RESOLVABLE:
         if isinstance(value, cls):
             return value
@@ -150,10 +152,10 @@ class ResolvableBase(SchemaModel, Generic[T]):
 
     @classmethod
     def from_str(
-        cls: Type[RESOLVABLE],
+        cls: type[RESOLVABLE],
         value: str,
-        default_local: Optional[str] = None,
-        default_remote: Optional[T] = None,
+        default_local: str | None = None,
+        default_remote: T | None = None,
     ) -> RESOLVABLE:
         str_resolvable_cls = (
             StringifiedUploadable
@@ -171,7 +173,7 @@ class ResolvableBase(SchemaModel, Generic[T]):
             remote = default_remote
         return cls(local=local, remote=remote)
 
-    def to_str(self) -> Union[StringifiedDownloadable, StringifiedUploadable]:
+    def to_str(self) -> StringifiedDownloadable | StringifiedUploadable:
         if self.get_action() == ResolvableAction.LOCALIZE:
             return StringifiedDownloadable.from_components(
                 source=self.remote, destination=self.local
@@ -183,13 +185,13 @@ class ResolvableBase(SchemaModel, Generic[T]):
 
     @classmethod
     @mm.post_dump
-    def _post_dump__inject_action(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    def _post_dump__inject_action(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
         data["action"] = cls.get_action()
         return data
 
     @classmethod
     @mm.pre_load
-    def _pre_load__pop_action(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    def _pre_load__pop_action(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
         if "action" in data:
             assert data["action"] == cls.get_action()
             del data["action"]
@@ -199,7 +201,7 @@ class ResolvableBase(SchemaModel, Generic[T]):
 R = TypeVar("R", bound=ResolvableBase)
 
 
-def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[Type[R]]) -> R:
+def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[type[R]]) -> R:
     """Construct resolvable object from string or dict
 
     If a resolvable object is provided, it returned immediately.
@@ -224,7 +226,7 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[Type[R]])
             f"Value {value} is not a dict or str. Cannot create any of these: {resolvable_classes}"
         )
 
-    errors: Dict[str, Exception] = {}
+    errors: dict[str, Exception] = {}
     for resolvable_class in resolvable_classes:
         try:
             return resolvable_class.from_any(value)

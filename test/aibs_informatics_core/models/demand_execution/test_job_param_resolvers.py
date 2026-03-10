@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
@@ -110,8 +108,8 @@ S3_URI = S3URI.build(bucket_name="bucket", key="key")
     ],
 )
 def test__JobParamResolver__resolve_references__behaves_as_intended(
-    job_params: List[JobParam],
-    expected: Optional[List[JobParam]],
+    job_params: list[JobParam],
+    expected: list[JobParam] | None,
     raises_error,
 ):
     with raises_error:

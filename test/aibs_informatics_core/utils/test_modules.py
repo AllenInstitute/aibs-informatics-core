@@ -15,7 +15,7 @@ from test.base import does_not_raise
 
 class ModuleUtilsTests(unittest.TestCase):
     def test_get_all_subclasses(self):
-        class A(object):
+        class A:
             pass
 
         class AA(A):

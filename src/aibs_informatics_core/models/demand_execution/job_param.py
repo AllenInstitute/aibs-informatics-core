@@ -1,6 +1,8 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, ClassVar, Dict, List, Match, Pattern, Type, TypeVar, Union
+from re import Match, Pattern
+from typing import ClassVar, TypeVar
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.models.demand_execution.resolvables import Resolvable
@@ -33,7 +35,7 @@ class JobParamRef(ValidatedStr):
 
     @classmethod
     def replace_references(
-        cls, value: str, reference_replacement: Union[Dict[str, str], Callable[[Match], str]]
+        cls, value: str, reference_replacement: dict[str, str] | Callable[[Match], str]
     ) -> str:
         if isinstance(reference_replacement, dict):
             reference_value_map = reference_replacement
@@ -77,7 +79,7 @@ class JobParam:
         """
         return self.as_envname_reference(self.envname)
 
-    def update_environment(self, environment: Dict[str, str], overwrite: bool = False):
+    def update_environment(self, environment: dict[str, str], overwrite: bool = False):
         if (
             not overwrite
             and self.envname in environment
@@ -96,14 +98,12 @@ class JobParam:
     def as_envname_reference(cls, name) -> JobParamRef:
         return JobParamRef.from_name(cls.as_envname(name))
 
-    def find_references(self) -> List[JobParamRef]:
+    def find_references(self) -> list[JobParamRef]:
         if isinstance(self.value, str):
             return JobParamRef.findall(self.value)
         return []
 
-    def replace_references(
-        self, reference_replacement: Union[Dict[str, str], Callable[[Match], str]]
-    ):
+    def replace_references(self, reference_replacement: dict[str, str] | Callable[[Match], str]):
         self.value = JobParamRef.replace_references(
             value=self.value, reference_replacement=reference_replacement
         )
@@ -119,19 +119,17 @@ class ResolvableJobParam(JobParam):
     def __hash__(self) -> int:
         return hash(self.name + self.value + self.remote_value)
 
-    def find_references(self) -> List[JobParamRef]:
+    def find_references(self) -> list[JobParamRef]:
         return super().find_references() + JobParamRef.findall(self.remote_value)
 
-    def replace_references(
-        self, reference_replacement: Union[Dict[str, str], Callable[[Match], str]]
-    ):
+    def replace_references(self, reference_replacement: dict[str, str] | Callable[[Match], str]):
         super().replace_references(reference_replacement=reference_replacement)
         self.remote_value = JobParamRef.replace_references(
             value=self.remote_value, reference_replacement=reference_replacement
         )
 
     @classmethod
-    def from_resolvable(cls: Type[RP], name: str, resolvable: Resolvable) -> RP:
+    def from_resolvable(cls: type[RP], name: str, resolvable: Resolvable) -> RP:
         return cls(name=name, value=resolvable.local, remote_value=resolvable.remote)
 
 

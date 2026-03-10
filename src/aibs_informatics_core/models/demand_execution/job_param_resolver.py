@@ -1,6 +1,6 @@
 import collections
 from copy import deepcopy
-from typing import Dict, List, Match, Set
+from re import Match
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.demand_execution.job_param import JobParam, JobParamRef
@@ -10,15 +10,15 @@ from aibs_informatics_core.utils.decorators import cache
 class JobParamResolver:
     @classmethod
     @cache
-    def find_collisions(cls, *job_params: JobParam) -> List[List[JobParam]]:
+    def find_collisions(cls, *job_params: JobParam) -> list[list[JobParam]]:
         # Validate params do not have conflicting envnames
-        envname_job_params: Dict[str, List[JobParam]] = collections.defaultdict(list)
+        envname_job_params: dict[str, list[JobParam]] = collections.defaultdict(list)
         for job_param in job_params:
             envname_job_params[job_param.envname].append(job_param)
         return [_ for _ in envname_job_params.values() if len(_) > 1]
 
     @classmethod
-    def check_collisions(cls, job_params: List[JobParam]):
+    def check_collisions(cls, job_params: list[JobParam]):
         colliding_job_params = cls.find_collisions(*job_params)
         if len(colliding_job_params):
             raise ValidationError(
@@ -27,7 +27,7 @@ class JobParamResolver:
             )
 
     @classmethod
-    def resolve_references(cls, job_params: List[JobParam]) -> List[JobParam]:
+    def resolve_references(cls, job_params: list[JobParam]) -> list[JobParam]:
         """Resolves param references found in values of param map
 
         Valid Cases:
@@ -61,13 +61,13 @@ class JobParamResolver:
         cls.check_collisions(job_params)
 
         # job_param.env_name -> job_param (with resolved values)
-        resolved_job_param_map: Dict[str, JobParam] = dict()
+        resolved_job_param_map: dict[str, JobParam] = dict()
 
         # job_param.env_name -> job_param (with unresolved values)
-        unresolved_job_param_map: Dict[str, JobParam] = dict()
+        unresolved_job_param_map: dict[str, JobParam] = dict()
 
         # job_param.env_name -> Set of other job_param.env_name references found in job_param.value
-        job_param_dependency_map: Dict[str, Set[str]] = dict()
+        job_param_dependency_map: dict[str, set[str]] = dict()
 
         for job_param in deepcopy(job_params):
             job_param_dependency_map[job_param.envname] = {

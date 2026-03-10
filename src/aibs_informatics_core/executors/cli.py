@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from aibs_informatics_core.executors.base import BaseExecutor
 from aibs_informatics_core.utils.modules import load_type_from_qualified_name
@@ -43,7 +42,7 @@ def get_cli_parser():
     return parser
 
 
-def run_cli_executor(args: Optional[list[str]] = None):
+def run_cli_executor(args: list[str] | None = None):
     parsed_args = get_cli_parser().parse_args(args=args)
 
     executor_class = load_type_from_qualified_name(parsed_args.executor)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Annotated, Type
+from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, PlainSerializer
 
@@ -14,7 +14,7 @@ def _parse_isoish_dt(v: str | int | float | datetime.datetime) -> datetime.datet
     """Handle `2025-04-30T07:00:00.0` and plain `datetime` values."""
     # Convert epoch‑milliseconds first
     if isinstance(v, (int, float)):
-        return datetime.datetime.fromtimestamp(v / 1_000, datetime.timezone.utc)
+        return datetime.datetime.fromtimestamp(v / 1_000, datetime.UTC)
     # Handle ISO 8601 date‑time strings
 
     # Clean up iso‑format strings that may include a fractional component like ".0"
@@ -72,7 +72,7 @@ class PydanticField(mm.fields.Field):
         "invalid_type": "Expected {expected_type}, got {input_type}: {input!r}. {error}",
     }
 
-    def __init__(self, pydantic_model_cls: Type[BaseModel], *args, **kwargs):
+    def __init__(self, pydantic_model_cls: type[BaseModel], *args, **kwargs):
         self.pydantic_model_cls = pydantic_model_cls
         super().__init__(*args, **kwargs)
 

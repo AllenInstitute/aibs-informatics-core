@@ -6,10 +6,11 @@ __all__ = [
 ]
 
 
+from collections.abc import Callable, Mapping
 from dataclasses import MISSING, Field, dataclass
 from dataclasses import field as dataclasses_field
 from enum import Enum
-from typing import Any, Callable, Dict, Mapping, Optional, Type, TypeVar, cast, overload
+from typing import Any, TypeVar, cast, overload
 
 import marshmallow as mm
 from dataclasses_json import config, global_config
@@ -21,7 +22,7 @@ T = TypeVar("T")
 S = TypeVar("S", bound=str)
 E = TypeVar("E", bound=Enum)
 
-FieldMetadata = Dict[str, dict]
+FieldMetadata = dict[str, dict]
 
 EncoderType = Callable[[T], JSON]
 DecoderType = Callable[[JSON], T]
@@ -34,11 +35,11 @@ DecoderType = Callable[[JSON], T]
 
 @dataclass
 class FieldMetadataBuilder:
-    mm_field: Optional[mm.fields.Field] = None
-    encoder: Optional[EncoderType] = None
-    decoder: Optional[DecoderType] = None
+    mm_field: mm.fields.Field | None = None
+    encoder: EncoderType | None = None
+    decoder: DecoderType | None = None
 
-    def build(self, required: Optional[bool] = None, **kwargs) -> FieldMetadata:
+    def build(self, required: bool | None = None, **kwargs) -> FieldMetadata:
         mm_field = self.mm_field
         encoder = self.encoder
         decoder = self.decoder
@@ -69,8 +70,8 @@ class FieldMetadataBuilder:
 
     def add_to_global_config(
         self,
-        clazz: Type[Any],
-        required: Optional[bool] = None,
+        clazz: type[Any],
+        required: bool | None = None,
         skip_mm_field: bool = False,
         skip_encoder: bool = False,
         skip_decoder: bool = False,
@@ -87,8 +88,8 @@ class FieldMetadataBuilder:
 
     @classmethod
     def create_mm_field_class(
-        cls, encoder: Optional[EncoderType], decoder: Optional[DecoderType]
-    ) -> Type[mm.fields.Field]:
+        cls, encoder: EncoderType | None, decoder: DecoderType | None
+    ) -> type[mm.fields.Field]:
         """Creates a Marshmallow Field with optional encoder/decoder overrides
 
         Args:
@@ -128,10 +129,10 @@ class FieldMetadataBuilder:
 
 
 def field_metadata(
-    mm_field: Optional[mm.fields.Field] = None,
-    encoder: Optional[EncoderType] = None,
-    decoder: Optional[DecoderType] = None,
-    required: Optional[bool] = None,
+    mm_field: mm.fields.Field | None = None,
+    encoder: EncoderType | None = None,
+    decoder: DecoderType | None = None,
+    required: bool | None = None,
     **kwargs,
 ) -> FieldMetadata:
     return FieldMetadataBuilder(mm_field=mm_field, encoder=encoder, decoder=decoder).build(
@@ -161,15 +162,15 @@ class FieldProps:
 @overload
 def custom_field(
     *,
-    default: Optional[T],
+    default: T | None,
     init: bool = True,
     repr: bool = True,
-    hash: Optional[bool] = None,
+    hash: bool | None = None,
     compare: bool = True,
-    metadata: Optional[Mapping[Any, Any]] = None,
-    mm_field: Optional[mm.fields.Field] = None,
-    encoder: Optional[EncoderType] = None,
-    decoder: Optional[DecoderType] = None,
+    metadata: Mapping[Any, Any] | None = None,
+    mm_field: mm.fields.Field | None = None,
+    encoder: EncoderType | None = None,
+    decoder: DecoderType | None = None,
 ) -> T: ...  # pragma: no cover
 
 
@@ -179,12 +180,12 @@ def custom_field(
     default_factory: Callable[[], T],
     init: bool = True,
     repr: bool = True,
-    hash: Optional[bool] = None,
+    hash: bool | None = None,
     compare: bool = True,
-    metadata: Optional[Mapping[Any, Any]] = None,
-    mm_field: Optional[mm.fields.Field] = None,
-    encoder: Optional[EncoderType] = None,
-    decoder: Optional[DecoderType] = None,
+    metadata: Mapping[Any, Any] | None = None,
+    mm_field: mm.fields.Field | None = None,
+    encoder: EncoderType | None = None,
+    decoder: DecoderType | None = None,
 ) -> T: ...  # pragma: no cover
 
 
@@ -193,12 +194,12 @@ def custom_field(
     *,
     init: bool = True,
     repr: bool = True,
-    hash: Optional[bool] = None,
+    hash: bool | None = None,
     compare: bool = True,
-    metadata: Optional[Mapping[Any, Any]] = None,
-    mm_field: Optional[mm.fields.Field] = None,
-    encoder: Optional[EncoderType] = None,
-    decoder: Optional[DecoderType] = None,
+    metadata: Mapping[Any, Any] | None = None,
+    mm_field: mm.fields.Field | None = None,
+    encoder: EncoderType | None = None,
+    decoder: DecoderType | None = None,
 ) -> Any: ...  # pragma: no cover
 
 
@@ -209,13 +210,13 @@ def custom_field(
     default_factory: Callable[[], Any] = MISSING,  # type: ignore
     init: bool = True,
     repr: bool = True,
-    hash: Optional[bool] = None,
+    hash: bool | None = None,
     compare: bool = True,
-    metadata: Optional[Mapping[Any, Any]] = None,
+    metadata: Mapping[Any, Any] | None = None,
     # Following are custom
-    mm_field: Optional[mm.fields.Field] = None,
-    encoder: Optional[EncoderType] = None,
-    decoder: Optional[DecoderType] = None,
+    mm_field: mm.fields.Field | None = None,
+    encoder: EncoderType | None = None,
+    decoder: DecoderType | None = None,
 ) -> Any:
     """Convenience function for generating a Dataclass Field WITH Encoders/Decoders/ MM Fields
 

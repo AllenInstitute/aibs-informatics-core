@@ -1,5 +1,5 @@
 import re
-from typing import ClassVar, Optional
+from typing import ClassVar
 from urllib.parse import parse_qs
 
 from aibs_informatics_core.collections import ValidatedStr
@@ -34,12 +34,12 @@ class LambdaFunctionName(ValidatedStr):
     regex_pattern: ClassVar[re.Pattern] = LAMBDA_FUNCTION_NAME_PATTERN
 
     @property
-    def region(self) -> Optional[AWSRegion]:
+    def region(self) -> AWSRegion | None:
         aws_region = self.get_match_groups()[0]
         return AWSRegion(aws_region) if aws_region else None
 
     @property
-    def account_id(self) -> Optional[AWSAccountId]:
+    def account_id(self) -> AWSAccountId | None:
         aws_account_id = self.get_match_groups()[1]
         return AWSAccountId(aws_account_id) if aws_account_id else None
 
@@ -48,7 +48,7 @@ class LambdaFunctionName(ValidatedStr):
         return self.get_match_groups()[2]
 
     @property
-    def version(self) -> Optional[str]:
+    def version(self) -> str | None:
         return self.get_match_groups()[3]
 
 
@@ -65,11 +65,11 @@ class LambdaFunctionUrl(ValidatedStr):
         return AWSRegion(aws_region)
 
     @property
-    def raw_path(self) -> Optional[str]:
+    def raw_path(self) -> str | None:
         return self.get_match_groups()[-2] or None
 
     @property
-    def raw_query(self) -> Optional[str]:
+    def raw_query(self) -> str | None:
         return self.get_match_groups()[-1]
 
     @property

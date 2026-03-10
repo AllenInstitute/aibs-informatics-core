@@ -1,5 +1,4 @@
 from contextlib import nullcontext as does_not_raise
-from typing import Optional
 
 from pytest import mark, param, raises
 
@@ -57,8 +56,8 @@ from aibs_informatics_core.models.aws.iam import IAMArn, IAMRoleArn, PrincipalTy
 )
 def test__UserId__validates(
     value: str,
-    expected: Optional[UserId],
-    expected_principal_type: Optional[PrincipalType],
+    expected: UserId | None,
+    expected_principal_type: PrincipalType | None,
     raise_expectation,
 ):
     with raise_expectation:
@@ -296,12 +295,12 @@ def test__UserId__validates(
 )
 def test__IAMArn__validates(
     value: str,
-    expected_account_id: Optional[str],
-    expected_resource: Optional[str],
-    expected_resource_type: Optional[str],
-    expected_resource_id: Optional[str],
-    expected_resource_name: Optional[str],
-    expected_resource_path: Optional[str],
+    expected_account_id: str | None,
+    expected_resource: str | None,
+    expected_resource_type: str | None,
+    expected_resource_id: str | None,
+    expected_resource_name: str | None,
+    expected_resource_path: str | None,
     raise_expectation,
 ):
     with raise_expectation:
@@ -367,10 +366,10 @@ def test__IAMArn__validates(
 )
 def test__IAMRoleArn__validates(
     value: str,
-    expected_account_id: Optional[str],
-    expected_resource_id: Optional[str],
-    expected_role_name: Optional[str],
-    expected_role_path: Optional[str],
+    expected_account_id: str | None,
+    expected_resource_id: str | None,
+    expected_role_name: str | None,
+    expected_role_path: str | None,
     raise_expectation,
 ):
     with raise_expectation:

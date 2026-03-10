@@ -1,6 +1,5 @@
 __all__ = ["BaseTest", "does_not_raise", "reset_environ_after_test"]
 
-from typing import Optional
 
 from aibs_informatics_test_resources import BaseTest as _BaseTest
 from aibs_informatics_test_resources import does_not_raise
@@ -20,5 +19,5 @@ class BaseTest(_BaseTest):
     def env_base(self, env_base: EnvBase):
         self._env_base = env_base
 
-    def set_env_base_env_var(self, env_base: Optional[EnvBase] = None):
+    def set_env_base_env_var(self, env_base: EnvBase | None = None):
         self.set_env_vars((ENV_BASE_KEY, env_base or self.env_base))

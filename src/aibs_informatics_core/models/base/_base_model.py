@@ -9,14 +9,8 @@ __all__ = [
 
 import abc
 import json
-import sys
 from pathlib import Path
-from typing import Protocol, Type, TypeVar, runtime_checkable
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self  # type: ignore[import-untyped]
-else:
-    from typing import Self
+from typing import Protocol, Self, TypeVar, runtime_checkable
 
 import yaml  # type: ignore[import-untyped]
 from marshmallow import post_dump, pre_dump, pre_load, validates_schema
@@ -39,17 +33,17 @@ M = TypeVar("M", bound="ModelBase")
 @runtime_checkable
 class ModelProtocol(Protocol):
     @classmethod
-    def from_dict(cls: Type[Self], data: JSONObject, **kwargs) -> Self: ...  # pragma: no cover
+    def from_dict(cls: type[Self], data: JSONObject, **kwargs) -> Self: ...  # pragma: no cover
 
     def to_dict(self, **kwargs) -> JSONObject: ...  # pragma: no cover
 
     @classmethod
-    def from_json(cls: Type[Self], data: str, **kwargs) -> Self: ...  # pragma: no cover
+    def from_json(cls: type[Self], data: str, **kwargs) -> Self: ...  # pragma: no cover
 
     def to_json(self, **kwargs) -> str: ...  # pragma: no cover
 
     @classmethod
-    def from_path(cls: Type[Self], path: Path, **kwargs) -> Self: ...  # pragma: no cover
+    def from_path(cls: type[Self], path: Path, **kwargs) -> Self: ...  # pragma: no cover
 
     def to_path(self, path: Path, **kwargs): ...  # pragma: no cover
 
@@ -83,8 +77,7 @@ class ModelBase:
     @classmethod
     def from_path(cls, path: Path, **kwargs) -> Self:
         if path.suffix in (".yml", ".yaml"):
-            path.read_text()
-            with open(path, "r") as f:
+            with open(path) as f:
                 return cls.from_dict(yaml.safe_load(f), **kwargs)
         else:
             return cls.from_dict(json.loads(path.read_text()), **kwargs)

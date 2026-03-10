@@ -1,6 +1,5 @@
 import json
 from dataclasses import dataclass
-from typing import Optional
 
 from marshmallow import ValidationError
 
@@ -20,7 +19,7 @@ class NoOpRequest(SchemaModel):
 
 
 class NoOpExecutor(BaseExecutor[NoOpRequest, NoOpRequest]):
-    def handle(self, request: NoOpRequest) -> Optional[NoOpRequest]:
+    def handle(self, request: NoOpRequest) -> NoOpRequest | None:
         if request.include_response:
             return request
         return None
