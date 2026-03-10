@@ -23,7 +23,7 @@ Welcome to the AIBS Informatics Core API Reference. This section provides detail
 
 | Module | Description |
 |--------|-------------|
-| [Base](models/base.md) | Base model classes (`ModelBase`, `DataClassModel`, `SchemaModel`) |
+| [Base](models/base.md) | Base model classes (`ModelProtocol`, `ModelBase`, `PydanticBaseModel`) |
 | [Status](models/status.md) | Status-related models |
 | [Unique IDs](models/unique-ids.md) | Unique identifier models |
 | [Version](models/version.md) | Version handling models |

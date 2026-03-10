@@ -46,11 +46,9 @@ prod_env.prefixed('bucket', 'data')  # 'prod-projectX-bucket-data'
 Data models support JSON serialization out of the box:
 
 ```python
-from dataclasses import dataclass
-from aibs_informatics_core.models import SchemaModel
+from aibs_informatics_core.models.base import PydanticBaseModel
 
-@dataclass
-class Config(SchemaModel):
+class Config(PydanticBaseModel):
     debug: bool = False
     max_retries: int = 3
 
@@ -63,7 +61,7 @@ json_data = config.to_json()
 The library provides custom fields for common use cases:
 
 ```python
-from aibs_informatics_core.models.base.custom_fields import PathField
+from aibs_informatics_core.models.base.custom_fields import IsoDateTime
 ```
 
 ## Executor Configuration
@@ -82,18 +80,18 @@ class ConfigurableExecutor(BaseExecutor):
 
 ### Validation
 
-Use the `WithValidation` mixin to add validation to your models:
+Use Pydantic validators to add validation to your models:
 
 ```python
-from dataclasses import dataclass
-from aibs_informatics_core.models import SchemaModel
-from aibs_informatics_core.collections import PostInitMixin
+from aibs_informatics_core.models.base import PydanticBaseModel
+from pydantic import model_validator
 
-@dataclass
-class ValidatedConfig(SchemaModel, PostInitMixin):
+class ValidatedConfig(PydanticBaseModel):
     port: int
-    
-    def __post_init__(self):
+
+    @model_validator(mode="after")
+    def validate_port(self):
         if not 1 <= self.port <= 65535:
             raise ValueError("Port must be between 1 and 65535")
+        return self
 ```

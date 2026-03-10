@@ -1,6 +1,6 @@
 # Executors
 
-The `executors` module provides base classes and utilities for creating and running executors. Executors are responsible for handling specific tasks or requests with input/output validation based on schema data models.
+The `executors` module provides base classes and utilities for creating and running executors. Executors are responsible for handling specific tasks or requests with input/output validation based on data models.
 
 ## Overview
 

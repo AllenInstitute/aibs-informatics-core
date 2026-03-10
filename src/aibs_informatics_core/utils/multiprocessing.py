@@ -21,11 +21,34 @@ def starmap_with_kwargs(
     args_iter: Sequence[Iterable[Any]],
     kwargs_iter: Sequence[Mapping[str, Any]],
 ):
+    """Apply a function using ``pool.starmap`` with both positional and keyword arguments.
+
+    Args:
+        pool: A multiprocessing pool instance.
+        fn: The callable to invoke.
+        args_iter: A sequence of positional argument iterables, one per call.
+        kwargs_iter: A sequence of keyword argument mappings, one per call.
+
+    Returns:
+        A list of results from each invocation.
+    """
     args_for_starmap = zip(repeat(fn), args_iter, kwargs_iter)
     return pool.starmap(apply_args_and_kwargs, args_for_starmap)
 
 
 def apply_args_and_kwargs(fn, args: Iterable[Any], kwargs: Mapping[str, Any]):
+    """Invoke a callable with positional and keyword arguments.
+
+    Used as the target function for ``pool.starmap``.
+
+    Args:
+        fn: The callable to invoke.
+        args: Positional arguments.
+        kwargs: Keyword arguments.
+
+    Returns:
+        The return value of ``fn``.
+    """
     return fn(*args, **kwargs)  # pragma: no cover
 
 
@@ -47,6 +70,22 @@ def parallel_starmap(
     callback: Callable[[list[T]], Any] | None = None,
     error_callback: Callable[[BaseException], None] | None = None,
 ) -> list[U]:
+    """Execute a callable in parallel across a pool of worker processes.
+
+    Args:
+        callable: The function to call for each set of arguments.
+        arguments: A sequence of argument tuples.
+        keyword_arguments: Keyword arguments, either a single mapping applied to
+            all calls or a sequence of mappings.
+        pool_class: The pool class to use. Defaults to ``multiprocessing.pool.Pool``.
+        processes: Number of worker processes.
+        chunk_size: Chunk size for ``starmap_async``.
+        callback: Optional callback invoked with results on success.
+        error_callback: Optional callback invoked on error.
+
+    Returns:
+        A list of results from all invocations.
+    """
     pool_class = pool_class or mp_pool.Pool
     with pool_class(processes=processes) as pool:
         starmap_arguments = zip(

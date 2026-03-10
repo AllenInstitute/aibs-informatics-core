@@ -1,22 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Annotated, Any, TypeAlias
+
+from pydantic import BeforeValidator, Field
 
 from aibs_informatics_core.models.aws.s3 import S3URI
-from aibs_informatics_core.models.base import (
-    FrozenSetField,
-    SchemaModel,
-    StringField,
-    custom_field,
-)
-from aibs_informatics_core.models.base.custom_fields import UnionField
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import ResolvableJobParam
 
 
-@dataclass
-class ParamPair(SchemaModel):
-    """SchemaModel for an input and output parameter pairs as described in demand execution
+class ParamPair(PydanticBaseModel):
+    """PydanticBaseModel for an input and output parameter pairs as described in demand execution
 
     The values for input and output should correspond to the parameter key in the demand execution
 
@@ -32,8 +28,8 @@ class ParamPair(SchemaModel):
 
     """
 
-    input: str | None = custom_field(mm_field=StringField(), default=None)
-    output: str | None = custom_field(mm_field=StringField(), default=None)
+    input: str | None = None
+    output: str | None = None
 
     @classmethod
     def from_set_pairs(cls, *values: ParamSetPair) -> list[ParamPair]:
@@ -50,9 +46,19 @@ class ParamPair(SchemaModel):
         return [ParamPair(input=input, output=output) for input in inputs for output in outputs]
 
 
-@dataclass
-class ParamSetPair(SchemaModel):
-    """SchemaModel for a set of input and output parameter pairs as described in demand execution
+def _coerce_to_frozenset(v: Any) -> frozenset[str]:
+    if isinstance(v, frozenset):
+        return v
+    if isinstance(v, (set, list, tuple)):
+        return frozenset(v)
+    # If it is an iterable that is not a string, convert to frozenset
+    if isinstance(v, Iterable) and not isinstance(v, str):
+        return frozenset(v)
+    raise TypeError(f"Value {v} cannot be coerced to frozenset[str]")
+
+
+class ParamSetPair(PydanticBaseModel):
+    """Model for a set of input and output parameter pairs as described in demand execution
 
     The values for inputs and outputs should correspond to the parameter keys in the
     demand execution.
@@ -68,18 +74,14 @@ class ParamSetPair(SchemaModel):
             This is used to represent a single job that has only inputs
     """
 
-    inputs: frozenset[str] = custom_field(
-        mm_field=FrozenSetField(StringField), default_factory=frozenset
-    )
-    outputs: frozenset[str] = custom_field(
-        mm_field=FrozenSetField(StringField), default_factory=frozenset
-    )
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
+    inputs: Annotated[
+        frozenset[str],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
+    outputs: Annotated[
+        frozenset[str],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
 
     def add_inputs(self, *inputs: str):
         self.inputs = self.inputs.union(inputs)
@@ -158,8 +160,7 @@ class JobParamPair:
         return [pair for value in values for pair in value.to_pairs()]
 
 
-@dataclass
-class JobParamSetPair:
+class JobParamSetPair(PydanticBaseModel):
     """models a set of input and output resolved parameter pairs as described in demand execution
 
     The values for inputs and outputs should account for both the parameter name and the remote location.
@@ -178,14 +179,14 @@ class JobParamSetPair:
             This is used to represent a single job that has only inputs
     """  # noqa: E501
 
-    inputs: frozenset[ResolvableJobParam] = field(default_factory=frozenset)
-    outputs: frozenset[ResolvableJobParam] = field(default_factory=frozenset)
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
+    inputs: Annotated[
+        frozenset[ResolvableJobParam],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
+    outputs: Annotated[
+        frozenset[ResolvableJobParam],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
 
     def add_inputs(self, *inputs: ResolvableJobParam):
         self.inputs = self.inputs.union(inputs)
@@ -225,12 +226,11 @@ class JobParamSetPair:
 
 # ResolvableID = Union[S3URI, ...]
 # TODO: need to add additional types.
-ResolvableID = S3URI
+ResolvableID: TypeAlias = S3URI
 
 
-@dataclass
-class ResolvedParamSetPair(SchemaModel):
-    """SchemaModel for a set of input and output resolved parameter pairs as described in demand execution
+class ResolvedParamSetPair(PydanticBaseModel):
+    """PydanticBaseModel for a set of input and output resolved parameter pairs as described in demand execution
 
     This is the other side of the ParamSetPair coin. This is used to represent a set of
     inputs and outputs' remote locations. The remote location can be a S3URI or other
@@ -240,32 +240,14 @@ class ResolvedParamSetPair(SchemaModel):
 
     """  # noqa: E501
 
-    inputs: frozenset[ResolvableID] = custom_field(
-        mm_field=FrozenSetField(
-            UnionField(
-                [
-                    (S3URI, S3URI.as_mm_field()),
-                ]
-            )
-        ),
-        default_factory=frozenset,
-    )
-    outputs: frozenset[ResolvableID] = custom_field(
-        mm_field=FrozenSetField(
-            UnionField(
-                [
-                    (S3URI, S3URI.as_mm_field()),
-                ]
-            )
-        ),
-        default_factory=frozenset,
-    )
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
+    inputs: Annotated[
+        frozenset[ResolvableID],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
+    outputs: Annotated[
+        frozenset[ResolvableID],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
 
     def add_inputs(self, *inputs: ResolvableID):
         self.inputs = self.inputs.union(inputs)

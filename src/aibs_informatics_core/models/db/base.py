@@ -6,21 +6,19 @@ __all__ = [
     "DBIndex",
 ]
 
-from dataclasses import dataclass
 from typing import Literal, TypeVar, overload
 
 from aibs_informatics_core.collections import StrEnum
 from aibs_informatics_core.env import EnvBase
-from aibs_informatics_core.models.base import SchemaModel
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.db.type_defs import DynamoDBItemValue, DynamoDBKey
 
 
 # ========================== DB entry base model =========================
-@dataclass
-class DBModel(SchemaModel):
+class DBModel(PydanticBaseModel):
     """Base class that DB Entry models should all inherit from.
     Used to disambiguate from other model classes that also inherit from
-    SchemaModel (like Request/Response models)"""
+    PydanticBaseModel (like Request/Response models)"""
 
     pass
 

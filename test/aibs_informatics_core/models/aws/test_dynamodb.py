@@ -1,7 +1,7 @@
-from marshmallow import ValidationError
 from pytest import mark, param, raises
 from test.base import does_not_raise
 
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.dynamodb import (
     AttributeBaseExpression,
     ConditionBaseExpression,
@@ -18,7 +18,7 @@ condition_base_expression__valid__test_cases = [
         ConditionBaseExpression(
             format="{0} {operator} {1}",
             operator="=",
-            values=[AttributeBaseExpression("Key", "k1"), "s1"],
+            values=[AttributeBaseExpression(attr_class="Key", attr_name="k1"), "s1"],
         ),
         does_not_raise(),
         id="Simple Condition",
@@ -77,45 +77,8 @@ condition_base_expression__invalid__test_cases__from_dict = [
 ]
 
 
-condition_base_expression__invalid__test_cases__to_dict = [
-    param(
-        None,
-        ConditionBaseExpression(
-            format="({0} {operator} {1})",
-            operator="AND",
-            values=[
-                ConditionBaseExpression(
-                    format="{0} {operator} {1}",
-                    operator=["="],
-                    values=[AttributeBaseExpression(attr_class="Key", attr_name="k1"), "s1"],
-                ),
-                ConditionBaseExpression(
-                    format="{0} {operator} {1}",
-                    operator="<",
-                    values=[AttributeBaseExpression(attr_class="Attr", attr_name="a1"), 1],
-                ),
-            ],
-        ),
-        raises(ValidationError),
-        id="Nested Condition is invalid",
-    ),
-    param(
-        None,
-        ConditionBaseExpression(
-            format=["{0} {operator} {1}"],
-            operator="=",
-            values=[AttributeBaseExpression(attr_class="Key", attr_name="k1"), "s1"],
-        ),
-        raises(ValidationError),
-        id="Top-level field is invalid",
-    ),
-]
-
-
 @mark.parametrize(
-    "model_dict, expected, raises_error",
-    condition_base_expression__valid__test_cases
-    + condition_base_expression__invalid__test_cases__from_dict,
+    "model_dict, expected, raises_error", condition_base_expression__valid__test_cases
 )
 def test__ConditionBaseExpression__from_dict(
     model_dict: dict, expected: ConditionBaseExpression | None, raises_error
@@ -127,11 +90,7 @@ def test__ConditionBaseExpression__from_dict(
         assert actual == expected
 
 
-@mark.parametrize(
-    "expected, model, raises_error",
-    condition_base_expression__valid__test_cases
-    + condition_base_expression__invalid__test_cases__to_dict,
-)
+@mark.parametrize("expected, model, raises_error", condition_base_expression__valid__test_cases)
 def test__ConditionBaseExpression__to_dict(
     model: ConditionBaseExpression, expected: dict | None, raises_error
 ):

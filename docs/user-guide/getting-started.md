@@ -16,14 +16,6 @@ pip install aibs-informatics-core
 uv add aibs-informatics-core
 ```
 
-### Optional Dependencies
-
-For Pydantic support:
-
-```bash
-pip install aibs-informatics-core[pydantic]
-```
-
 ## Basic Concepts
 
 ### Environment Namespacing
@@ -46,11 +38,9 @@ print(resource_name)  # 'dev-myproject-my_resource-blue'
 Create type-safe data models using the provided base classes:
 
 ```python
-from dataclasses import dataclass
-from aibs_informatics_core.models import SchemaModel
+from aibs_informatics_core.models.base import PydanticBaseModel
 
-@dataclass
-class MyModel(SchemaModel):
+class MyModel(PydanticBaseModel):
     name: str
     value: int
 
