@@ -299,3 +299,131 @@ def test__ResolvedParamSetPair__from_dict():
     p = ResolvedParamSetPair.from_dict({"inputs": [r1], "outputs": [r2]})
     assert p.inputs == frozenset({r1})
     assert p.outputs == frozenset({r2})
+
+
+def test__ResolvedParamSetPair__defaults_to_empty():
+    p = ResolvedParamSetPair()
+    assert p.inputs == frozenset()
+    assert p.outputs == frozenset()
+
+
+def test__ResolvedParamSetPair__accepts_list_input():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    p = ResolvedParamSetPair(inputs=[r1], outputs=[r2])
+    assert p.inputs == frozenset({r1})
+    assert p.outputs == frozenset({r2})
+
+
+def test__ResolvedParamSetPair__accepts_set_input():
+    r1 = S3URI("s3://bucket-a/key-a")
+    p = ResolvedParamSetPair(inputs={r1}, outputs=set())
+    assert p.inputs == frozenset({r1})
+    assert p.outputs == frozenset()
+
+
+def test__ResolvedParamSetPair__accepts_tuple_input():
+    r1 = S3URI("s3://bucket-a/key-a")
+    p = ResolvedParamSetPair(inputs=(r1,), outputs=())
+    assert p.inputs == frozenset({r1})
+    assert p.outputs == frozenset()
+
+
+def test__ResolvedParamSetPair__add_inputs():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    p = ResolvedParamSetPair(inputs={r1})
+    p.add_inputs(r2)
+    assert p.inputs == frozenset({r1, r2})
+    # Adding duplicate is idempotent
+    p.add_inputs(r1)
+    assert p.inputs == frozenset({r1, r2})
+
+
+def test__ResolvedParamSetPair__add_outputs():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    p = ResolvedParamSetPair(outputs={r1})
+    p.add_outputs(r2)
+    assert p.outputs == frozenset({r1, r2})
+    # Adding duplicate is idempotent
+    p.add_outputs(r1)
+    assert p.outputs == frozenset({r1, r2})
+
+
+def test__ResolvedParamSetPair__remove_inputs():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    p = ResolvedParamSetPair(inputs={r1, r2})
+    p.remove_inputs(r1)
+    assert p.inputs == frozenset({r2})
+    # Removing non-existent item is a no-op
+    p.remove_inputs(r1)
+    assert p.inputs == frozenset({r2})
+
+
+def test__ResolvedParamSetPair__remove_outputs():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    p = ResolvedParamSetPair(outputs={r1, r2})
+    p.remove_outputs(r2)
+    assert p.outputs == frozenset({r1})
+    # Removing non-existent item is a no-op
+    p.remove_outputs(r2)
+    assert p.outputs == frozenset({r1})
+
+
+def test__ResolvedParamSetPair__add_multiple_inputs_at_once():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    r3 = S3URI("s3://bucket-c/key-c")
+    p = ResolvedParamSetPair()
+    p.add_inputs(r1, r2, r3)
+    assert p.inputs == frozenset({r1, r2, r3})
+
+
+def test__ResolvedParamSetPair__remove_multiple_outputs_at_once():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    r3 = S3URI("s3://bucket-c/key-c")
+    p = ResolvedParamSetPair(outputs={r1, r2, r3})
+    p.remove_outputs(r1, r3)
+    assert p.outputs == frozenset({r2})
+
+
+def test__ResolvedParamSetPair__from_dict_empty():
+    p = ResolvedParamSetPair.from_dict({"inputs": [], "outputs": []})
+    assert p.inputs == frozenset()
+    assert p.outputs == frozenset()
+
+
+def test__ResolvedParamSetPair__roundtrip_to_dict_from_dict():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    r3 = S3URI("s3://bucket-c/key-c")
+    original = ResolvedParamSetPair(inputs={r1, r2}, outputs={r3})
+    restored = ResolvedParamSetPair.from_dict(original.to_dict())
+    assert restored.inputs == original.inputs
+    assert restored.outputs == original.outputs
+
+
+def test__ResolvedParamSetPair__equality():
+    r1 = S3URI("s3://bucket-a/key-a")
+    r2 = S3URI("s3://bucket-b/key-b")
+    p1 = ResolvedParamSetPair(inputs={r1}, outputs={r2})
+    p2 = ResolvedParamSetPair(inputs={r1}, outputs={r2})
+    assert p1 == p2
+
+
+def test__ResolvedParamSetPair__inputs_only():
+    r1 = S3URI("s3://bucket-a/key-a")
+    p = ResolvedParamSetPair(inputs={r1})
+    assert p.inputs == frozenset({r1})
+    assert p.outputs == frozenset()
+
+
+def test__ResolvedParamSetPair__outputs_only():
+    r1 = S3URI("s3://bucket-a/key-a")
+    p = ResolvedParamSetPair(outputs={r1})
+    assert p.inputs == frozenset()
+    assert p.outputs == frozenset({r1})

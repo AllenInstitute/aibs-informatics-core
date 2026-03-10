@@ -187,13 +187,6 @@ class JobParamSetPair(PydanticBaseModel):
         BeforeValidator(_coerce_to_frozenset),
     ] = Field(default_factory=frozenset)
 
-    def model_post_init(self, context: Any) -> None:
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
-        return super().model_post_init(context)
-
     def add_inputs(self, *inputs: ResolvableJobParam):
         self.inputs = self.inputs.union(inputs)
 
@@ -254,12 +247,6 @@ class ResolvedParamSetPair(PydanticBaseModel):
         frozenset[ResolvableID],
         BeforeValidator(_coerce_to_frozenset),
     ] = Field(default_factory=frozenset)
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
 
     def add_inputs(self, *inputs: ResolvableID):
         self.inputs = self.inputs.union(inputs)
