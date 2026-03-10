@@ -22,9 +22,9 @@ A class for creating validated strings based on regex patterns.
 
 A mixin class for handling post-initialization tasks.
 
-### EnvBaseMixins
+### PydanticStrMixin
 
-A mixin class for handling environment-related tasks.
+A mixin for Pydantic models that provides a custom CoreSchema for string validation.
 
 ## Enums
 

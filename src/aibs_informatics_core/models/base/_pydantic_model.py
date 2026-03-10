@@ -34,6 +34,18 @@ class PydanticBaseModel(_PydanticBaseModel, ModelBase):
 
     @classmethod
     def from_dict(cls, data: JSONObject, **kwargs) -> Self:
+        """Create an instance from a dictionary using Pydantic validation.
+
+        Args:
+            data: Dictionary representation of the model.
+            **kwargs: Additional keyword arguments passed to ``model_validate``.
+
+        Returns:
+            A validated instance of the model.
+
+        Raises:
+            ValidationError: If the data fails Pydantic validation.
+        """
         try:
             return cls.model_validate(data, **filter_kwargs(cls.model_validate, kwargs))
         except PydanticValidationError as e:
@@ -42,6 +54,22 @@ class PydanticBaseModel(_PydanticBaseModel, ModelBase):
             raise ValidationError(str(e)) from e
 
     def to_dict(self, **kwargs) -> JSONObject:
+        """Serialize the model to a dictionary using Pydantic serialization.
+
+        By default, None values are excluded and JSON-compatible serialization
+        mode is used.
+
+        Args:
+            **kwargs: Additional keyword arguments passed to ``model_dump``.
+                Supports ``exclude_none`` (default: True) and ``mode``
+                (default: "json").
+
+        Returns:
+            Dictionary representation of the model.
+
+        Raises:
+            ValidationError: If serialization fails Pydantic validation.
+        """
         # Ensure None values are excluded by default to mirror DataClassJsonMixin settings
         exclude_none = kwargs.pop("exclude_none", True)
         mode = kwargs.pop("mode", "json")

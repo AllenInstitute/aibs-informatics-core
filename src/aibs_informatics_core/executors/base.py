@@ -25,6 +25,13 @@ E = TypeVar("E", bound="BaseExecutor")
 
 @dataclass  # type: ignore[misc] # mypy #5374
 class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
+    """Abstract base executor for handling typed request/response workflows.
+
+    Subclasses must parameterize with request and response model types and
+    implement the ``handle`` method. Provides serialization, deserialization,
+    and CLI/remote I/O utilities.
+    """
+
     @abstractmethod
     def handle(self, request: REQUEST) -> RESPONSE | None:  # pragma: no cover
         """Core logic for handling request
@@ -60,10 +67,20 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
 
     @classmethod
     def get_request_cls(cls) -> type[REQUEST]:
+        """Return the request model class from the generic type arguments.
+
+        Returns:
+            The request model class.
+        """
         return cls._get_generic_args()[0]  # type: ignore
 
     @classmethod
     def get_response_cls(cls) -> type[RESPONSE]:
+        """Return the response model class from the generic type arguments.
+
+        Returns:
+            The response model class.
+        """
         return cls._get_generic_args()[1]  # type: ignore
 
     @classmethod

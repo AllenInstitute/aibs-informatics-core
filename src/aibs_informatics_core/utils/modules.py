@@ -17,6 +17,14 @@ T = TypeVar("T")
 
 
 def as_module_type(package: str | ModuleType) -> ModuleType:
+    """Convert a package name or module to a ``ModuleType``.
+
+    Args:
+        package: A module object or a fully qualified module name string.
+
+    Returns:
+        The corresponding ``ModuleType`` instance.
+    """
     return package if isinstance(package, ModuleType) else importlib.import_module(package)
 
 

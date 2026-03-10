@@ -4,21 +4,21 @@ Base model classes for data serialization and deserialization.
 
 ## Classes
 
+### ModelProtocol
+
+A runtime-checkable protocol defining the serialization/deserialization interface (`from_dict`, `to_dict`, `from_json`, `to_json`, `from_path`, `to_path`).
+
 ### ModelBase
 
-A base class for creating data models with serialization support.
+An abstract base class implementing common serialization methods (JSON, YAML, file I/O).
 
-### DataClassModel
+### PydanticBaseModel
 
-A base class for creating data models using Python dataclasses.
+The primary base class for creating data models, backed by Pydantic with automatic camelCase alias support.
 
-### SchemaModel
+### IsoDateTime / IsoDate
 
-A base class for creating data models using marshmallow schemas combined with dataclasses.
-
-### WithValidation
-
-A mixin class for adding validation to data models.
+Annotated Pydantic types for ISO 8601 datetime and date fields with custom parsing and serialization.
 
 ---
 

@@ -118,6 +118,15 @@ def nested_dict(data: MutableMapping[str, Any], delimiter: str = ".") -> dict[st
 
 
 def convert_key_case(data: T, key_case: Callable[[str], str]) -> T:
+    """Recursively convert dictionary keys using a case-conversion function.
+
+    Args:
+        data: A dict, list, or scalar value.
+        key_case: A callable that transforms string keys (e.g., ``snakecase``).
+
+    Returns:
+        A copy of ``data`` with all dictionary keys transformed.
+    """
     if isinstance(data, dict):
         return {
             (key_case(k) if isinstance(k, str) else k): convert_key_case(v, key_case)
