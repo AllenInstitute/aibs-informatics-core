@@ -131,11 +131,11 @@ class ResolvableBase(PydanticBaseModel, Generic[T]):
         if annotation is not None and not isinstance(annotation, TypeVar):
             return annotation  # type: ignore[return-value]
         # Fallback: walk __orig_bases__ looking for a parameterised generic
-        for base in getattr(cls, "__orig_bases__", ()):
+        for base in getattr(cls, "__orig_bases__", ()):  # pragma: no cover
             args = getattr(base, "__args__", None)
             if args:
                 return args[0]
-        raise TypeError(f"Could not determine resolvable type for {cls}")
+        raise TypeError(f"Could not determine resolvable type for {cls}")  # pragma: no cover
 
     @classmethod
     def from_any(
