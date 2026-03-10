@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import ClassVar, Self
 
 from pydantic import AliasGenerator, ConfigDict
@@ -54,7 +53,3 @@ class PydanticBaseModel(_PydanticBaseModel, ModelBase):
             )
         except PydanticValidationError as e:
             raise ValidationError(str(e)) from e
-
-    @classmethod
-    def from_json(cls, data: str, **kwargs) -> Self:
-        return cls.from_dict(json.loads(data), **kwargs)
