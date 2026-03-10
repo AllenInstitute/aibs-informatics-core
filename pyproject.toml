@@ -25,6 +25,7 @@ dependencies = [
     "pytz",
     "pyyaml~=6.0",
     "requests",
+    "stringcase~=1.2",
     "typing_inspect",
 ]
 

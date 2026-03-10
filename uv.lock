@@ -12,6 +12,7 @@ dependencies = [
     { name = "pytz" },
     { name = "pyyaml" },
     { name = "requests" },
+    { name = "stringcase" },
     { name = "typing-inspect" },
 ]
 
@@ -58,6 +59,7 @@ requires-dist = [
     { name = "pytz" },
     { name = "pyyaml", specifier = "~=6.0" },
     { name = "requests" },
+    { name = "stringcase", specifier = "~=1.2" },
     { name = "typing-inspect" },
 ]
 
@@ -1199,6 +1201,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
+
+[[package]]
+name = "stringcase"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/1f/1241aa3d66e8dc1612427b17885f5fcd9c9ee3079fc0d28e9a3aeeb36fa3/stringcase-1.2.0.tar.gz", hash = "sha256:48a06980661908efe8d9d34eab2b6c13aefa2163b3ced26972902e3bdfd87008", size = 2958, upload-time = "2017-08-06T01:40:57.021Z" }
 
 [[package]]
 name = "tomli"
