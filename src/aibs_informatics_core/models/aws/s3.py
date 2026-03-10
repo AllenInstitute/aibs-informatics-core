@@ -41,12 +41,10 @@ from typing import (
 )
 from urllib.parse import quote
 
-import marshmallow as mm
 from dateutil import parser as date_parser  # type: ignore[import-untyped]
 
 from aibs_informatics_core.collections import OrderedStrEnum, ValidatedStr
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.base import CustomStringField, EnumField
 
 if TYPE_CHECKING:  # pragma: no cover
     # from mypy_boto3_s3.service_resource import Object as S3_Object
@@ -238,10 +236,6 @@ class S3Path(ValidatedStr):
         encoded_key = quote(self.key, safe="/")
         hosted_s3_url = f"https://{self.bucket}.s3.{aws_region}.amazonaws.com/{encoded_key}"
         return hosted_s3_url
-
-    @classmethod
-    def as_mm_field(cls) -> mm.fields.Field:
-        return CustomStringField(S3Path)
 
     @classmethod
     def build(cls, bucket_name: str, key: str = "", **kwargs) -> "S3Path":
@@ -463,10 +457,6 @@ class S3PathPlaceholder(ConditionalPlaceholderStr):
         return hosted_s3_url
 
     @classmethod
-    def as_mm_field(cls) -> mm.fields.Field:
-        return CustomStringField(S3PathPlaceholder)
-
-    @classmethod
     def build(
         cls, bucket_name: str, key: str = "", allow_placeholders: bool = False, **kwargs
     ) -> "S3PathPlaceholder":
@@ -557,7 +547,6 @@ class S3TransferRequest(Generic[T, U]):
 
 
 @dataclass
-# class S3CopyRequest:
 class S3CopyRequest(S3TransferRequest[S3Path, S3Path]):
     extra_args: dict[str, Any] | None = None
 
@@ -686,10 +675,6 @@ class S3StorageClass(OrderedStrEnum):
             cls("GLACIER"),
             cls("DEEP_ARCHIVE"),
         ]
-
-    @classmethod
-    def as_mm_field(cls) -> mm.fields.Field:
-        return EnumField(S3StorageClass)
 
 
 S3StorageClassStr = Literal[

@@ -82,13 +82,6 @@ def test__UniqueID__from_env__works():
     assert uuid.UUID(uuid_str, version=4) == obt.as_uuid()
 
 
-def test__UniqueID__as_mm_field():
-    field = UniqueID.as_mm_field()
-    uuid_str = "e31ed78e-f165-4bf6-9236-dc4a877c20c0"
-    uuid_obj = UniqueID(uuid_str)
-    assert field.deserialize(uuid_str) == uuid_obj
-
-
 def test__UniqueID__pydantic_core_schema():
     class TestModel(PydanticBaseModel):
         unique_id: UniqueID

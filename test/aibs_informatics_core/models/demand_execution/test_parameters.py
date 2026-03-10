@@ -722,9 +722,9 @@ def test__job_param_set_pairs__work():
 
     actual = parameters.job_param_set_pairs
     expected = [
-        JobParamSetPair({IN1, IN2}, {OUT3}),
-        JobParamSetPair({IN1}, {OUT1}),
-        JobParamSetPair({IN2}, {OUT2}),
+        JobParamSetPair(inputs={IN1, IN2}, outputs={OUT3}),
+        JobParamSetPair(inputs={IN1}, outputs={OUT1}),
+        JobParamSetPair(inputs={IN2}, outputs={OUT2}),
     ]
 
     assert actual == expected

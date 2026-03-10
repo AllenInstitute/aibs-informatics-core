@@ -15,120 +15,65 @@ __all__ = [
     "PrepareBatchDataSyncResponse",
 ]
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
-import marshmallow as mm
+from pydantic import Field, JsonValue, model_validator
 
 from aibs_informatics_core.models.aws.efs import EFSPath
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
-from aibs_informatics_core.models.base import (
-    BooleanField,
-    CustomStringField,
-    IntegerField,
-    ListField,
-    PathField,
-    RawField,
-    SchemaModel,
-    UnionField,
-    custom_field,
-)
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.utils.json import JSON
 
 
-@dataclass
-class JSONContent(SchemaModel):
-    content: JSON = custom_field(mm_field=RawField())
+class JSONContent(PydanticBaseModel):
+    content: JsonValue
 
 
-@dataclass
-class JSONReference(SchemaModel):
-    path: S3Path | Path = custom_field(
-        mm_field=UnionField([(S3Path, S3Path.as_mm_field()), (Path, PathField())])
-    )
+class JSONReference(PydanticBaseModel):
+    path: S3Path | Path
 
 
-@dataclass
 class PutJSONToFileRequest(JSONContent):
-    path: S3Path | Path | None = custom_field(
-        default=None, mm_field=UnionField([(S3Path, S3Path.as_mm_field()), (Path, PathField())])
-    )
+    path: S3Path | Path | None = None
 
 
-@dataclass
 class PutJSONToFileResponse(JSONReference):
     pass
 
 
-@dataclass
 class GetJSONFromFileRequest(JSONReference):
     pass
 
 
-@dataclass
 class GetJSONFromFileResponse(JSONContent):
     pass
 
 
-@dataclass
-class DataSyncTask(SchemaModel):
-    source_path: S3Path | EFSPath | Path = custom_field(
-        mm_field=UnionField(
-            [
-                (S3Path, S3Path.as_mm_field()),
-                (EFSPath, EFSPath.as_mm_field()),
-                ((Path, str), PathField()),
-            ]
-        )
-    )
-    destination_path: S3Path | EFSPath | Path = custom_field(
-        mm_field=UnionField(
-            [
-                (S3Path, S3Path.as_mm_field()),
-                (EFSPath, EFSPath.as_mm_field()),
-                ((Path, str), PathField()),
-            ]
-        )
-    )
-    source_path_prefix: S3KeyPrefix | None = custom_field(
-        default=None, mm_field=CustomStringField(S3KeyPrefix)
-    )
+class DataSyncTask(PydanticBaseModel):
+    source_path: S3Path | EFSPath | Path
+    destination_path: S3Path | EFSPath | Path
+    source_path_prefix: S3KeyPrefix | None = None
 
 
-@dataclass
-class RemoteToLocalConfig(SchemaModel):
+class RemoteToLocalConfig(PydanticBaseModel):
     # Use a custom intermediate tmp dir when syncing an s3 object to a local filesystem
     # instead of using boto3's implementation which creates a part file (e.g. *.6eF5b5da)
     # in SAME parent dir as the desired destination path.
-    use_custom_tmp_dir: bool = custom_field(default=False, mm_field=BooleanField())
-    custom_tmp_dir: EFSPath | Path | None = custom_field(
-        default=None,
-        mm_field=UnionField(
-            [
-                (EFSPath, EFSPath.as_mm_field()),
-                ((Path, str), PathField()),
-            ]
-        ),
-    )
+    use_custom_tmp_dir: bool = False
+    custom_tmp_dir: EFSPath | Path | None = None
 
 
-@dataclass
-class DataSyncConfig(SchemaModel):
-    max_concurrency: int = custom_field(default=25, mm_field=IntegerField())
-    retain_source_data: bool = custom_field(default=True, mm_field=BooleanField())
-    require_lock: bool = custom_field(default=False, mm_field=BooleanField())
-    force: bool = custom_field(default=False, mm_field=BooleanField())
-    size_only: bool = custom_field(default=False, mm_field=BooleanField())
-    fail_if_missing: bool = custom_field(default=True, mm_field=BooleanField())
-    include_detailed_response: bool = custom_field(default=False, mm_field=BooleanField())
-    remote_to_local_config: RemoteToLocalConfig = custom_field(
-        default_factory=RemoteToLocalConfig,
-        mm_field=RemoteToLocalConfig.as_mm_field(),
-    )
+class DataSyncConfig(PydanticBaseModel):
+    max_concurrency: int = 25
+    retain_source_data: bool = True
+    require_lock: bool = False
+    force: bool = False
+    size_only: bool = False
+    fail_if_missing: bool = True
+    include_detailed_response: bool = False
+    remote_to_local_config: RemoteToLocalConfig = Field(default_factory=RemoteToLocalConfig)
 
 
-@dataclass
 class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
     @property
     def config(self) -> DataSyncConfig:
@@ -152,8 +97,7 @@ class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
         )
 
 
-@dataclass
-class DataSyncResult(SchemaModel):
+class DataSyncResult(PydanticBaseModel):
     bytes_transferred: int = 0
     files_transferred: int = 0
 
@@ -164,28 +108,19 @@ class DataSyncResult(SchemaModel):
         self.files_transferred += files_transferred
 
 
-@dataclass
-class DataSyncResponse(SchemaModel):
-    request: DataSyncRequest = custom_field(mm_field=DataSyncRequest.as_mm_field())
-    result: DataSyncResult = custom_field(mm_field=DataSyncResult.as_mm_field())
+class DataSyncResponse(PydanticBaseModel):
+    request: DataSyncRequest
+    result: DataSyncResult
 
 
-@dataclass
-class BatchDataSyncRequest(SchemaModel):
-    requests: list[DataSyncRequest] | S3Path = custom_field(
-        mm_field=UnionField(
-            [
-                (list, ListField(DataSyncRequest.as_mm_field())),
-                (S3Path, S3Path.as_mm_field()),
-            ]
-        )
-    )
-    allow_partial_failure: bool = custom_field(default=False, mm_field=BooleanField())
+class BatchDataSyncRequest(PydanticBaseModel):
+    requests: list[DataSyncRequest] | S3Path
+    allow_partial_failure: bool = False
 
+    @model_validator(mode="before")
     @classmethod
-    @mm.pre_load
-    def _handle_single_flattened_request(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
-        if DataSyncRequest.is_valid(data=data, many=False, partial=False):
+    def _handle_single_flattened_request(cls, data: dict[str, JSON]) -> dict[str, JSON]:
+        if DataSyncRequest.is_valid(data=data):
             data = {
                 "requests": [data],
                 "allow_partial_failure": False,
@@ -194,7 +129,6 @@ class BatchDataSyncRequest(SchemaModel):
         return data
 
 
-@dataclass
 class BatchDataSyncResult(DataSyncResult):
     total_requests_count: int = 0
     successful_requests_count: int = 0
@@ -209,10 +143,9 @@ class BatchDataSyncResult(DataSyncResult):
         self.total_requests_count += increment
 
 
-@dataclass
-class BatchDataSyncResponse(SchemaModel):
-    result: BatchDataSyncResult = custom_field(mm_field=BatchDataSyncResult.as_mm_field())
-    failed_requests: list[DataSyncRequest] | None = custom_field(default=None)
+class BatchDataSyncResponse(PydanticBaseModel):
+    result: BatchDataSyncResult
+    failed_requests: list[DataSyncRequest] | None = None
 
     def add_failed_request(self, request: DataSyncRequest) -> None:
         if self.failed_requests is None:
@@ -220,16 +153,10 @@ class BatchDataSyncResponse(SchemaModel):
         self.failed_requests.append(request)
 
 
-@dataclass
 class PrepareBatchDataSyncRequest(DataSyncRequest):
-    batch_size_bytes_limit: int | None = custom_field(default=None, mm_field=IntegerField())
-    temporary_request_payload_path: S3Path | None = custom_field(
-        default=None, mm_field=S3Path.as_mm_field()
-    )
+    batch_size_bytes_limit: int | None = None
+    temporary_request_payload_path: S3Path | None = None
 
 
-@dataclass
-class PrepareBatchDataSyncResponse(SchemaModel):
-    requests: list[BatchDataSyncRequest] = custom_field(
-        mm_field=ListField(BatchDataSyncRequest.as_mm_field())
-    )
+class PrepareBatchDataSyncResponse(PydanticBaseModel):
+    requests: list[BatchDataSyncRequest]

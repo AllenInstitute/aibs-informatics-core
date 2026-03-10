@@ -1,6 +1,4 @@
 __all__ = [
-    "JSONArray",
-    "JSONObject",
     "JSON",
     "DecimalEncoder",
     "is_json_str",
@@ -11,22 +9,13 @@ __all__ = [
 import decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, TypeAlias, cast
+from typing import Any, TypeAlias, cast
 
-JSON: TypeAlias = dict[str, Any] | list[Any] | int | str | float | bool | None
+from pydantic import JsonValue
 
-
-if TYPE_CHECKING:  # pragma: no cover
-
-    class JSONArray(list[JSON], Protocol):  # type: ignore
-        # __class__: type[list[JSON]]
-        pass
-
-    class JSONObject(dict[str, JSON], Protocol):  # type: ignore
-        # __class__: Type[dict[str, JSON]]
-        pass
-else:
-    JSONArray, JSONObject = list[Any], dict[str, Any]
+JSON: TypeAlias = JsonValue
+JSONObject: TypeAlias = dict[str, JSON]
+JSONArray: TypeAlias = list[JSON]
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -59,8 +48,8 @@ def load_json(path_or_str: str | Path, **kwargs) -> JSON:
         raise ValueError(f"Cannot load {path_or_str} as json. Not valid json string or path.")
 
 
-def load_json_object(path_or_str: str | Path, **kwargs) -> JSONObject:
+def load_json_object(path_or_str: str | Path, **kwargs) -> dict[str, JSON]:
     json_data = load_json(path_or_str, **kwargs)
     if not isinstance(json_data, dict):
         raise ValueError(f"{path_or_str} was loaded as JSON but not a JSON Object")
-    return cast(JSONObject, json_data)
+    return cast(dict[str, JSON], json_data)
