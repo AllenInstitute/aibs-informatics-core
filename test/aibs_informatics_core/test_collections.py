@@ -405,6 +405,12 @@ class PlainValidatedStr(ValidatedStr):
     pass
 
 
+class LookaheadStr(ValidatedStr):
+    """Requires at least one digit — uses lookahead, unsupported by rust-regex"""
+
+    regex_pattern: ClassVar[Pattern] = r"^(?=.*\d).+$"
+
+
 class PydanticStrMixinTests(unittest.TestCase):
     """Tests for PydanticStrMixin JSON schema generation via ValidatedStr subclasses."""
 
@@ -463,3 +469,19 @@ class PydanticStrMixinTests(unittest.TestCase):
         self.assertEqual(m.name, "Hello")
         dumped = m.model_dump_json()
         self.assertIn("Hello", dumped)
+
+    def test__lookahead_pattern__falls_back_to_python_re(self):
+        """Lookaheads are unsupported by rust-regex; should fall back to python-re."""
+        from pydantic import BaseModel
+
+        class MyModel(BaseModel):
+            value: LookaheadStr
+
+        # Valid: contains at least one uppercase letter
+        m = MyModel(value="Hello1")  # type: ignore[arg-type]
+        self.assertIsInstance(m.value, LookaheadStr)
+        self.assertEqual(m.value, "Hello1")
+
+        schema = self._get_field_schema(LookaheadStr)
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], r"^(?=.*\d).+$")

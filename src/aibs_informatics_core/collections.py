@@ -38,8 +38,10 @@ from typing import (
 )
 
 from pydantic import GetCoreSchemaHandler
+from pydantic_core import SchemaValidator
 from pydantic_core.core_schema import (
     CoreSchema,
+    StringSchema,
     chain_schema,
     no_info_plain_validator_function,
     str_schema,
@@ -183,7 +185,20 @@ class PydanticStrMixin:
             if cls.max_len is not None:
                 str_schema_kwargs["max_length"] = cls.max_len
 
-        input_schema = str_schema(**str_schema_kwargs) if str_schema_kwargs else handler(str)
+        input_schema: StringSchema | CoreSchema
+        if str_schema_kwargs:
+            try:
+                input_schema = str_schema(**str_schema_kwargs, regex_engine="rust-regex")
+                # Probe the schema to catch rust-regex incompatibilities (e.g. lookaheads)
+                # since str_schema() only builds a dict and defers compilation.
+                SchemaValidator(input_schema)
+            except TypeError:
+                # regex_engine kwarg not supported (older pydantic-core)
+                input_schema = str_schema(**str_schema_kwargs)
+            except Exception:
+                input_schema = str_schema(**str_schema_kwargs, regex_engine="python-re")
+        else:
+            input_schema = handler(str)
 
         return chain_schema(
             [
