@@ -40,4 +40,8 @@ from aibs_informatics_core.models.base._dataclass_fields import (
     UnionField,
     UUIDField,
 )
-from aibs_informatics_core.models.base._pydantic_fields import IsoDate, IsoDateTime, PydanticField
+from aibs_informatics_core.models.base._pydantic_fields import (
+    IsoDate,
+    IsoDateTime,
+    PydanticField,
+)
