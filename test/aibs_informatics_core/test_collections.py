@@ -381,3 +381,85 @@ class OrderedStrEnumTests(unittest.TestCase):
             B = "B"
 
         self.assertListEqual(ACBs.values(), ["a", "C", "B"])
+
+
+# -- ValidatedStr subclasses for PydanticStrMixin tests --------
+
+
+class AlphaOnlyStr(ValidatedStr):
+    regex_pattern: ClassVar[Pattern] = r"^[a-zA-Z]+$"  # type: ignore
+
+
+class BoundedStr(ValidatedStr):
+    min_len: ClassVar[int] = 2
+    max_len: ClassVar[int] = 10
+
+
+class PatternAndBoundedStr(ValidatedStr):
+    regex_pattern: ClassVar[Pattern] = r"^[a-z]+$"  # type: ignore
+    min_len: ClassVar[int] = 1
+    max_len: ClassVar[int] = 5
+
+
+class PlainValidatedStr(ValidatedStr):
+    pass
+
+
+class PydanticStrMixinTests(unittest.TestCase):
+    """Tests for PydanticStrMixin JSON schema generation via ValidatedStr subclasses."""
+
+    def _get_field_schema(self, field_type, field_name: str = "value") -> dict:
+        from pydantic import BaseModel
+
+        model = type("TestModel", (BaseModel,), {"__annotations__": {field_name: field_type}})
+        return model.model_json_schema()["properties"][field_name]
+
+    def test__pattern_only__json_schema_includes_pattern(self):
+        schema = self._get_field_schema(AlphaOnlyStr)
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], "^[a-zA-Z]+$")
+        self.assertNotIn("minLength", schema)
+        self.assertNotIn("maxLength", schema)
+
+    def test__bounds_only__json_schema_includes_min_and_max(self):
+        schema = self._get_field_schema(BoundedStr)
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["minLength"], 2)
+        self.assertEqual(schema["maxLength"], 10)
+        self.assertNotIn("pattern", schema)
+
+    def test__pattern_and_bounds__json_schema_includes_all(self):
+        schema = self._get_field_schema(PatternAndBoundedStr)
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], "^[a-z]+$")
+        self.assertEqual(schema["minLength"], 1)
+        self.assertEqual(schema["maxLength"], 5)
+
+    def test__plain__json_schema_is_plain_string(self):
+        schema = self._get_field_schema(PlainValidatedStr)
+        self.assertEqual(schema["type"], "string")
+        self.assertNotIn("pattern", schema)
+        self.assertNotIn("minLength", schema)
+        self.assertNotIn("maxLength", schema)
+
+    def test__model_validates_and_returns_subclass(self):
+        from pydantic import BaseModel
+
+        class MyModel(BaseModel):
+            name: AlphaOnlyStr
+
+        m = MyModel(name="Hello")  # type: ignore[arg-type]
+        self.assertIsInstance(m.name, AlphaOnlyStr)
+        self.assertEqual(m.name, "Hello")
+
+    def test__model_round_trip_json(self):
+        from pydantic import BaseModel
+
+        class MyModel(BaseModel):
+            name: AlphaOnlyStr
+
+        m = MyModel.model_validate_json('{"name": "Hello"}')
+        self.assertIsInstance(m.name, AlphaOnlyStr)
+        self.assertEqual(m.name, "Hello")
+        dumped = m.model_dump_json()
+        self.assertIn("Hello", dumped)
