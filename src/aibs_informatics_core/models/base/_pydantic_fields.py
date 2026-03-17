@@ -21,6 +21,10 @@ def _parse_isoish_dt(v: str | int | float | datetime.datetime) -> datetime.datet
     if isinstance(v, str):
         return from_isoformat_8601(v)  # This will raise ValueError if the format is incorrect
 
+    # Handle already‑parsed datetime objects, ensuring they are timezone‑aware (UTC) if naive
+    if isinstance(v, datetime.datetime) and v.tzinfo is None:
+        return v.replace(tzinfo=datetime.timezone.utc)
+
     # Already a datetime instance → return unchanged
     return v
 
@@ -41,7 +45,7 @@ IsoDateTime = Annotated[
     BeforeValidator(_parse_isoish_dt),
     # ↓ this runs when .model_dump_json() or .model_dump(mode="json") is called
     PlainSerializer(
-        lambda v: v.isoformat(),  # or v.isoformat(timespec="seconds") for no µs
+        lambda v: v.isoformat().replace("+00:00", "Z"),
         return_type=str,
         when_used="json",  # only affects JSON/dict output, not Python copy
     ),
