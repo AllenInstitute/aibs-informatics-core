@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from pydantic import Field, PrivateAttr, field_serializer, model_validator
+from pydantic import Field, JsonValue, PrivateAttr, field_serializer, model_validator
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
@@ -57,13 +57,13 @@ def refresh_params(func: Callable | None = None, force: bool = True, pre_validat
 
 class DemandExecutionParameters(PydanticBaseModel):
     command: list[str] = Field(default_factory=list)
-    params: dict[str, Any] = Field(default_factory=dict)
+    params: dict[str, JsonValue] = Field(default_factory=dict)
     inputs: list[str] = Field(default_factory=list)
     outputs: list[str] = Field(default_factory=list)
     outputs_metadata: dict[str, dict[str, JSON]] = Field(default_factory=dict)
-    output_s3_prefix: S3URI | None = Field(default=None)
-    param_pair_overrides: list[ParamSetPair | ParamPair] | None = Field(default=None)
-    verbosity: bool = Field(default=False)
+    output_s3_prefix: S3URI | None = None
+    param_pair_overrides: list[ParamSetPair | ParamPair] | None = None
+    verbosity: bool = False
 
     _refresh_hash: str = PrivateAttr(default="")
     _job_params: list = PrivateAttr(default_factory=list)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = [
     "AttributeBaseExpression",
     "ConditionBaseExpression",
@@ -7,7 +9,7 @@ __all__ = [
 
 import re
 from re import Pattern
-from typing import Any, ClassVar, Union, cast
+from typing import Any, ClassVar, TypeAlias, cast
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.models.base import PydanticBaseModel
@@ -21,7 +23,7 @@ class AttributeBaseExpression(PydanticBaseModel):
 class ConditionBaseExpression(PydanticBaseModel):
     format: str
     operator: str
-    values: list[Union["ConditionBaseExpression", AttributeBaseExpression, Any]]
+    values: list[ConditionBaseExpression | AttributeBaseExpression | Any]
 
 
 class ConditionBaseExpressionString(ValidatedStr):
@@ -91,7 +93,7 @@ class ConditionBaseExpressionString(ValidatedStr):
         if value is not None:
             condition_values.append(value)
         return cast(
-            list[Union[ConditionBaseExpression, AttributeBaseExpression, Any]], condition_values
+            list[ConditionBaseExpression | AttributeBaseExpression | Any], condition_values
         )
 
     def get_condition_expression(self, is_key: bool) -> ConditionBaseExpression:
@@ -107,4 +109,6 @@ class ConditionBaseExpressionString(ValidatedStr):
         )
 
 
-ConditionBaseExpressionOrString = Union[ConditionBaseExpression, ConditionBaseExpressionString]
+ConditionBaseExpressionOrString: TypeAlias = (
+    ConditionBaseExpression | ConditionBaseExpressionString
+)

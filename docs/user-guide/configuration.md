@@ -90,7 +90,7 @@ class ValidatedConfig(PydanticBaseModel):
     port: int
 
     @model_validator(mode="after")
-    def validate_port(self):
+    def validate_port(self) -> Self:
         if not 1 <= self.port <= 65535:
             raise ValueError("Port must be between 1 and 65535")
         return self

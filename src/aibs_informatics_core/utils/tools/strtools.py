@@ -24,7 +24,7 @@ def is_prefixed(value: str, prefix: str) -> bool:
     Returns:
         True if ``value`` starts with ``prefix``.
     """
-    return value[: len(prefix)] == prefix
+    return value.startswith(prefix)
 
 
 def is_suffixed(value: str, suffix: str) -> bool:
@@ -37,7 +37,7 @@ def is_suffixed(value: str, suffix: str) -> bool:
     Returns:
         True if ``value`` ends with ``suffix``.
     """
-    return value[-len(suffix) :] == suffix
+    return value.endswith(suffix)
 
 
 def removeprefix(value: str, prefix: str) -> str:
