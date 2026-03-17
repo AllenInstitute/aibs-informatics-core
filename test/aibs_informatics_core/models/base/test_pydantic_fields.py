@@ -20,6 +20,9 @@ class DateModel(BaseModel):
     d: IsoDate
 
 
+TZ_UTC = datetime.timezone.utc
+
+
 # ── _parse_isoish_dt ──────────────────────────────────────────
 class ParseIsoishDtTests(unittest.TestCase):
     """Tests for the _parse_isoish_dt validator function."""
@@ -41,11 +44,11 @@ class ParseIsoishDtTests(unittest.TestCase):
     # -- ISO strings ---------------------------------------------------
     def test_iso_string_basic(self):
         result = _parse_isoish_dt("2025-04-30T07:00:00")
-        self.assertEqual(result, datetime.datetime(2025, 4, 30, 7, 0, 0))
+        self.assertEqual(result, datetime.datetime(2025, 4, 30, 7, 0, 0, tzinfo=TZ_UTC))
 
     def test_iso_string_with_fractional(self):
         result = _parse_isoish_dt("2025-04-30T07:00:00.0")
-        self.assertEqual(result, datetime.datetime(2025, 4, 30, 7, 0, 0))
+        self.assertEqual(result, datetime.datetime(2025, 4, 30, 7, 0, 0, tzinfo=TZ_UTC))
 
     def test_iso_string_with_z_suffix(self):
         result = _parse_isoish_dt("2022-06-09T06:58:14Z")
@@ -112,15 +115,15 @@ class IsoDateTimeFieldTests(unittest.TestCase):
     def test_model_from_iso_string(self):
         m = DateTimeModel(ts="2025-04-30T07:00:00")  # type: ignore[arg-type]
         self.assertIsInstance(m.ts, datetime.datetime)
-        self.assertEqual(m.ts, datetime.datetime(2025, 4, 30, 7, 0, 0))
+        self.assertEqual(m.ts, datetime.datetime(2025, 4, 30, 7, 0, 0, tzinfo=TZ_UTC))
 
     def test_model_from_epoch_millis(self):
         m = DateTimeModel(ts=0)  # type: ignore[arg-type]
-        self.assertEqual(m.ts, datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc))
-        self.assertEqual(m.ts.tzinfo, datetime.timezone.utc)
+        self.assertEqual(m.ts, datetime.datetime(1970, 1, 1, tzinfo=TZ_UTC))
+        self.assertEqual(m.ts.tzinfo, TZ_UTC)
 
     def test_model_from_datetime(self):
-        dt = datetime.datetime(2024, 6, 15, 12, 30, tzinfo=datetime.timezone.utc)
+        dt = datetime.datetime(2024, 6, 15, 12, 30, tzinfo=TZ_UTC)
         m = DateTimeModel(ts=dt)
         self.assertEqual(m.ts, dt)
 
@@ -148,12 +151,12 @@ class IsoDateTimeFieldTests(unittest.TestCase):
     def test_json_round_trip(self):
         raw = '{"ts": "2025-04-30T07:00:00"}'
         m = DateTimeModel.model_validate_json(raw)
-        self.assertEqual(m.ts, datetime.datetime(2025, 4, 30, 7, 0, 0))
+        self.assertEqual(m.ts, datetime.datetime(2025, 4, 30, 7, 0, 0, tzinfo=TZ_UTC))
         dumped = m.model_dump_json()
         self.assertIn("2025-04-30", dumped)
 
     def test_python_dump_returns_datetime(self):
-        dt = datetime.datetime(2025, 1, 1, tzinfo=datetime.timezone.utc)
+        dt = datetime.datetime(2025, 1, 1, tzinfo=TZ_UTC)
         m = DateTimeModel(ts=dt)
         data = m.model_dump()
         self.assertIsInstance(data["ts"], datetime.datetime)
