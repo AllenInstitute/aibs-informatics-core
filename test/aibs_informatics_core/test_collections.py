@@ -477,7 +477,7 @@ class PydanticStrMixinTests(unittest.TestCase):
         class MyModel(BaseModel):
             value: LookaheadStr
 
-        # Valid: contains at least one uppercase letter
+        # Valid: contains at least one digit
         m = MyModel(value="Hello1")  # type: ignore[arg-type]
         self.assertIsInstance(m.value, LookaheadStr)
         self.assertEqual(m.value, "Hello1")
