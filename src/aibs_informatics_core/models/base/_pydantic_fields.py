@@ -11,7 +11,7 @@ from aibs_informatics_core.utils.time import from_isoformat_8601
 
 
 def _parse_isoish_dt(v: str | int | float | datetime.datetime) -> datetime.datetime:
-    """Handle `2025-04-30T07:00:00.0` and plain `datetime` values."""
+    """Handle epoch milliseconds, ISO 8601 strings, and plain `datetime` values."""
     # Convert epoch‑milliseconds first
     if isinstance(v, (int, float)):
         return datetime.datetime.fromtimestamp(v / 1_000, datetime.timezone.utc)
@@ -25,7 +25,7 @@ def _parse_isoish_dt(v: str | int | float | datetime.datetime) -> datetime.datet
     if isinstance(v, datetime.datetime) and v.tzinfo is None:
         return v.replace(tzinfo=datetime.timezone.utc)
 
-    # Already a datetime instance → return unchanged
+    # Already a timezone‑aware datetime instance → return unchanged
     return v
 
 

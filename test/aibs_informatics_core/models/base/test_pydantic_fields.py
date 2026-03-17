@@ -73,10 +73,14 @@ class ParseIsoishDtTests(unittest.TestCase):
         self.assertIs(_parse_isoish_dt(dt), dt)
 
     def test_datetime_passthrough_naive(self):
-        """Naive datetime (no tzinfo) is returned unchanged."""
+        """Naive datetime is normalized to UTC but preserves wall time."""
         dt = datetime.datetime(2024, 1, 1, 12, 0, 0)
         result = _parse_isoish_dt(dt)
-        self.assertEqual(result, dt.replace(tzinfo=datetime.timezone.utc))
+
+        # Should not be the same object, but should be UTC-aware with same wall time
+        self.assertIsNot(result, dt)
+        self.assertEqual(result.tzinfo, datetime.timezone.utc)
+        self.assertEqual(result.replace(tzinfo=None), dt)
 
     # -- invalid strings -----------------------------------------------
     def test_invalid_string_raises(self):
