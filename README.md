@@ -35,15 +35,14 @@ The `utils` module provides various utility functions and classes to facilitate 
 The `models` module defines protocols and base models used for serialization and deserialization of data. This module provides base classes for creating data models and utilities for working with data models.
 
 There are a few base classes that can be used to create data models:
-- **ModelBase**: A base class for creating data models.
-- **DataClassModel**: A base class for creating data models using dataclasses.
-- **SchemaModel**: A base class for creating data models using marshmallow schemas + dataclass.
-- **WithValidation**: A mixin class for adding validation to data models.
+- **ModelProtocol**: A protocol defining the serialization/deserialization interface.
+- **ModelBase**: An abstract base class implementing the serialization protocol.
+- **PydanticBaseModel**: The primary base class for creating data models (backed by Pydantic).
 
 
 ### Executors
 
-The `executors` module provides base classes and utilities for creating and running executors. Executors are responsible for handling specific tasks or requests. They allow for validating inputs/outputs based on schema data models 
+The `executors` module provides base classes and utilities for creating and running executors. Executors are responsible for handling specific tasks or requests. They allow for validating inputs/outputs based on data models.
 
 - **BaseExecutor**: A base class for creating executors.
 - **run_cli_executor**: A utility function for running executors from the command line.
@@ -67,7 +66,7 @@ The `collections` module provides various collection classes and utilities for w
   - **ValidatedStr**: A class for creating validated strings based on regex patterns.
 - Mixins
   - **PostInitMixin**: A mixin class for handling post-initialization tasks.
-  - **EnvBaseMixins**: A mixin class for handling environment-related tasks.
+  - **PydanticStrMixin**: A mixin for Pydantic models that provides custom string validation.
 - Enums
   - **BaseEnum**: A base class for creating enums.
   - **OrderedEnum**: A base class for creating ordered enums.

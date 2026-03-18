@@ -81,7 +81,7 @@ def b64_encoded_str(decoded_str: str) -> str:
     """Encodes a string with base 64.
 
     Args:
-        encoded_str (str): Any string
+        decoded_str (str): Any string
 
     Returns:
         an encoded base 64 string
@@ -105,7 +105,7 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
     """Encodes a string with a URL SAFE version of base 64.
 
     Args:
-        encoded_str (str): Any string
+        decoded_str (str): Any string
 
     Returns:
         an encoded base 64 string

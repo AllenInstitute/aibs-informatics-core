@@ -105,15 +105,25 @@ def get_env_var(*keys: str, default_value: str | None = None) -> str | None:
 
 
 def set_env_var(key: str, value: str):
+    """Set an environment variable.
+
+    Args:
+        key: The environment variable name.
+        value: The value to assign.
+    """
     os.environ[key] = value
 
 
 class EnvVarDictItemUpper(TypedDict):
+    """Environment variable as a dictionary with uppercase keys."""
+
     Key: str
     Value: str
 
 
 class EnvVarDictItemLower(TypedDict):
+    """Environment variable as a dictionary with lowercase keys."""
+
     key: str
     value: str
 
@@ -123,6 +133,13 @@ EnvVarTupleItem = tuple[str, str]
 
 @dataclass
 class EnvVarItem:
+    """Dataclass representing an environment variable key-value pair.
+
+    Attributes:
+        key: The variable name.
+        value: The variable value.
+    """
+
     key: str
     value: str
 
@@ -133,16 +150,37 @@ class EnvVarItem:
     def to_dict(self, lower: Literal[True]) -> EnvVarDictItemLower: ...
 
     def to_dict(self, lower: bool = False) -> EnvVarDictItemUpper | EnvVarDictItemLower:
+        """Convert to a ``TypedDict`` representation.
+
+        Args:
+            lower: If True, use lowercase keys.
+
+        Returns:
+            An ``EnvVarDictItemLower`` or ``EnvVarDictItemUpper``.
+        """
         if lower:
             return EnvVarDictItemLower(key=self.key, value=self.value)
         else:
             return EnvVarDictItemUpper(Key=self.key, Value=self.value)
 
     def to_tuple(self) -> EnvVarTupleItem:
+        """Convert to a ``(key, value)`` tuple."""
         return (self.key, self.value)
 
     @classmethod
     def from_any(cls, value: Any) -> "EnvVarItem":
+        """Create an ``EnvVarItem`` from a dict, tuple, or existing instance.
+
+        Args:
+            value: An ``EnvVarItem``, a 2-tuple, or a dict with
+                ``key``/``Key`` and ``value``/``Value`` entries.
+
+        Returns:
+            A new ``EnvVarItem``.
+
+        Raises:
+            ValueError: If ``value`` is not a supported type.
+        """
         if isinstance(value, cls):
             return value
         elif isinstance(value, tuple):
@@ -163,6 +201,8 @@ EnvVarItemType = Union[
 
 
 class EnvVarFormat(Enum):
+    """Output format for environment variable conversions."""
+
     OBJECT = "object"
     TUPLE = "tuple"
     DICT_LOWER = "dict_lower"
@@ -232,6 +272,15 @@ def to_env_var_list(
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: EnvVarFormat = EnvVarFormat.TUPLE
 ) -> EnvVarSequence:
+    """Convert an environment variable collection to a list in the given format.
+
+    Args:
+        env_vars: Environment variables as a dict or sequence.
+        env_var_format: Desired output format.
+
+    Returns:
+        A list of environment variables in the requested format.
+    """
     if isinstance(env_vars, dict):
         env_var_list = [EnvVarItem(key, value) for key, value in env_vars.items()]
     else:
@@ -378,7 +427,14 @@ def write_env_file(env_vars: EnvVarCollection, path: str | Path):
 
 @contextmanager
 def env_var_overrides(*env_vars: EnvVarItemType):
-    """Temporarily override environment variables"""
+    """Context manager to temporarily override environment variables.
+
+    On exit, all overridden variables are restored to their original values
+    (or removed if they were unset).
+
+    Args:
+        *env_vars: Environment variable items to set.
+    """
     original_env_vars = {}
     env_var_dict = to_env_var_dict(env_vars)  # type: ignore[arg-type]
     for key, value in env_var_dict.items():

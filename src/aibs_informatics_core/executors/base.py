@@ -25,6 +25,13 @@ E = TypeVar("E", bound="BaseExecutor")
 
 @dataclass  # type: ignore[misc] # mypy #5374
 class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
+    """Abstract base executor for handling typed request/response workflows.
+
+    Subclasses must parameterize with request and response model types and
+    implement the ``handle`` method. Provides serialization, deserialization,
+    and CLI/remote I/O utilities.
+    """
+
     @abstractmethod
     def handle(self, request: REQUEST) -> RESPONSE | None:  # pragma: no cover
         """Core logic for handling request
@@ -44,12 +51,37 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
     # --------------------------------------------------------------------
 
     @classmethod
+    def _get_generic_args(cls) -> tuple[type, ...]:
+        """Walk the MRO looking for the parameterised ``BaseExecutor[REQ, RESP]`` base."""
+        for klass in cls.__mro__:
+            for base in getattr(klass, "__orig_bases__", ()):
+                origin = getattr(base, "__origin__", None)
+                if origin is BaseExecutor or origin is klass:
+                    args = getattr(base, "__args__", None)
+                    if args and not any(isinstance(a, TypeVar) for a in args):
+                        return args
+        raise TypeError(
+            f"Could not determine generic type arguments for {cls}. "
+            "Ensure the class directly parameterises BaseExecutor[REQUEST, RESPONSE]."
+        )
+
+    @classmethod
     def get_request_cls(cls) -> type[REQUEST]:
-        return cls.__orig_bases__[0].__args__[0]  # type: ignore
+        """Return the request model class from the generic type arguments.
+
+        Returns:
+            The request model class.
+        """
+        return cls._get_generic_args()[0]  # type: ignore
 
     @classmethod
     def get_response_cls(cls) -> type[RESPONSE]:
-        return cls.__orig_bases__[0].__args__[1]  # type: ignore
+        """Return the response model class from the generic type arguments.
+
+        Returns:
+            The response model class.
+        """
+        return cls._get_generic_args()[1]  # type: ignore
 
     @classmethod
     def deserialize_request(cls, request: JSON) -> REQUEST:

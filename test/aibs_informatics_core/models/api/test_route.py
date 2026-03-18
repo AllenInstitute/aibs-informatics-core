@@ -248,7 +248,7 @@ class ApiRequestConfigTests(BaseTest):
 
     def test__to_headers__works(self):
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))
-        config = ApiRequestConfig(VersionStr("1.0.0"), None)
+        config = ApiRequestConfig(client_version=VersionStr("1.0.0"), service_log_level=None)
         headers = config.to_headers()
         self.assertNotIn(API_SERVICE_LOG_LEVEL_KEY, headers)
         self.assertEqual(headers[CLIENT_VERSION_KEY], config.client_version)
@@ -334,7 +334,9 @@ class ApiRouteTests(BaseTest):
         config = GetterResourceRoute.resolve_request_config(
             {CLIENT_VERSION_KEY: "0.0.1", API_SERVICE_LOG_LEVEL_KEY: "INFO"}
         )
-        assert config == ApiRequestConfig(VersionStr("0.0.1"), "INFO")
+        assert config == ApiRequestConfig(
+            client_version=VersionStr("0.0.1"), service_log_level="INFO"
+        )
 
     def test__generate_headers__works(self):
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, None))

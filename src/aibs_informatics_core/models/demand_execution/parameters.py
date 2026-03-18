@@ -1,22 +1,14 @@
 import logging
 import os
 from collections.abc import Callable
-from dataclasses import dataclass
-from functools import partial
-from typing import Any, cast
+from functools import wraps
+from typing import Any
 
-import marshmallow as mm
+from pydantic import Field, JsonValue, PrivateAttr, field_serializer, model_validator
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
-from aibs_informatics_core.models.base import (
-    DictField,
-    ListField,
-    SchemaModel,
-    StringField,
-    custom_field,
-)
-from aibs_informatics_core.models.base.custom_fields import UnionField
+from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import (
     DownloadableJobParam,
     JobParam,
@@ -44,53 +36,40 @@ from aibs_informatics_core.utils.json import JSON
 logger = logging.getLogger(__name__)
 
 
-class refresh_params:
-    def __init__(
-        self, func: Callable | None = None, force: bool = True, pre_validate: bool = False
-    ):
-        self.force = force
-        self.pre_validate = pre_validate
-        self.func = func
+def refresh_params(func: Callable | None = None, force: bool = True, pre_validate: bool = False):
+    """Decorator that triggers a refresh of DemandExecutionParameters after method execution."""
 
-    def __get__(self, instance, owner):
-        return partial(self.__call__, instance)
+    def decorator(fn: Callable) -> Callable:
+        @wraps(fn)
+        def wrapper(self: "DemandExecutionParameters", *args, **kwargs):
+            if pre_validate:
+                self._refresh(force=False)
+            value = fn(self, *args, **kwargs)
+            self._refresh(force=force)
+            return value
 
-    def __call__(self, *args, **kwargs):
-        # If function has not been set, the __call__ is passing in the function
-        # Result: we set self.func and return self
-        if not self.func:
-            self.func = cast(Callable, args[0])
-            return self
-        # Otherwise, we call refresh once the already set function has finished
-        obj = cast(DemandExecutionParameters, args[0])
-        if self.pre_validate:
-            obj._refresh(force=False)
-        value = self.func(*args, **kwargs)
-        obj._refresh(force=self.force)
-        return value
+        return wrapper
+
+    if func is not None:
+        return decorator(func)
+    return decorator
 
 
-@dataclass
-class DemandExecutionParameters(SchemaModel):
-    command: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    params: dict[str, Any] = custom_field(default_factory=dict, mm_field=DictField(StringField))
-    inputs: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    outputs: list[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    outputs_metadata: dict[str, dict[str, JSON]] = custom_field(
-        default_factory=dict, mm_field=DictField(keys=StringField(), values=DictField(StringField))
-    )
-    output_s3_prefix: S3URI | None = custom_field(default=None, mm_field=S3URI.as_mm_field())
-    param_pair_overrides: list[ParamSetPair | ParamPair] | None = custom_field(
-        default=None,
-        mm_field=ListField(
-            UnionField(
-                [(ParamSetPair, ParamSetPair.as_mm_field()), (ParamPair, ParamPair.as_mm_field())]
-            )
-        ),
-    )
-    verbosity: bool = custom_field(default=False)
+class DemandExecutionParameters(PydanticBaseModel):
+    command: list[str] = Field(default_factory=list)
+    params: dict[str, JsonValue] = Field(default_factory=dict)
+    inputs: list[str] = Field(default_factory=list)
+    outputs: list[str] = Field(default_factory=list)
+    outputs_metadata: dict[str, dict[str, JSON]] = Field(default_factory=dict)
+    output_s3_prefix: S3URI | None = None
+    param_pair_overrides: list[ParamSetPair | ParamPair] | None = None
+    verbosity: bool = False
 
-    def __post_init__(self):
+    _refresh_hash: str = PrivateAttr(default="")
+    _job_params: list = PrivateAttr(default_factory=list)
+    _job_param_map: dict = PrivateAttr(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
         self._refresh_hash = self._compute_refresh_hash()
         self._refresh(True)
 
@@ -252,7 +231,7 @@ class DemandExecutionParameters(SchemaModel):
                     f"outputs={unseen_outputs}. Adding param set pair to include them."
                 )
                 param_set_pairs.append(
-                    ParamSetPair(frozenset(self.inputs), frozenset(unseen_outputs))
+                    ParamSetPair(inputs=frozenset(self.inputs), outputs=frozenset(unseen_outputs))
                 )
         else:
             param_pairs.extend(ParamPair.from_sets(inputs=self.inputs, outputs=self.outputs))
@@ -295,7 +274,7 @@ class DemandExecutionParameters(SchemaModel):
         return self._job_params
 
     @property
-    def job_param_map(self) -> dict[str, JobParam]:
+    def job_param_map(self) -> dict[JobParamEnvName, JobParam]:
         return self._job_param_map
 
     @property
@@ -399,15 +378,15 @@ class DemandExecutionParameters(SchemaModel):
         return False
 
     def _compute_refresh_hash(self) -> str:
-        return sha256_hexdigest(self.to_dict(partial=True, validate=False))
+        return sha256_hexdigest(self.to_dict())
 
     # ------------------------------------------------
     #                   Schema hooks
     # ------------------------------------------------
 
+    @model_validator(mode="before")
     @classmethod
-    @mm.pre_load
-    def _sanitize_param_pairs(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
+    def _sanitize_param_pairs(cls, data: dict[str, Any]) -> dict[str, Any]:
         in_use_key = "param_pair_overrides"
         deprecated_keys = [
             "param_pairs",
@@ -431,11 +410,10 @@ class DemandExecutionParameters(SchemaModel):
 
         return data
 
-    @classmethod
-    @mm.post_dump
-    def _sanitize_params(cls, data: dict[str, Any], **kwargs) -> dict[str, Any]:
-        params = data["params"]
+    @field_serializer("params", mode="plain")
+    def _sanitize_params(self, value: Any) -> dict[str, Any]:
+        params = dict(value)
         for k, v in params.items():
             if isinstance(v, Resolvable):
                 params[k] = v.to_str()
-        return data
+        return params
