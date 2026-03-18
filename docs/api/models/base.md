@@ -16,7 +16,7 @@ An abstract base class implementing common serialization methods (JSON, YAML, fi
 
 The primary base class for creating data models, backed by Pydantic with automatic camelCase alias support.
 
-### IsoDateTime / IsoDate
+### AwareIsoDateTime / IsoDateTime / IsoDate
 
 Annotated Pydantic types for ISO 8601 datetime and date fields with custom parsing and serialization.
 
