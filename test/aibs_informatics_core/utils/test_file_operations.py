@@ -37,11 +37,7 @@ class FileOperationsBaseTest(BaseTest):
     def create_tar_archive(
         self,
         root_path: Path,
-<<<<<<< HEAD
         relative_paths: list[str] | None = None,
-=======
-        relative_paths: list[str] = [],
->>>>>>> cec9eca (upgrading all code to python 3.10 using pyupgrade --py310-plus)
         compression: Literal["", "gz"] = "gz",
     ) -> Path:
         relative_paths = relative_paths or []
@@ -56,12 +52,8 @@ class FileOperationsBaseTest(BaseTest):
                     tar_handle.add(os.path.join(relative_root, file), arcname=arcname)
         return tar_name
 
-<<<<<<< HEAD
     def create_zip_archive(self, root_path: Path, relative_paths: list[str] | None = None) -> Path:
         relative_paths = relative_paths or []
-=======
-    def create_zip_archive(self, root_path: Path, relative_paths: list[str] = []) -> Path:
->>>>>>> cec9eca (upgrading all code to python 3.10 using pyupgrade --py310-plus)
         self.create_dir(root_path, relative_paths)
 
         zip_name = self.tmp_path() / "archive"

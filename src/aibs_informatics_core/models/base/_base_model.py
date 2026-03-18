@@ -190,10 +190,6 @@ class ModelBase:
             A new instance of the model.
         """
         if path.suffix in (".yml", ".yaml"):
-<<<<<<< HEAD
-=======
-            path.read_text()
->>>>>>> cec9eca (upgrading all code to python 3.10 using pyupgrade --py310-plus)
             with open(path) as f:
                 return cls.from_dict(yaml.safe_load(f), **kwargs)
         else:

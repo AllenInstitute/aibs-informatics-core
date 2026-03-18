@@ -276,7 +276,7 @@ def test__PydanticBaseModel__complex__to_dict__from_dict():
     d = model.to_dict()
 
     assert d["uuid_value"] == "dfe7b672-91e0-4c2d-ac06-30dd1ac2eb96"
-    assert d["dt_value"] == "2022-03-11T08:23:51.248794+00:00"
+    assert d["dt_value"] == "2022-03-11T08:23:51.248794Z"
     assert d["date_value"] == "2022-03-11"
 
     new_model = ComplexModel.from_dict(d)
@@ -295,7 +295,7 @@ def test__PydanticBaseModel__complex_nested__to_dict__from_dict():
     assert d == {
         "required": {
             "uuid_value": "dfe7b672-91e0-4c2d-ac06-30dd1ac2eb96",
-            "dt_value": "2022-03-11T08:23:51.248794+00:00",
+            "dt_value": "2022-03-11T08:23:51.248794Z",
             "date_value": "2022-03-11",
         },
     }

@@ -17,7 +17,12 @@ def _parse_isoish_dt(v: str | int | float | datetime.datetime) -> datetime.datet
 
     # Clean up iso‑format strings that may include a fractional component like ".0"
     if isinstance(v, str):
+        original = v
         v = from_isoformat_8601(v)  # This will raise ValueError if the format is incorrect
+        if v.tzinfo is None and original.endswith("Z"):
+            # Handle the common case of a UTC time represented with "Z"
+            # but no timezone info after parsing.
+            v = v.replace(tzinfo=datetime.timezone.utc)
 
     # Already a datetime instance → return unchanged
     return v
