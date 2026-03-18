@@ -1,8 +1,4 @@
-from __future__ import annotations
-
 __all__ = [
-    "JSONArray",
-    "JSONObject",
     "JSON",
     "DecimalEncoder",
     "is_json_str",
@@ -13,25 +9,13 @@ __all__ = [
 import decimal
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Protocol, Type, Union, cast
+from typing import Any, TypeAlias, cast
 
-# TODO: Figure out better JSON typing. mypy doesn't like
-JSON = Union[Dict[str, Any], List[Any], int, str, float, bool, Type[None]]
-# JSON = Union['JSONArray', 'JSONObject', int, str, float, bool, Type[None]]
+from pydantic import JsonValue
 
-
-if TYPE_CHECKING:  # pragma: no cover
-
-    class JSONArray(list[JSON], Protocol):  # type: ignore
-        # __class__: Type[list[JSON]]  # type: ignore[assignment]
-        pass
-
-    class JSONObject(dict[str, JSON], Protocol):  # type: ignore
-        # __class__: Type[dict[str, JSON]]  # type: ignore[assignment]
-        pass
-
-else:
-    JSONArray, JSONObject = List[Any], Dict[str, Any]
+JSON: TypeAlias = JsonValue
+JSONObject: TypeAlias = dict[str, JSON]
+JSONArray: TypeAlias = list[JSON]
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -39,13 +23,29 @@ class DecimalEncoder(json.JSONEncoder):
     JSON strings
     """
 
-    def default(self, o: Any) -> Union[str, json.JSONEncoder]:
+    def default(self, o: Any) -> str | json.JSONEncoder:
+        """Encode ``decimal.Decimal`` values as strings.
+
+        Args:
+            o: The object to encode.
+
+        Returns:
+            String representation for Decimal values, otherwise delegates to parent.
+        """
         if isinstance(o, decimal.Decimal):
             return str(o)
-        return super(DecimalEncoder, self).default(o)
+        return super().default(o)
 
 
 def is_json_str(data: Any) -> bool:
+    """Check if a value is a valid JSON string.
+
+    Args:
+        data: The value to check.
+
+    Returns:
+        True if ``data`` is a string containing valid JSON.
+    """
     try:
         assert isinstance(data, str)
         json.loads(data)
@@ -54,18 +54,42 @@ def is_json_str(data: Any) -> bool:
     return True
 
 
-def load_json(path_or_str: Union[str, Path], **kwargs) -> JSON:
+def load_json(path_or_str: str | Path, **kwargs) -> JSON:
+    """Load JSON from a string or file path.
+
+    Args:
+        path_or_str: A JSON string or path to a JSON file.
+        **kwargs: Additional keyword arguments passed to ``json.loads`` or ``json.load``.
+
+    Returns:
+        The parsed JSON value.
+
+    Raises:
+        ValueError: If the input is neither a valid JSON string nor an existing file path.
+    """
     if isinstance(path_or_str, str) and is_json_str(path_or_str):
         return json.loads(path_or_str, **kwargs)
     elif Path(path_or_str).exists():
-        with open(str(path_or_str), "r") as f:
+        with open(str(path_or_str)) as f:
             return json.load(f, **kwargs)
     else:
         raise ValueError(f"Cannot load {path_or_str} as json. Not valid json string or path.")
 
 
-def load_json_object(path_or_str: Union[str, Path], **kwargs) -> JSONObject:
+def load_json_object(path_or_str: str | Path, **kwargs) -> dict[str, JSON]:
+    """Load a JSON object (dict) from a string or file path.
+
+    Args:
+        path_or_str: A JSON string or path to a JSON file.
+        **kwargs: Additional keyword arguments passed to ``load_json``.
+
+    Returns:
+        The parsed JSON object as a dictionary.
+
+    Raises:
+        ValueError: If the loaded JSON is not a dictionary.
+    """
     json_data = load_json(path_or_str, **kwargs)
     if not isinstance(json_data, dict):
         raise ValueError(f"{path_or_str} was loaded as JSON but not a JSON Object")
-    return cast(JSONObject, json_data)
+    return cast(dict[str, JSON], json_data)

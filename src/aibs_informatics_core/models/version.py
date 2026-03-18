@@ -1,7 +1,8 @@
 import re
 from dataclasses import dataclass
 from functools import total_ordering
-from typing import ClassVar, Optional, Pattern
+from re import Pattern
+from typing import ClassVar
 
 from aibs_informatics_core.collections import ValidatedStr
 
@@ -9,11 +10,14 @@ from aibs_informatics_core.collections import ValidatedStr
 @total_ordering
 @dataclass
 class Version:
+    """A structured version with major, minor, and revision components."""
+
     major_version: int
-    minor_version: Optional[int] = None
-    revision: Optional[int] = None
+    minor_version: int | None = None
+    revision: int | None = None
 
     def __eq__(self, other: object) -> bool:
+        """Compare version equality component by component."""
         if isinstance(other, Version):
             return (self.major_version, self.minor_version or -1, self.revision or -1) == (
                 other.major_version,
@@ -26,6 +30,7 @@ class Version:
             return False
 
     def __lt__(self, other: object) -> bool:
+        """Compare version ordering component by component."""
         if isinstance(other, Version):
             return (self.major_version, self.minor_version or -1, self.revision or -1) < (
                 other.major_version,
@@ -56,6 +61,7 @@ class VersionStr(ValidatedStr):
 
     @property
     def version(self) -> Version:
+        """Parse the version string into a ``Version`` object."""
         major_str, minor_str, revision_str = self.get_match_groups()
         return Version(
             major_version=int(major_str),
@@ -65,17 +71,21 @@ class VersionStr(ValidatedStr):
 
     @property
     def major_version(self) -> int:
+        """The major version number."""
         return self.version.major_version
 
     @property
-    def minor_version(self) -> Optional[int]:
+    def minor_version(self) -> int | None:
+        """The minor version number, or None if not specified."""
         return self.version.minor_version
 
     @property
-    def revision(self) -> Optional[int]:
+    def revision(self) -> int | None:
+        """The revision number, or None if not specified."""
         return self.version.revision
 
     def __eq__(self, other: object) -> bool:
+        """Compare version string equality."""
         if isinstance(other, Version):
             return self.version == other
         elif isinstance(other, VersionStr):
@@ -91,6 +101,7 @@ class VersionStr(ValidatedStr):
             return False
 
     def __lt__(self, other: object) -> bool:
+        """Compare version string ordering."""
         if isinstance(other, Version):
             return self.version < other
         elif isinstance(other, VersionStr):

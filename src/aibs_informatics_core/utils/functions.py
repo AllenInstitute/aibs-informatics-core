@@ -5,14 +5,15 @@ __all__ = [
 
 import inspect
 import logging
+from collections.abc import Callable
 from functools import lru_cache
-from typing import Any, Callable, Dict, FrozenSet, Set, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 @lru_cache(maxsize=256)
-def _inspect_callable(func: Callable) -> Tuple[FrozenSet[str], bool]:
+def _inspect_callable(func: Callable) -> tuple[frozenset[str], bool]:
     """Cached introspection of a callable's signature.
 
     Returns:
@@ -27,7 +28,7 @@ def _inspect_callable(func: Callable) -> Tuple[FrozenSet[str], bool]:
         logger.debug("Cannot inspect signature of %r; returning empty set", func)
         return frozenset(), False
 
-    params: Set[str] = set()
+    params: set[str] = set()
     has_var_keyword = False
     for name, param in sig.parameters.items():
         if param.kind == inspect.Parameter.VAR_KEYWORD:
@@ -43,7 +44,7 @@ def _inspect_callable(func: Callable) -> Tuple[FrozenSet[str], bool]:
 def get_callable_params(
     func: Callable,
     include_var_keyword: bool = False,
-) -> Set[str]:
+) -> set[str]:
     """Get the set of parameter names accepted by a callable.
 
     For classes, inspects ``__init__``. Handles regular functions, bound methods,
@@ -69,8 +70,8 @@ def get_callable_params(
 
 def filter_kwargs(
     func: Callable,
-    kwargs: Dict[str, Any],
-) -> Dict[str, Any]:
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
     """Filter a kwargs dict to only the keys accepted by *func*.
 
     If the callable accepts ``**kwargs``, the original dict is returned

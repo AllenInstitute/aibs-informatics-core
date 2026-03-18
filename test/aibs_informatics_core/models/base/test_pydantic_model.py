@@ -3,13 +3,12 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List, Optional
 
 import pytest
 import yaml
 from aibs_informatics_test_resources import does_not_raise
-from pydantic import ValidationError
 
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.base._pydantic_fields import IsoDateTime
 from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 
@@ -30,11 +29,11 @@ class SimpleChild(Simple):
 class SimpleNested(PydanticBaseModel):
     empty: Empty
     required_simple: Simple
-    optional_simple: Optional[Simple] = None
+    optional_simple: Simple | None = None
 
 
 class SimpleCollection(PydanticBaseModel):
-    simples: List[Simple]
+    simples: list[Simple]
 
 
 class Complex(PydanticBaseModel):
@@ -44,7 +43,7 @@ class Complex(PydanticBaseModel):
 
 class ComplexNested(PydanticBaseModel):
     required: Complex
-    optional: Optional[Complex] = None
+    optional: Complex | None = None
 
 
 @pytest.mark.parametrize(
@@ -355,70 +354,6 @@ def test__PydanticBaseModel__to_dict__includes_none_when_requested():
     result = model.to_dict(exclude_none=False)
     assert "optional_simple" in result
     assert result["optional_simple"] is None
-
-
-# ------------------------------------------------------------------
-#                  as_mm_field (Marshmallow integration)
-# ------------------------------------------------------------------
-
-
-def test__PydanticBaseModel__as_mm_field__returns_pydantic_field():
-    from aibs_informatics_core.models.base._pydantic_fields import PydanticField
-
-    mm_field = Simple.as_mm_field()
-    assert isinstance(mm_field, PydanticField)
-    assert mm_field.pydantic_model_cls is Simple
-
-
-def test__PydanticBaseModel__as_mm_field__deserialize():
-    mm_field = Simple.as_mm_field()
-    result = mm_field._deserialize({"str_value": "mm", "int_value": 5}, None, None)
-    assert isinstance(result, Simple)
-    assert result.str_value == "mm"
-    assert result.int_value == 5
-
-
-def test__PydanticBaseModel__as_mm_field__deserialize_camel_case():
-    mm_field = Simple.as_mm_field()
-    result = mm_field._deserialize({"strValue": "camel", "intValue": 3}, None, None)
-    assert isinstance(result, Simple)
-    assert result.str_value == "camel"
-    assert result.int_value == 3
-
-
-def test__PydanticBaseModel__as_mm_field__serialize():
-    mm_field = Simple.as_mm_field()
-    model = Simple(str_value="ser", int_value=10)
-    result = mm_field._serialize(model, None, None)
-    assert result == {"str_value": "ser", "int_value": 10}
-
-
-def test__PydanticBaseModel__as_mm_field__serialize_none():
-    mm_field = Simple.as_mm_field()
-    result = mm_field._serialize(None, None, None)
-    assert result is None
-
-
-def test__PydanticBaseModel__as_mm_field__deserialize_none():
-    mm_field = Simple.as_mm_field()
-    result = mm_field._deserialize(None, None, None)
-    assert result is None
-
-
-def test__PydanticBaseModel__as_mm_field__deserialize_invalid_raises():
-    import marshmallow as mm
-
-    mm_field = Simple.as_mm_field()
-    with pytest.raises(mm.ValidationError):
-        mm_field._deserialize({"str_value": 1, "int_value": 1}, None, None)
-
-
-def test__PydanticBaseModel__as_mm_field__serialize_wrong_type_raises():
-    import marshmallow as mm
-
-    mm_field = Simple.as_mm_field()
-    with pytest.raises(mm.ValidationError):
-        mm_field._serialize("not_a_model", None, None)
 
 
 # ------------------------------------------------------------------

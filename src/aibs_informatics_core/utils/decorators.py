@@ -8,22 +8,22 @@ __all__ = [
 import logging
 import time
 import warnings
+from collections.abc import Callable
 from functools import cache, cached_property, wraps
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import Union
 
-ExceptionTypes = Union[Type[Exception], Tuple[Type[Exception], ...]]
+ExceptionTypes = Union[type[Exception], tuple[type[Exception], ...]]
 ExceptionCallbackType = Callable[[Exception], bool]
 
 
 def retry(
     retryable_exceptions: ExceptionTypes,
-    retryable_exception_callbacks: Optional[
-        List[Union[ExceptionCallbackType, Tuple[Type[Exception], ExceptionCallbackType]]]
-    ] = None,
+    retryable_exception_callbacks: None
+    | (list[ExceptionCallbackType | tuple[type[Exception], ExceptionCallbackType]]) = None,
     tries: int = 4,
     delay: float = 3,
     backoff: float = 2,
-    logger: Optional[logging.Logger] = None,
+    logger: logging.Logger | None = None,
 ):
     """Retry calling the decorated function using an exponential backoff.
 
@@ -84,6 +84,15 @@ def retry(
 
 
 def deprecated(msg, klass=PendingDeprecationWarning):
+    """Decorator to mark a function as deprecated.
+
+    Emits a deprecation warning when the decorated function is called.
+
+    Args:
+        msg: Warning message to display.
+        klass: Warning class to use. Defaults to ``PendingDeprecationWarning``.
+    """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):

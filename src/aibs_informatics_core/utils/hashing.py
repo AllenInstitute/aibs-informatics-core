@@ -16,7 +16,7 @@ import re
 import uuid
 from base64 import standard_b64decode, standard_b64encode, urlsafe_b64decode, urlsafe_b64encode
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Literal
 
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.os_operations import find_all_paths
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 HashTypeStr = Literal["md5", "sha256", "sha1"]
 
 
-def uuid_str(content: Optional[str] = None) -> str:
+def uuid_str(content: str | None = None) -> str:
     """Get a UUID String, with option for using a seed to ensure determinism.
 
     Args:
@@ -41,7 +41,7 @@ def uuid_str(content: Optional[str] = None) -> str:
     return str(uuid.uuid3(namespace=uuid.NAMESPACE_DNS, name=content))
 
 
-def sha256_hexdigest(content: Optional[JSON] = None) -> str:
+def sha256_hexdigest(content: JSON | None = None) -> str:
     """Create a SHA 256 Hex Digest string from optional content.
 
     If content is not provided, a unique Hex Digest is generated from UUID
@@ -81,7 +81,7 @@ def b64_encoded_str(decoded_str: str) -> str:
     """Encodes a string with base 64.
 
     Args:
-        encoded_str (str): Any string
+        decoded_str (str): Any string
 
     Returns:
         an encoded base 64 string
@@ -105,7 +105,7 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
     """Encodes a string with a URL SAFE version of base 64.
 
     Args:
-        encoded_str (str): Any string
+        decoded_str (str): Any string
 
     Returns:
         an encoded base 64 string
@@ -114,9 +114,9 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
 
 
 def generate_path_hash(
-    path: Union[str, Path],
-    includes: Optional[List[str]] = None,
-    excludes: Optional[List[str]] = None,
+    path: str | Path,
+    includes: list[str] | None = None,
+    excludes: list[str] | None = None,
     hash_type: HashTypeStr = "sha256",
 ) -> str:
     """Generate a hash based on files found under a given path.
@@ -155,7 +155,7 @@ def generate_path_hash(
 
 
 def generate_file_hash(
-    filename: Union[str, Path], bufsize: int = 128 * 1024, hash_type: HashTypeStr = "sha256"
+    filename: str | Path, bufsize: int = 128 * 1024, hash_type: HashTypeStr = "sha256"
 ) -> str:
     """Generate a hash for a file
 

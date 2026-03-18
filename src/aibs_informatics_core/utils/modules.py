@@ -9,19 +9,27 @@ import inspect
 import logging
 import pkgutil
 from types import ModuleType
-from typing import Any, Dict, List, Literal, Optional, Type, TypeVar, Union, overload
+from typing import Any, Literal, TypeVar, overload
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
 
-def as_module_type(package: Union[str, ModuleType]) -> ModuleType:
+def as_module_type(package: str | ModuleType) -> ModuleType:
+    """Convert a package name or module to a ``ModuleType``.
+
+    Args:
+        package: A module object or a fully qualified module name string.
+
+    Returns:
+        The corresponding ``ModuleType`` instance.
+    """
     return package if isinstance(package, ModuleType) else importlib.import_module(package)
 
 
 @overload
-def load_type_from_qualified_name(qualified_name: str, expected_type: Type[T]) -> T: ...
+def load_type_from_qualified_name(qualified_name: str, expected_type: type[T]) -> T: ...
 
 
 @overload
@@ -31,8 +39,8 @@ def load_type_from_qualified_name(
 
 
 def load_type_from_qualified_name(
-    qualified_name: str, expected_type: Optional[Type[T]] = None
-) -> Union[Any, T]:
+    qualified_name: str, expected_type: type[T] | None = None
+) -> Any | T:
     """Load a type from its fully qualified name
 
     Args:
@@ -57,7 +65,7 @@ def load_type_from_qualified_name(
     return loaded_type
 
 
-def get_all_subclasses(cls: Type[T], ignore_abstract: bool = False) -> List[Type[T]]:
+def get_all_subclasses(cls: type[T], ignore_abstract: bool = False) -> list[type[T]]:
     """Get all loaded subclasses of a given class
 
     Args:
@@ -79,10 +87,10 @@ def get_all_subclasses(cls: Type[T], ignore_abstract: bool = False) -> List[Type
 
 
 def load_all_modules_from_pkg(
-    package: Union[str, ModuleType],
+    package: str | ModuleType,
     recursive: bool = True,
     include_packages: bool = False,
-) -> Dict:
+) -> dict:
     """
     Import all modules found within the package
 

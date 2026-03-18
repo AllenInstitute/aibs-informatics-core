@@ -1,9 +1,8 @@
 import unittest
-from typing import Optional
 
 from pytest import mark, param
 
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.demand_execution.model import DemandExecution
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
@@ -16,7 +15,7 @@ from aibs_informatics_core.models.unique_ids import UniqueID
 THIS_UUID = UniqueID.create()
 ANOTHER_UUID = UniqueID.create()
 
-S3_URI = S3URI.build(bucket_name="bucket", key="key")
+S3_URI = S3Path.build(bucket_name="bucket", key="key")
 
 
 EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/test_image:latest"
@@ -24,11 +23,11 @@ ANOTHER_EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/another_
 
 
 def get_any_demand_execution(
-    execution_type: Optional[str] = None,
-    execution_id: Optional[str] = None,
-    execution_image: Optional[str] = None,
-    execution_parameters: Optional[DemandExecutionParameters] = None,
-    execution_metadata: Optional[DemandExecutionMetadata] = None,
+    execution_type: str | None = None,
+    execution_id: str | None = None,
+    execution_image: str | None = None,
+    execution_parameters: DemandExecutionParameters | None = None,
+    execution_metadata: DemandExecutionMetadata | None = None,
 ) -> DemandExecution:
     return DemandExecution(
         execution_id=execution_id or THIS_UUID,

@@ -1,21 +1,14 @@
 import logging
 import os
-from dataclasses import dataclass
-from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union, cast
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
 
-import marshmallow as mm
+from pydantic import Field, JsonValue, PrivateAttr, field_serializer, model_validator
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
-from aibs_informatics_core.models.base import (
-    DictField,
-    ListField,
-    SchemaModel,
-    StringField,
-    custom_field,
-)
-from aibs_informatics_core.models.base.custom_fields import UnionField
+from aibs_informatics_core.models.aws.s3 import S3Path, S3PathPlaceholder
+from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import (
     DownloadableJobParam,
     JobParam,
@@ -43,53 +36,40 @@ from aibs_informatics_core.utils.json import JSON
 logger = logging.getLogger(__name__)
 
 
-class refresh_params:
-    def __init__(
-        self, func: Optional[Callable] = None, force: bool = True, pre_validate: bool = False
-    ):
-        self.force = force
-        self.pre_validate = pre_validate
-        self.func = func
+def refresh_params(func: Callable | None = None, force: bool = True, pre_validate: bool = False):
+    """Decorator that triggers a refresh of DemandExecutionParameters after method execution."""
 
-    def __get__(self, instance, owner):
-        return partial(self.__call__, instance)
+    def decorator(fn: Callable) -> Callable:
+        @wraps(fn)
+        def wrapper(self: "DemandExecutionParameters", *args, **kwargs):
+            if pre_validate:
+                self._refresh(force=False)
+            value = fn(self, *args, **kwargs)
+            self._refresh(force=force)
+            return value
 
-    def __call__(self, *args, **kwargs):
-        # If function has not been set, the __call__ is passing in the function
-        # Result: we set self.func and return self
-        if not self.func:
-            self.func = cast(Callable, args[0])
-            return self
-        # Otherwise, we call refresh once the already set function has finished
-        obj = cast(DemandExecutionParameters, args[0])
-        if self.pre_validate:
-            obj._refresh(force=False)
-        value = self.func(*args, **kwargs)
-        obj._refresh(force=self.force)
-        return value
+        return wrapper
+
+    if func is not None:
+        return decorator(func)
+    return decorator
 
 
-@dataclass
-class DemandExecutionParameters(SchemaModel):
-    command: List[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    params: Dict[str, Any] = custom_field(default_factory=dict, mm_field=DictField(StringField))
-    inputs: List[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    outputs: List[str] = custom_field(default_factory=list, mm_field=ListField(StringField))
-    outputs_metadata: Dict[str, Dict[str, JSON]] = custom_field(
-        default_factory=dict, mm_field=DictField(keys=StringField(), values=DictField(StringField))
-    )
-    output_s3_prefix: Optional[S3URI] = custom_field(default=None, mm_field=S3URI.as_mm_field())
-    param_pair_overrides: Optional[List[Union[ParamSetPair, ParamPair]]] = custom_field(
-        default=None,
-        mm_field=ListField(
-            UnionField(
-                [(ParamSetPair, ParamSetPair.as_mm_field()), (ParamPair, ParamPair.as_mm_field())]
-            )
-        ),
-    )
-    verbosity: bool = custom_field(default=False)
+class DemandExecutionParameters(PydanticBaseModel):
+    command: list[str] = Field(default_factory=list)
+    params: dict[str, JsonValue] = Field(default_factory=dict)
+    inputs: list[str] = Field(default_factory=list)
+    outputs: list[str] = Field(default_factory=list)
+    outputs_metadata: dict[str, dict[str, JSON]] = Field(default_factory=dict)
+    output_s3_prefix: S3Path | None = None
+    param_pair_overrides: list[ParamSetPair | ParamPair] | None = None
+    verbosity: bool = False
 
-    def __post_init__(self):
+    _refresh_hash: str = PrivateAttr(default="")
+    _job_params: list = PrivateAttr(default_factory=list)
+    _job_param_map: dict = PrivateAttr(default_factory=dict)
+
+    def model_post_init(self, __context: Any) -> None:
         self._refresh_hash = self._compute_refresh_hash()
         self._refresh(True)
 
@@ -180,12 +160,12 @@ class DemandExecutionParameters(SchemaModel):
         self.update_params(**param_key_values)
 
     @refresh_params(force=False)
-    def update_params(self, *param_pairs: Tuple[str, Any], **param_key_values: Any):
+    def update_params(self, *param_pairs: tuple[str, Any], **param_key_values: Any):
         params = dict(param_pairs)
         params.update(param_key_values)
         self.params.update(params)
 
-    def get_param(self, envname: str) -> Optional[Any]:
+    def get_param(self, envname: str) -> Any | None:
         """Checks if param contains environment name or placeholder
 
         Args:
@@ -208,33 +188,33 @@ class DemandExecutionParameters(SchemaModel):
             return job_param.name in self.params
         return False
 
-    def get_job_param(self, envname: str) -> Optional[JobParam]:
+    def get_job_param(self, envname: str) -> JobParam | None:
         if JobParamRef.is_valid(envname):
             envname = JobParamRef(envname).envname
         return self.job_param_map.get(JobParam.as_envname(envname))
 
-    def get_input_job_param(self, envname: str) -> Optional[DownloadableJobParam]:
+    def get_input_job_param(self, envname: str) -> DownloadableJobParam | None:
         job_param = self.get_job_param(envname)
         if job_param and isinstance(job_param, DownloadableJobParam):
             return job_param
         return None
 
-    def get_output_job_param(self, envname: str) -> Optional[UploadableJobParam]:
+    def get_output_job_param(self, envname: str) -> UploadableJobParam | None:
         job_param = self.get_job_param(envname)
         if job_param and isinstance(job_param, UploadableJobParam):
             return job_param
         return None
 
     @property
-    def param_pairs(self) -> List[ParamPair]:
+    def param_pairs(self) -> list[ParamPair]:
         return [p for ps in self.param_set_pairs for p in ps.to_pairs()]
 
     @property
-    def param_set_pairs(self) -> List[ParamSetPair]:
-        param_set_pairs: List[ParamSetPair] = []
-        param_pairs: List[ParamPair] = []
+    def param_set_pairs(self) -> list[ParamSetPair]:
+        param_set_pairs: list[ParamSetPair] = []
+        param_pairs: list[ParamPair] = []
         if self.param_pair_overrides:
-            seen_outputs: Set[Union[str, None]] = set()
+            seen_outputs: set[str | None] = set()
             for pair in self.param_pair_overrides:
                 if isinstance(pair, ParamSetPair):
                     seen_outputs.update(pair.outputs)
@@ -251,7 +231,7 @@ class DemandExecutionParameters(SchemaModel):
                     f"outputs={unseen_outputs}. Adding param set pair to include them."
                 )
                 param_set_pairs.append(
-                    ParamSetPair(frozenset(self.inputs), frozenset(unseen_outputs))
+                    ParamSetPair(inputs=frozenset(self.inputs), outputs=frozenset(unseen_outputs))
                 )
         else:
             param_pairs.extend(ParamPair.from_sets(inputs=self.inputs, outputs=self.outputs))
@@ -259,8 +239,8 @@ class DemandExecutionParameters(SchemaModel):
         return param_set_pairs
 
     @property
-    def job_param_pairs(self) -> List[JobParamPair]:
-        set_pairs: List[JobParamPair] = []
+    def job_param_pairs(self) -> list[JobParamPair]:
+        set_pairs: list[JobParamPair] = []
         for pair in self.param_pairs:
             inp_job_param = self.get_input_job_param(pair.input) if pair.input else None
             out_job_param = self.get_output_job_param(pair.output) if pair.output else None
@@ -268,7 +248,7 @@ class DemandExecutionParameters(SchemaModel):
         return set_pairs
 
     @property
-    def job_param_set_pairs(self) -> List[JobParamSetPair]:
+    def job_param_set_pairs(self) -> list[JobParamSetPair]:
         r_job_param_map = {
             k: v for k, v in self.job_param_map.items() if isinstance(v, ResolvableJobParam)
         }
@@ -281,8 +261,8 @@ class DemandExecutionParameters(SchemaModel):
         ]
 
     @property
-    def resolved_command(self) -> List[str]:
-        environment: Dict[str, str] = dict(os.environ)
+    def resolved_command(self) -> list[str]:
+        environment: dict[str, str] = dict(os.environ)
         environment.update({k: v.value for k, v in self.job_param_map.items()})
         return [
             JobParamRef.replace_references(command_part, environment)
@@ -290,29 +270,29 @@ class DemandExecutionParameters(SchemaModel):
         ]
 
     @property
-    def job_params(self) -> List[JobParam]:
+    def job_params(self) -> list[JobParam]:
         return self._job_params
 
     @property
-    def job_param_map(self) -> Dict[str, JobParam]:
+    def job_param_map(self) -> dict[JobParamEnvName, JobParam]:
         return self._job_param_map
 
     @property
-    def job_param_inputs(self) -> List[JobParam]:
+    def job_param_inputs(self) -> list[JobParam]:
         self._refresh(force=False)
         return [self.job_param_map[JobParam.as_envname(_)] for _ in self.inputs]
 
     @property
-    def job_param_outputs(self) -> List[JobParam]:
+    def job_param_outputs(self) -> list[JobParam]:
         self._refresh(force=False)
         return [self.job_param_map[JobParam.as_envname(_)] for _ in self.outputs]
 
     @property
-    def downloadable_job_param_inputs(self) -> List[DownloadableJobParam]:
+    def downloadable_job_param_inputs(self) -> list[DownloadableJobParam]:
         return [_ for _ in self.job_param_inputs if isinstance(_, DownloadableJobParam)]
 
     @property
-    def uploadable_job_param_outputs(self) -> List[UploadableJobParam]:
+    def uploadable_job_param_outputs(self) -> list[UploadableJobParam]:
         return [_ for _ in self.job_param_outputs if isinstance(_, UploadableJobParam)]
 
     def _sanitize_envname(self, envname: str) -> JobParamEnvName:
@@ -330,15 +310,15 @@ class DemandExecutionParameters(SchemaModel):
             envname = JobParamRef(envname).envname
         return JobParam.as_envname(envname)
 
-    def _param_to_job_params(self) -> List[JobParam]:
+    def _param_to_job_params(self) -> list[JobParam]:
         """Convert param dictionary into List of JobParam objects
 
         Returns:
             A list of JobParam objects representing the parameters.
         """
-        job_params: List[JobParam] = []
-        input_envnames = set([JobParam.as_envname(i) for i in self.inputs])
-        output_envnames = set([JobParam.as_envname(o) for o in self.outputs])
+        job_params: list[JobParam] = []
+        input_envnames = {JobParam.as_envname(i) for i in self.inputs}
+        output_envnames = {JobParam.as_envname(o) for o in self.outputs}
         for k, v in self.params.items():
             job_param_envname = JobParam.as_envname(k)
             if job_param_envname in input_envnames:
@@ -375,7 +355,7 @@ class DemandExecutionParameters(SchemaModel):
             uploadable = Uploadable.from_any(value=v, default_remote=default_remote)
             return UploadableJobParam(k, uploadable.local, uploadable.remote)
 
-    def _set_job_params(self, job_params: List[JobParam]):
+    def _set_job_params(self, job_params: list[JobParam]):
         self._job_params = JobParamResolver.resolve_references(job_params)
         self._job_param_map = {_.envname: _ for _ in self._job_params}
         self.validate_parameters()
@@ -398,15 +378,15 @@ class DemandExecutionParameters(SchemaModel):
         return False
 
     def _compute_refresh_hash(self) -> str:
-        return sha256_hexdigest(self.to_dict(partial=True, validate=False))
+        return sha256_hexdigest(self.to_dict())
 
     # ------------------------------------------------
     #                   Schema hooks
     # ------------------------------------------------
 
+    @model_validator(mode="before")
     @classmethod
-    @mm.pre_load
-    def _sanitize_param_pairs(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    def _sanitize_param_pairs(cls, data: dict[str, Any]) -> dict[str, Any]:
         in_use_key = "param_pair_overrides"
         deprecated_keys = [
             "param_pairs",
@@ -430,11 +410,10 @@ class DemandExecutionParameters(SchemaModel):
 
         return data
 
-    @classmethod
-    @mm.post_dump
-    def _sanitize_params(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
-        params = data["params"]
+    @field_serializer("params", mode="plain")
+    def _sanitize_params(self, value: Any) -> dict[str, Any]:
+        params = dict(value)
         for k, v in params.items():
             if isinstance(v, Resolvable):
                 params[k] = v.to_str()
-        return data
+        return params

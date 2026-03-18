@@ -12,28 +12,20 @@ __all__ = [
 
 import logging
 from collections import ChainMap
+from collections.abc import Callable, Hashable, MutableMapping, Sequence
 from enum import Enum, EnumMeta
 from functools import cached_property, total_ordering, wraps
+from re import Match, Pattern
 from re import compile as regex_compile
 from re import finditer as regex_finditer
 from re import fullmatch as regex_fullmatch
 from re import sub as regex_sub
 from typing import (
     Any,
-    Callable,
     ClassVar,
     Generic,
-    Hashable,
-    List,
-    Match,
-    MutableMapping,
     Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -59,6 +51,15 @@ class DeepChainMap(ChainMap):
     """
 
     def __getitem__(self, key):
+        """Retrieve a value, recursively merging nested mappings.
+
+        Args:
+            key: The key to look up.
+
+        Returns:
+            The value associated with the key. If the value is a mapping,
+            returns a merged ``DeepChainMap`` of all submaps containing that key.
+        """
         submaps = [mapping for mapping in self.maps if key in mapping]
         if not submaps:
             return self.__missing__(key)
@@ -67,6 +68,14 @@ class DeepChainMap(ChainMap):
         return super().__getitem__(key)
 
     def to_dict(self) -> dict:
+        """Flatten all chained maps into a single dictionary.
+
+        Performs a depth-first merge of all maps, with earlier maps taking
+        precedence over later ones.
+
+        Returns:
+            A single merged dictionary.
+        """
         d: dict = {}
         for mapping in reversed(self.maps):
             self._depth_first_update(d, cast(MutableMapping, mapping))
@@ -93,17 +102,33 @@ VT = TypeVar("VT")
 
 
 class Tree(dict[KT, "Tree"], Generic[KT]):
+    """A recursive dictionary for building tree structures from sequences.
+
+    Each key maps to a child ``Tree``, forming an n-ary tree. Provides methods
+    to add, retrieve, and enumerate paths (sequences of keys) through the tree.
+    """
+
     def add_sequence(self: "Tree[KT]", *keys: KT):
+        """Add a path of keys to the tree, creating intermediate nodes as needed.
+
+        Args:
+            *keys: Ordered sequence of keys representing a path from root to leaf.
+        """
         __self = self
         for key in keys:
             if key not in __self:
                 __self[key] = self.__class__()
             __self = __self[key]  # type: ignore
 
-    def to_sequences(self: "Tree[KT]") -> List[Tuple[KT, ...]]:
-        sequences: List[Tuple[KT, ...]] = []
+    def to_sequences(self: "Tree[KT]") -> list[tuple[KT, ...]]:
+        """Enumerate all root-to-leaf paths in the tree.
+
+        Returns:
+            A list of tuples, each representing a path from root to leaf.
+        """
+        sequences: list[tuple[KT, ...]] = []
         for key in self.keys():
-            sub_sequences: List[Tuple[KT, ...]] = self[key].to_sequences()  # type: ignore
+            sub_sequences: list[tuple[KT, ...]] = self[key].to_sequences()  # type: ignore
             if not sub_sequences:
                 sequences.append((key,))
             else:
@@ -112,9 +137,25 @@ class Tree(dict[KT, "Tree"], Generic[KT]):
         return sequences
 
     def has_sequence(self: "Tree[KT]", *keys: KT) -> bool:
+        """Check whether a path of keys exists in the tree.
+
+        Args:
+            *keys: Ordered sequence of keys to look up.
+
+        Returns:
+            True if the path exists, False otherwise.
+        """
         return self.get_sequence(*keys) is not None
 
     def get_sequence(self: "Tree[KT]", *keys: KT) -> Optional["Tree[KT]"]:
+        """Retrieve the subtree at the given path.
+
+        Args:
+            *keys: Ordered sequence of keys to traverse.
+
+        Returns:
+            The subtree at the end of the path, or None if the path does not exist.
+        """
         __self = self
         for key in keys:
             if key not in __self:
@@ -124,6 +165,13 @@ class Tree(dict[KT, "Tree"], Generic[KT]):
 
 
 class PostInitMixin:
+    """Mixin that adds ``__post_init__`` hook support to classes.
+
+    When used with ``add_hook=True`` in ``__init_subclass__``, automatically
+    calls ``__post_init__`` after ``__init__`` completes. This is useful for
+    adding validation or derived attribute computation after initialization.
+    """
+
     def __init_subclass__(cls, add_hook: bool = False, **kwargs) -> None:
         """Adds a __post_init__ method to the subclass if it does not already have one.
 
@@ -209,9 +257,21 @@ class PydanticStrMixin:
 
 
 class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
+    """A string subclass with regex-based validation.
+
+    Subclasses should define a ``regex_pattern`` class variable to enforce
+    a specific string format. Optional ``min_len`` and ``max_len`` class
+    variables can constrain string length.
+
+    Attributes:
+        regex_pattern: Compiled regex pattern used for validation.
+        min_len: Minimum allowed string length, or None for no limit.
+        max_len: Maximum allowed string length, or None for no limit.
+    """
+
     regex_pattern: ClassVar[Pattern]
-    min_len: ClassVar[Optional[int]] = None
-    max_len: ClassVar[Optional[int]] = None
+    min_len: ClassVar[int | None] = None
+    max_len: ClassVar[int | None] = None
 
     _regex_pattern_provided: ClassVar[bool] = False
 
@@ -258,6 +318,14 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
             )
 
     def get_match_groups(self) -> Sequence[Any]:
+        """Return the captured groups from matching the regex pattern against this string.
+
+        Returns:
+            A sequence of matched groups.
+
+        Raises:
+            ValidationError: If no regex pattern is defined.
+        """
         self.validate_regex_pattern()
         # self.validate_regex_pattern() guarantees a match
         match = cast(Match[Any], regex_fullmatch(self.regex_pattern, self))
@@ -265,7 +333,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         return match.groups()
 
     @classmethod
-    def findall(cls: Type[S], string: str) -> List[S]:
+    def findall(cls: type[S], string: str) -> list[S]:
         """Convenience method for re.findall
 
         Args:
@@ -282,7 +350,7 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
         return [cls(match.group(0)) for match in regex_finditer(cls.regex_pattern, string)]
 
     @classmethod
-    def suball(cls: Type[S], string: str, repl: Union[str, Callable[[Match], str]]) -> str:
+    def suball(cls: type[S], string: str, repl: str | Callable[[Match], str]) -> str:
         """Convenience method for running re.sub on string.
         If no regex pattern is defined, then return original.
         Args:
@@ -299,10 +367,26 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
 
     @classmethod
     def is_prefixed(cls, string: str) -> bool:
+        """Check if the string starts with a match of the regex pattern.
+
+        Args:
+            string: The string to check.
+
+        Returns:
+            True if a match is found at the start of the string.
+        """
         return cls.find_prefix(string) is not None
 
     @classmethod
-    def find_prefix(cls: Type[S], string: str) -> Optional[S]:
+    def find_prefix(cls: type[S], string: str) -> S | None:
+        """Find the first regex match at the start of the string.
+
+        Args:
+            string: The string to search.
+
+        Returns:
+            A validated instance of the matched prefix, or None if no prefix matches.
+        """
         cls.validate_regex_pattern()
         for match in regex_finditer(cls.regex_pattern, string):
             if match.span()[0] == 0:
@@ -311,10 +395,26 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
 
     @classmethod
     def is_suffixed(cls, string: str) -> bool:
+        """Check if the string ends with a match of the regex pattern.
+
+        Args:
+            string: The string to check.
+
+        Returns:
+            True if a match is found at the end of the string.
+        """
         return cls.find_suffix(string) is not None
 
     @classmethod
-    def find_suffix(cls: Type[S], string: str) -> Optional[S]:
+    def find_suffix(cls: type[S], string: str) -> S | None:
+        """Find the first regex match at the end of the string.
+
+        Args:
+            string: The string to search.
+
+        Returns:
+            A validated instance of the matched suffix, or None if no suffix matches.
+        """
         cls.validate_regex_pattern()
         for match in regex_finditer(cls.regex_pattern, string):
             if match.span()[1] == len(string):
@@ -323,6 +423,14 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
 
     @classmethod
     def is_valid(cls, value: str) -> bool:
+        """Check if a string is a valid instance of this validated string type.
+
+        Args:
+            value: The string to validate.
+
+        Returns:
+            True if the value passes validation, False otherwise.
+        """
         if isinstance(value, cls):
             return True
         try:
@@ -333,10 +441,24 @@ class ValidatedStr(str, PostInitMixin, PydanticStrMixin):
 
     @classmethod
     def has_regex_pattern(cls) -> bool:
+        """Check if this class has a user-defined regex pattern.
+
+        Returns:
+            True if a regex pattern was explicitly provided.
+        """
         return cls.regex_pattern is not None and cls._regex_pattern_provided
 
     @classmethod
     def validate_regex_pattern(cls, raise_error: bool = True):
+        """Validate that a regex pattern is defined for this class.
+
+        Args:
+            raise_error: If True, raise an error when no pattern is defined.
+                If False, log a warning instead.
+
+        Raises:
+            ValidationError: If ``raise_error`` is True and no regex pattern is defined.
+        """
         if not cls.has_regex_pattern():
             msg = f"{cls.__name__} does not define a Regex Pattern."
             if raise_error:
@@ -348,6 +470,14 @@ class BaseEnumMeta(EnumMeta):
     """Metaclass for BaseEnum type"""
 
     def __contains__(self, item):
+        """Test membership, supporting both enum members and raw values.
+
+        Args:
+            item: The item to check for membership.
+
+        Returns:
+            True if the item is a member or matches a member value.
+        """
         # Membership Test
         try:
             return super().__contains__(item)
@@ -365,17 +495,26 @@ class BaseEnum(Enum, metaclass=BaseEnumMeta):
     """
 
     def __eq__(self, other):
+        """Compare equality by identity or by value."""
         result = self is other
         return result or other == self.value
 
     @classmethod
-    def values(cls) -> List[Any]:
+    def values(cls) -> list[Any]:
+        """Return a list of all member values.
+
+        Returns:
+            List of enum member values.
+        """
         return [c.value for c in cls]
 
 
 @total_ordering
 class OrderedEnum(BaseEnum):
+    """An enum that supports ordering based on member definition order."""
+
     def __lt__(self, other):
+        """Compare ordering based on member definition order."""
         if self.__class__ is other.__class__:
             return self.__name_order__ < other.__name_order__
         try:
@@ -392,7 +531,9 @@ SE = TypeVar("SE", bound="StrEnum")
 
 
 class StrEnum(str, BaseEnum):
-    def __new__(cls: Type[SE], value: str, *args: Any, **kwargs: Any) -> SE:
+    """An enum whose members are also strings, allowing direct string comparison."""
+
+    def __new__(cls: type[SE], value: str, *args: Any, **kwargs: Any) -> SE:
         obj = str.__new__(cls, value)
         obj._value_ = value
         return obj
@@ -401,14 +542,26 @@ class StrEnum(str, BaseEnum):
         return self.value
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
+        """Return a list of all member values as strings.
+
+        Returns:
+            List of enum member values.
+        """
         return [cast(str, c.value) for c in cls]
 
 
 @total_ordering
 class OrderedStrEnum(str, OrderedEnum):
+    """A string enum that supports ordering based on member definition order."""
+
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
+        """Return a list of all member values as strings.
+
+        Returns:
+            List of enum member values.
+        """
         return [cast(str, c.value) for c in cls]
 
     ## str class overrides

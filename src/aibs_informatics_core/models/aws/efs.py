@@ -1,13 +1,12 @@
 import re
 from functools import cached_property
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import ClassVar, Union
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.models.aws.core import AWS_ACCOUNT_PATTERN_STR as AWS_ACCOUNT_PATTERN
 from aibs_informatics_core.models.aws.core import AWS_REGION_PATTERN_STR as AWS_REGION_PATTERN
 from aibs_informatics_core.models.aws.core import AWSRegion
-from aibs_informatics_core.models.base import CustomStringField
 
 FILE_SYSTEM_ID_PATTERN = r"fs-[0-9a-f]{8,40}"
 ACCESS_POINT_ID_PATTERN = r"fsap-[0-9a-f]{8,40}"
@@ -28,11 +27,11 @@ class FileSystemId(ValidatedStr):
         return self.get_match_groups()[-1]
 
     @property
-    def region(self) -> Optional[str]:
+    def region(self) -> str | None:
         return self.get_match_groups()[-2]
 
     @property
-    def arn_prefix(self) -> Optional[str]:
+    def arn_prefix(self) -> str | None:
         return self.get_match_groups()[0]
 
 
@@ -51,11 +50,11 @@ class AccessPointId(ValidatedStr):
         return self.get_match_groups()[-1]
 
     @property
-    def region(self) -> Optional[str]:
+    def region(self) -> str | None:
         return self.get_match_groups()[-2]
 
     @property
-    def arn_prefix(self) -> Optional[str]:
+    def arn_prefix(self) -> str | None:
         return self.get_match_groups()[0]
 
 
@@ -155,7 +154,7 @@ class EFSPath(ValidatedStr):
 
     @classmethod
     def build(
-        cls, resource_id: Union[FileSystemId, FileSystemDNSName, str], path: Union[Path, str]
+        cls, resource_id: FileSystemId | FileSystemDNSName | str, path: Path | str
     ) -> "EFSPath":
         file_system_id: FileSystemId
         if FileSystemId.is_valid(resource_id):
@@ -168,10 +167,6 @@ class EFSPath(ValidatedStr):
             )
         path = Path("/") / path
         return cls(f"{file_system_id}:{path.as_posix()}")
-
-    @classmethod
-    def as_mm_field(cls) -> CustomStringField:
-        return CustomStringField(cls)
 
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, str) and EFSPath.is_valid(__value):

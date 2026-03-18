@@ -7,8 +7,9 @@ __all__ = [
 ]
 
 
+from collections.abc import Callable, MutableMapping
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, MutableMapping, Tuple, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 T = TypeVar("T")
 KT = TypeVar("KT")
@@ -64,7 +65,7 @@ def remove_matching_values(
 
 def flatten_dict(
     data: MutableMapping[str, Any], parent_key: str = "", delimiter: str = "."
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Flattens a nested dictionary by concatenating the keys with a given delimiter.
 
@@ -76,7 +77,7 @@ def flatten_dict(
     Returns:
     Dict[str, Any]: The flattened dictionary.
     """
-    items: List[Tuple[str, Any]] = []
+    items: list[tuple[str, Any]] = []
     for key, value in data.items():
         new_key = f"{parent_key}{delimiter}{key}" if parent_key else key
         if isinstance(value, dict):
@@ -86,7 +87,7 @@ def flatten_dict(
     return dict(items)
 
 
-def nested_dict(data: MutableMapping[str, Any], delimiter: str = ".") -> Dict[str, Any]:
+def nested_dict(data: MutableMapping[str, Any], delimiter: str = ".") -> dict[str, Any]:
     """
     Creates a nested dictionary by splitting the keys by a given delimiter.
 
@@ -100,7 +101,7 @@ def nested_dict(data: MutableMapping[str, Any], delimiter: str = ".") -> Dict[st
     Raises:
     ValueError: If a collision is detected during the transformation process.
     """
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
     for key, value in data.items():
         parts = key.split(delimiter)
         d = result
@@ -117,6 +118,15 @@ def nested_dict(data: MutableMapping[str, Any], delimiter: str = ".") -> Dict[st
 
 
 def convert_key_case(data: T, key_case: Callable[[str], str]) -> T:
+    """Recursively convert dictionary keys using a case-conversion function.
+
+    Args:
+        data: A dict, list, or scalar value.
+        key_case: A callable that transforms string keys (e.g., ``snakecase``).
+
+    Returns:
+        A copy of ``data`` with all dictionary keys transformed.
+    """
     if isinstance(data, dict):
         return {
             (key_case(k) if isinstance(k, str) else k): convert_key_case(v, key_case)

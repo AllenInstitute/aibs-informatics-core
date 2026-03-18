@@ -3,8 +3,9 @@ import os
 import tarfile
 import threading
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Literal, Sequence, Tuple, Union
+from typing import Literal
 from unittest.mock import MagicMock, patch
 
 from aibs_informatics_test_resources import BaseTest, does_not_raise
@@ -16,7 +17,7 @@ from aibs_informatics_core.utils.file_operations import (
     copy_path,
     extract_archive,
     find_filesystem_boundary,
-    get_path_hash,
+    find_paths,
     get_path_size_bytes,
     get_path_with_root,
     make_archive,
@@ -27,7 +28,7 @@ from aibs_informatics_core.utils.file_operations import (
 
 
 class FileOperationsBaseTest(BaseTest):
-    def assertDirectoryContents(self, root_path: Path, expected_file_paths: List[str]):
+    def assertDirectoryContents(self, root_path: Path, expected_file_paths: list[str]):
         relative_extracted_paths = [
             str(_) for _ in self.os_walk(root_path, include_dirs=False, include_root=False)
         ]
@@ -36,9 +37,10 @@ class FileOperationsBaseTest(BaseTest):
     def create_tar_archive(
         self,
         root_path: Path,
-        relative_paths: List[str] = [],
+        relative_paths: list[str] | None = None,
         compression: Literal["", "gz"] = "gz",
     ) -> Path:
+        relative_paths = relative_paths or []
         self.create_dir(root_path, relative_paths)
 
         tar_name = self.tmp_path() / "archive"
@@ -50,7 +52,8 @@ class FileOperationsBaseTest(BaseTest):
                     tar_handle.add(os.path.join(relative_root, file), arcname=arcname)
         return tar_name
 
-    def create_zip_archive(self, root_path: Path, relative_paths: List[str] = []) -> Path:
+    def create_zip_archive(self, root_path: Path, relative_paths: list[str] | None = None) -> Path:
+        relative_paths = relative_paths or []
         self.create_dir(root_path, relative_paths)
 
         zip_name = self.tmp_path() / "archive"
@@ -62,7 +65,7 @@ class FileOperationsBaseTest(BaseTest):
                     zipf.write(os.path.join(relative_root, file), arcname=arcname)
         return zip_name
 
-    def create_dir(self, root_path: Path, relative_paths: Sequence[Union[str, Tuple[str, str]]]):
+    def create_dir(self, root_path: Path, relative_paths: Sequence[str | tuple[str, str]]):
         for relative_path in relative_paths:
             relative_path, content = (
                 relative_path
@@ -79,7 +82,7 @@ class FileOperationsBaseTest(BaseTest):
         include_dirs: bool = True,
         include_files: bool = True,
         include_root: bool = True,
-    ) -> List[Path]:
+    ) -> list[Path]:
         paths = []
         for relative_root, dirs, files in os.walk(root_path):
             rel_root_path = Path(relative_root)
@@ -193,53 +196,6 @@ class FileOperationsTests(FileOperationsBaseTest):
     def setUp(self) -> None:
         super().setUp()
 
-    def get_path_to_hash(self) -> Path:
-        asset_path = self.tmp_path()
-        (asset_path / "a.py").write_text('a = "hello"')
-        (asset_path / "b.py").write_text('b = "bye"')
-        (asset_path / "x.txt").write_text("I'm a simple txt file")
-        (asset_path / "dir1").mkdir(exist_ok=True)
-        (asset_path / "dir1" / "__init__.py").touch()
-        (asset_path / "dir1" / "a.py").write_text('a = "hello"')
-        (asset_path / "dir1" / "b.py").write_text('b = "bye"')
-        (asset_path / "dir1" / "c.py").write_text('c = ""')
-        return asset_path
-
-    def test__get_path_hash__changes_when_file_added_and_no_filters_applied(self):
-        asset_path = self.get_path_to_hash()
-        original_hash = get_path_hash(str(asset_path))
-        (asset_path / "c.py").write_text("c = 'hallo'")
-        new_hash = get_path_hash(str(asset_path))
-        assert original_hash != new_hash
-
-    def test__get_path_hash__does_not_change_when_file_added_but_excluded(self):
-        excludes = [r".*\.txt"]
-        asset_path = self.get_path_to_hash()
-        original_hash = get_path_hash(str(asset_path), excludes=excludes)
-        (asset_path / "dir1" / "c.txt").write_text("c = 'hallo'")
-        new_hash = get_path_hash(str(asset_path), excludes=excludes)
-        assert original_hash == new_hash
-
-    def test__get_path_hash__does_not_change_when_file_added_but_not_included(
-        self,
-    ):
-        includes = [r".*\.txt"]
-        asset_path = self.get_path_to_hash()
-        original_hash = get_path_hash(str(asset_path), includes=includes)
-        (asset_path / "c.py").write_text("c = 'hallo'")
-        new_hash = get_path_hash(str(asset_path), includes=includes)
-        assert original_hash == new_hash
-
-    def test__get_path_hash__does_not_change_because_excludes_supersedes_includes(
-        self,
-    ):
-        excludes = [r".*\.txt"]
-        asset_path = self.get_path_to_hash()
-        original_hash = get_path_hash(str(asset_path), includes=excludes, excludes=excludes)
-        (asset_path / "dir1" / "c.txt").write_text("c = 'hallo'")
-        new_hash = get_path_hash(str(asset_path), includes=excludes, excludes=excludes)
-        assert original_hash == new_hash
-
     def test__get_path_size_bytes__handles_dir(self):
         path = self.tmp_path()
         self.create_dir(path, [("a", "_" * 1), ("b", "_" * 1), ("dir/a", "_" * 1)])
@@ -285,6 +241,101 @@ class FileOperationsTests(FileOperationsBaseTest):
             mock_find_all_paths.return_value = ["a"]
             mock_Path.side_effect = [p1]
             get_path_size_bytes(path)
+
+    def test__find_paths__returns_all_paths_when_no_filters(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.txt", "sub/c.txt"])
+        result = find_paths(root)
+        # Should include dirs and files
+        self.assertIn(str(root / "a.txt"), result)
+        self.assertIn(str(root / "b.txt"), result)
+        self.assertIn(str(root / "sub"), result)
+        self.assertIn(str(root / "sub" / "c.txt"), result)
+
+    def test__find_paths__returns_only_dirs(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "sub/b.txt"])
+        result = find_paths(root, include_dirs=True, include_files=False)
+        self.assertIn(str(root / "sub"), result)
+        self.assertNotIn(str(root / "a.txt"), result)
+        self.assertNotIn(str(root / "sub" / "b.txt"), result)
+
+    def test__find_paths__returns_only_files(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "sub/b.txt"])
+        result = find_paths(root, include_dirs=False, include_files=True)
+        self.assertNotIn(str(root / "sub"), result)
+        self.assertIn(str(root / "a.txt"), result)
+        self.assertIn(str(root / "sub" / "b.txt"), result)
+
+    def test__find_paths__filters_with_include_pattern(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.log", "c.txt"])
+        result = find_paths(root, include_dirs=False, includes=[r".*\.txt"])
+        self.assertEqual(sorted(result), sorted([str(root / "a.txt"), str(root / "c.txt")]))
+
+    def test__find_paths__filters_with_exclude_pattern(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.log", "c.txt"])
+        result = find_paths(root, include_dirs=False, excludes=[r".*\.log"])
+        self.assertIn(str(root / "a.txt"), result)
+        self.assertIn(str(root / "c.txt"), result)
+        self.assertNotIn(str(root / "b.log"), result)
+
+    def test__find_paths__exclude_takes_precedence_over_include(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.txt", "c.log"])
+        result = find_paths(
+            root,
+            include_dirs=False,
+            includes=[r".*\.txt"],
+            excludes=[r".*b\.txt"],
+        )
+        self.assertEqual(result, [str(root / "a.txt")])
+
+    def test__find_paths__handles_empty_directory(self):
+        root = self.tmp_path()
+        result = find_paths(root)
+        self.assertEqual(result, [])
+
+    def test__find_paths__handles_nested_directories(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["d1/d2/a.txt", "d1/b.txt"])
+        result = find_paths(root, include_dirs=False, includes=[r".*d2.*"])
+        self.assertEqual(result, [str(root / "d1" / "d2" / "a.txt")])
+
+    def test__find_paths__accepts_compiled_patterns(self):
+        import re
+
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.log"])
+        pattern = re.compile(r".*\.txt")
+        result = find_paths(root, include_dirs=False, includes=[pattern])
+        self.assertEqual(result, [str(root / "a.txt")])
+
+    def test__find_paths__accepts_string_root(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt"])
+        result = find_paths(str(root), include_dirs=False)
+        self.assertEqual(result, [str(root / "a.txt")])
+
+    def test__find_paths__no_match_returns_empty(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.txt"])
+        result = find_paths(root, includes=[r".*\.csv"])
+        self.assertEqual(result, [])
+
+    def test__find_paths__multiple_include_patterns(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.log", "c.csv"])
+        result = find_paths(root, include_dirs=False, includes=[r".*\.txt", r".*\.csv"])
+        self.assertEqual(sorted(result), sorted([str(root / "a.txt"), str(root / "c.csv")]))
+
+    def test__find_paths__multiple_exclude_patterns(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt", "b.log", "c.csv"])
+        result = find_paths(root, include_dirs=False, excludes=[r".*\.log", r".*\.csv"])
+        self.assertEqual(result, [str(root / "a.txt")])
 
     def test__move_path__handles_file(self):
         path = self.tmp_file()
@@ -470,7 +521,7 @@ class FileOperationsTests(FileOperationsBaseTest):
         ),
     ],
 )
-def test__get_path_with_root(path: Union[Path, str], root: Union[Path, str], expected: str):
+def test__get_path_with_root(path: Path | str, root: Path | str, expected: str):
     actual = get_path_with_root(path=path, root=root)
     assert actual == expected
 

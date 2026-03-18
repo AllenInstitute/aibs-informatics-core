@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from aibs_informatics_core.executors.base import BaseExecutor
 from aibs_informatics_core.utils.modules import load_type_from_qualified_name
@@ -8,6 +7,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_cli_parser():
+    """Build an argument parser for the executor CLI.
+
+    Returns:
+        An ``argparse.ArgumentParser`` configured with ``--executor``,
+        ``--input``, and ``--output-location`` arguments.
+    """
     import argparse
 
     parser = argparse.ArgumentParser(description="Executor CLI")
@@ -43,7 +48,18 @@ def get_cli_parser():
     return parser
 
 
-def run_cli_executor(args: Optional[list[str]] = None):
+def run_cli_executor(args: list[str] | None = None):
+    """Run an executor from the command line.
+
+    Parses CLI arguments to load an executor class and execute it with the
+    provided input. Optionally writes the response to an output location.
+
+    Args:
+        args: Optional list of CLI arguments. If None, reads from ``sys.argv``.
+
+    Raises:
+        ValueError: If the specified executor class is not a subclass of ``BaseExecutor``.
+    """
     parsed_args = get_cli_parser().parse_args(args=args)
 
     executor_class = load_type_from_qualified_name(parsed_args.executor)

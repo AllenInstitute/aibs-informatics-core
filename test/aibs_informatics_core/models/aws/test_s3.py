@@ -1,7 +1,6 @@
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union
 
 import pytest
 
@@ -25,8 +24,6 @@ from aibs_informatics_core.models.aws.s3 import (
     S3UploadRequest,
     S3UploadResponse,
 )
-from aibs_informatics_core.models.base import CustomStringField
-from aibs_informatics_core.models.base.custom_fields import EnumField
 
 
 def test__S3PathStats__getitem__works():
@@ -589,7 +586,7 @@ def test__S3Key__rtruediv__works(this: S3Key, other, expected, raise_expectation
         ),
     ],
 )
-def test__S3URI__add__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
+def test__S3URI__add__works(this: S3Path, other: str | S3Path, expected: S3Path):
     assert this + other == expected
 
 
@@ -616,7 +613,7 @@ def test__S3URI__add__works(this: S3Path, other: Union[str, S3Path], expected: S
         ),
     ],
 )
-def test__S3URI__truediv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
+def test__S3URI__truediv__works(this: S3Path, other: str | S3Path, expected: S3Path):
     assert this / other == expected
 
 
@@ -643,16 +640,12 @@ def test__S3URI__truediv__works(this: S3Path, other: Union[str, S3Path], expecte
         ),
     ],
 )
-def test__S3URI__floordiv__works(this: S3Path, other: Union[str, S3Path], expected: S3Path):
+def test__S3URI__floordiv__works(this: S3Path, other: str | S3Path, expected: S3Path):
     assert this // other == expected
 
 
 def test__S3URI__as_dict__works():
     assert S3Path("s3://my-bucket/my-key").as_dict() == {"Bucket": "my-bucket", "Key": "my-key"}
-
-
-def test__S3URI__as_mm_field__works():
-    assert isinstance(S3Path("s3://my-bucket/my-key").as_mm_field(), CustomStringField)
 
 
 def test__S3URI__with_folder_suffix__works():
@@ -745,10 +738,6 @@ def test__list_transitionable_storage_classes__works():
 
 def test__list_archive_storage_classes__works():
     assert S3StorageClass.GLACIER in S3StorageClass.list_archive_storage_classes()
-
-
-def test__S3StorageClass__as_mm_field__works():
-    assert isinstance(S3StorageClass.as_mm_field(), EnumField)
 
 
 def test__S3RestoreStatus__works():
@@ -857,3 +846,353 @@ def test__S3Path__parent__works():
 def test__S3Path__is_valid__works(input_value, expected_result):
     result = S3Path.is_valid(value=input_value)
     assert expected_result == result
+
+
+# ---------------------------------------------------------------------------
+#  S3KeyPlaceholder tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        pytest.param("my-key", ["my-key"], id="simple key"),
+        pytest.param("a/b/c", ["a", "b", "c"], id="multi-segment key"),
+        pytest.param("a/b/c/", ["a", "b", "c", ""], id="trailing slash"),
+        pytest.param("${key}", ["${key}"], id="placeholder only"),
+        pytest.param("prefix/${key}/suffix", ["prefix", "${key}", "suffix"], id="mixed segments"),
+    ],
+)
+def test__S3KeyPlaceholder__components(value: str, expected: list[str]):
+    key = S3KeyPlaceholder(value, allow_placeholders=True)
+    assert key.components == expected
+
+
+@pytest.mark.parametrize(
+    "this, other, expected, raise_expectation",
+    [
+        pytest.param(
+            S3KeyPlaceholder("my-key", allow_placeholders=True),
+            "prefix",
+            S3KeyPlaceholder("prefix/my-key", allow_placeholders=True),
+            does_not_raise(),
+            id="simple prefix",
+        ),
+        pytest.param(
+            S3KeyPlaceholder("${key}", allow_placeholders=True),
+            "prefix",
+            None,
+            pytest.raises(ValidationError),
+            id="prefix with placeholder key raises (allow_placeholders not forwarded)",
+        ),
+        pytest.param(
+            S3KeyPlaceholder("my-key", allow_placeholders=True),
+            "",
+            S3KeyPlaceholder("my-key", allow_placeholders=True),
+            does_not_raise(),
+            id="empty prefix",
+        ),
+        pytest.param(
+            S3KeyPlaceholder("my-key", allow_placeholders=True),
+            "prefix/",
+            S3KeyPlaceholder("prefix/my-key", allow_placeholders=True),
+            does_not_raise(),
+            id="prefix with trailing slash",
+        ),
+        pytest.param(
+            S3KeyPlaceholder("my-key", allow_placeholders=True),
+            object(),
+            None,
+            pytest.raises(TypeError),
+            id="raises for non-str type",
+        ),
+    ],
+)
+def test__S3KeyPlaceholder__rtruediv__works(
+    this: S3KeyPlaceholder, other, expected, raise_expectation
+):
+    with raise_expectation:
+        actual = other / this
+
+    if expected is not None:
+        assert actual == expected
+
+
+def test__S3KeyPlaceholder__has_placeholder():
+    key = S3KeyPlaceholder("prefix/${key}/suffix", allow_placeholders=True)
+    assert key.has_placeholder is True
+
+    key = S3KeyPlaceholder("prefix/suffix", allow_placeholders=True)
+    assert key.has_placeholder is False
+
+
+def test__S3KeyPlaceholder__rejects_placeholder_when_not_allowed():
+    with pytest.raises(ValidationError):
+        S3KeyPlaceholder("prefix/${key}", allow_placeholders=False)
+
+
+# ---------------------------------------------------------------------------
+#  S3PathPlaceholder tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "bucket, key, allow_placeholders, expected_uri",
+    [
+        pytest.param(
+            "my-bucket",
+            "my-key",
+            False,
+            "s3://my-bucket/my-key",
+            id="plain build",
+        ),
+        pytest.param(
+            "${BUCKET}",
+            "${KEY}",
+            True,
+            "s3://${BUCKET}/${KEY}",
+            id="all placeholder build",
+        ),
+        pytest.param(
+            "my-bucket",
+            "prefix/${TOKEN}/suffix",
+            True,
+            "s3://my-bucket/prefix/${TOKEN}/suffix",
+            id="mixed key placeholder build",
+        ),
+        pytest.param(
+            "my-bucket",
+            "",
+            False,
+            "s3://my-bucket/",
+            id="empty key build",
+        ),
+    ],
+)
+def test__S3PathPlaceholder__build(
+    bucket: str, key: str, allow_placeholders: bool, expected_uri: str
+):
+    result = S3PathPlaceholder.build(
+        bucket_name=bucket, key=key, allow_placeholders=allow_placeholders
+    )
+    assert result == expected_uri
+    assert result.allow_placeholders == allow_placeholders
+
+
+def test__S3PathPlaceholder__bucket_and_key_properties():
+    p = S3PathPlaceholder("s3://${BUCKET}/prefix/${KEY}/file", allow_placeholders=True)
+    assert p.bucket == "${BUCKET}"
+    assert p.bucket_name == "${BUCKET}"
+    assert p.key == "prefix/${KEY}/file"
+    assert isinstance(p.bucket, S3BucketNamePlaceholder)
+    assert isinstance(p.key, S3KeyPlaceholder)
+
+
+def test__S3PathPlaceholder__key_empty():
+    p = S3PathPlaceholder("s3://my-bucket/", allow_placeholders=False)
+    assert p.key == ""
+    assert p.name == ""
+
+
+def test__S3PathPlaceholder__name():
+    p = S3PathPlaceholder("s3://my-bucket/prefix/file.txt", allow_placeholders=False)
+    assert p.name == "file.txt"
+
+    p = S3PathPlaceholder("s3://${BUCKET}/prefix/${KEY}", allow_placeholders=True)
+    assert p.name == "${KEY}"
+
+
+def test__S3PathPlaceholder__key_with_folder_suffix():
+    p = S3PathPlaceholder("s3://my-bucket/prefix/file", allow_placeholders=False)
+    assert p.key_with_folder_suffix == "prefix/file/"
+
+
+def test__S3PathPlaceholder__with_folder_suffix():
+    p = S3PathPlaceholder("s3://my-bucket/prefix/file", allow_placeholders=False)
+    expected = S3PathPlaceholder("s3://my-bucket/prefix/file/", allow_placeholders=False)
+    assert p.with_folder_suffix == expected
+
+
+def test__S3PathPlaceholder__has_folder_suffix():
+    p = S3PathPlaceholder("s3://my-bucket/prefix/", allow_placeholders=False)
+    assert p.has_folder_suffix() is True
+
+    p = S3PathPlaceholder("s3://my-bucket/prefix/file", allow_placeholders=False)
+    assert p.has_folder_suffix() is False
+
+
+def test__S3PathPlaceholder__parent():
+    p = S3PathPlaceholder("s3://my-bucket/a/b/c", allow_placeholders=False)
+    assert p.parent == S3PathPlaceholder("s3://my-bucket/a/b/", allow_placeholders=False)
+    assert p.parent.parent == S3PathPlaceholder("s3://my-bucket/a/", allow_placeholders=False)
+
+    # With placeholders
+    p = S3PathPlaceholder("s3://${BUCKET}/prefix/${KEY}/file", allow_placeholders=True)
+    assert p.parent == S3PathPlaceholder("s3://${BUCKET}/prefix/${KEY}/", allow_placeholders=True)
+
+
+def test__S3PathPlaceholder__as_dict():
+    p = S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False)
+    assert p.as_dict() == {"Bucket": "my-bucket", "Key": "my-key"}
+
+    p = S3PathPlaceholder("s3://${BUCKET}/${KEY}", allow_placeholders=True)
+    assert p.as_dict() == {"Bucket": "${BUCKET}", "Key": "${KEY}"}
+
+
+def test__S3PathPlaceholder__as_hosted_s3_url():
+    p = S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False)
+    url = p.as_hosted_s3_url("us-west-2")
+    assert url == "https://my-bucket.s3.us-west-2.amazonaws.com/my-key"
+
+
+def test__S3PathPlaceholder__sanitize_double_slashes():
+    p = S3PathPlaceholder("s3://my-bucket//a//b//c", allow_placeholders=False)
+    assert p.key == "a/b/c"
+
+
+@pytest.mark.parametrize(
+    "this, other, expected",
+    [
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False),
+            "suffix",
+            S3PathPlaceholder("s3://my-bucket/my-keysuffix", allow_placeholders=False),
+            id="add str",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key/", allow_placeholders=False),
+            "suffix",
+            S3PathPlaceholder("s3://my-bucket/my-key/suffix", allow_placeholders=False),
+            id="add str with trailing slash",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False),
+            S3Path("s3://other-bucket/other-key"),
+            S3PathPlaceholder("s3://my-bucket/my-keyother-key", allow_placeholders=False),
+            id="add S3Path extracts key",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://${BUCKET}/prefix", allow_placeholders=True),
+            S3PathPlaceholder("s3://other-bucket/other-key", allow_placeholders=True),
+            S3PathPlaceholder("s3://${BUCKET}/prefixother-key", allow_placeholders=True),
+            id="add S3PathPlaceholder extracts key",
+        ),
+    ],
+)
+def test__S3PathPlaceholder__add__works(
+    this: S3PathPlaceholder, other: str | S3Path | S3PathPlaceholder, expected: S3PathPlaceholder
+):
+    result = this + other
+    assert result == expected
+    assert isinstance(result, S3PathPlaceholder)
+
+
+@pytest.mark.parametrize(
+    "this, other, expected",
+    [
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False),
+            "another-key",
+            S3PathPlaceholder("s3://my-bucket/my-key/another-key", allow_placeholders=False),
+            id="truediv str",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False),
+            S3Path("s3://other-bucket/other-key"),
+            S3PathPlaceholder("s3://my-bucket/my-key/other-key", allow_placeholders=False),
+            id="truediv S3Path",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://${BUCKET}/prefix", allow_placeholders=True),
+            S3PathPlaceholder("s3://other-bucket/other-key", allow_placeholders=True),
+            S3PathPlaceholder("s3://${BUCKET}/prefix/other-key", allow_placeholders=True),
+            id="truediv S3PathPlaceholder",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key/", allow_placeholders=False),
+            "another-key",
+            S3PathPlaceholder("s3://my-bucket/my-key/another-key", allow_placeholders=False),
+            id="truediv str with trailing slash",
+        ),
+    ],
+)
+def test__S3PathPlaceholder__truediv__works(
+    this: S3PathPlaceholder, other: str | S3Path | S3PathPlaceholder, expected: S3PathPlaceholder
+):
+    result = this / other
+    assert result == expected
+    assert isinstance(result, S3PathPlaceholder)
+
+
+@pytest.mark.parametrize(
+    "this, other, expected",
+    [
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False),
+            "new-key",
+            S3PathPlaceholder("s3://my-bucket/new-key", allow_placeholders=False),
+            id="floordiv str",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False),
+            S3Path("s3://other-bucket/other-key"),
+            S3PathPlaceholder("s3://my-bucket/other-key", allow_placeholders=False),
+            id="floordiv S3Path",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://${BUCKET}/old-key", allow_placeholders=True),
+            S3PathPlaceholder("s3://other-bucket/other-key", allow_placeholders=True),
+            S3PathPlaceholder("s3://${BUCKET}/other-key", allow_placeholders=True),
+            id="floordiv S3PathPlaceholder",
+        ),
+        pytest.param(
+            S3PathPlaceholder("s3://my-bucket/my-key/", allow_placeholders=False),
+            "replacement",
+            S3PathPlaceholder("s3://my-bucket/replacement", allow_placeholders=False),
+            id="floordiv replaces entire key",
+        ),
+    ],
+)
+def test__S3PathPlaceholder__floordiv__works(
+    this: S3PathPlaceholder, other: str | S3Path | S3PathPlaceholder, expected: S3PathPlaceholder
+):
+    result = this // other
+    assert result == expected
+    assert isinstance(result, S3PathPlaceholder)
+
+
+def test__S3PathPlaceholder__has_placeholder():
+    p = S3PathPlaceholder("s3://my-bucket/my-key", allow_placeholders=False)
+    assert p.has_placeholder is False
+
+    p = S3PathPlaceholder("s3://${BUCKET}/prefix/${KEY}", allow_placeholders=True)
+    assert p.has_placeholder is True
+
+    p = S3PathPlaceholder("s3://my-bucket/${KEY}", allow_placeholders=True)
+    assert p.has_placeholder is True
+
+
+def test__S3PathPlaceholder__rejects_placeholder_when_not_allowed():
+    with pytest.raises(ValidationError):
+        S3PathPlaceholder("s3://${BUCKET}/key", allow_placeholders=False)
+
+    with pytest.raises(ValidationError):
+        S3PathPlaceholder("s3://my-bucket/${KEY}", allow_placeholders=False)
+
+
+def test__S3BucketNamePlaceholder__truediv():
+    bucket = S3BucketNamePlaceholder("my-bucket", allow_placeholders=False)
+    result = bucket / "my-key"
+    assert result == S3PathPlaceholder("s3://my-bucket/my-key")
+    assert isinstance(result, S3PathPlaceholder)
+
+    # With a full S3PathPlaceholder value, extracts key
+    bucket = S3BucketNamePlaceholder("my-bucket", allow_placeholders=False)
+    result = bucket / "s3://other-bucket/other-key"
+    assert result == S3PathPlaceholder("s3://my-bucket/other-key")
+
+    # With placeholder bucket — __truediv__ does not forward allow_placeholders,
+    # so build() defaults to allow_placeholders=False and rejects the placeholder.
+    bucket = S3BucketNamePlaceholder("${BUCKET}", allow_placeholders=True)
+    with pytest.raises(ValidationError):
+        bucket / "some-key"

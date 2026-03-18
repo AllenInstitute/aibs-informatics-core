@@ -6,7 +6,6 @@ __all__ = [
     "copy_path",
     "remove_path",
     "get_path_size_bytes",
-    "get_path_hash",
     "find_paths",
     "get_path_with_root",
     "strip_path_root",
@@ -25,13 +24,14 @@ import tarfile
 import tempfile
 import zipfile
 from collections import deque
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Pattern, Sequence, Union, cast
+from re import Pattern
+from typing import Literal, Union, cast
 
-from aibs_informatics_core.utils.decorators import deprecated
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
 ArchiveFile = Union[tarfile.TarFile, zipfile.ZipFile]
@@ -50,6 +50,12 @@ ArchiveFormat = Literal[
 
 
 class ArchiveType(Enum):
+    """Enumeration of supported archive formats.
+
+    Maps to formats recognized by :func:`shutil.make_archive` and
+    :func:`shutil.unpack_archive`.
+    """
+
     # https://docs.python.org/3/library/shutil.html#shutil.get_archive_formats
     TAR = "tar"
     TAR_BZ = "bztar"
@@ -59,9 +65,18 @@ class ArchiveType(Enum):
 
     @property
     def archive_format(self) -> ArchiveFormat:
+        """Return the ``shutil``-compatible archive format string."""
         return cast(ArchiveFormat, self.value)
 
     def is_archive_type(self, path: Path) -> bool:
+        """Check if a path matches this archive type.
+
+        Args:
+            path: Path to check.
+
+        Returns:
+            True if ``path`` is an archive of this type.
+        """
         try:
             return self == self.from_path(path)
         except Exception:
@@ -69,6 +84,14 @@ class ArchiveType(Enum):
 
     @classmethod
     def is_archive(cls, path: Path) -> bool:
+        """Check if a path is any supported archive type.
+
+        Args:
+            path: Path to check.
+
+        Returns:
+            True if ``path`` is a recognized archive.
+        """
         try:
             cls.from_path(path)
         except Exception:
@@ -78,6 +101,17 @@ class ArchiveType(Enum):
 
     @classmethod
     def from_path(cls, path: Path) -> "ArchiveType":
+        """Infer the archive type from a file path.
+
+        Args:
+            path: Path to an existing archive file.
+
+        Returns:
+            The inferred ``ArchiveType``.
+
+        Raises:
+            ValueError: If the path does not exist, is a directory, or is not a recognized archive.
+        """
         if not path.exists() or path.is_dir():
             raise ValueError(f"Path {path} does not exist or is a directory")
         if tarfile.is_tarfile(path):
@@ -96,8 +130,8 @@ class ArchiveType(Enum):
             raise ValueError("Cannot infer type")
 
     @classmethod
-    def _get_compression_type(cls, path: Path) -> Optional[Literal["gz", "bz", "xz", "zip"]]:
-        file_sign_mapping: Dict[bytes, Literal["gz", "bz", "xz", "zip"]] = {
+    def _get_compression_type(cls, path: Path) -> Literal["gz", "bz", "xz", "zip"] | None:
+        file_sign_mapping: dict[bytes, Literal["gz", "bz", "xz", "zip"]] = {
             b"\x1f\x8b\x08": "gz",
             b"\x42\x5a\x68": "bz",
             b"\xfd\x37\x7a\x58\x5a\x00": "xz",
@@ -113,7 +147,7 @@ class ArchiveType(Enum):
         return None
 
 
-def extract_archive(source_path: Path, destination_path: Optional[Path] = None) -> Path:
+def extract_archive(source_path: Path, destination_path: Path | None = None) -> Path:
     """Untar/unzip data batch into a dedicate folder
     Example: batch_of_samples.tar.gz -> batch_of_samples
 
@@ -142,8 +176,8 @@ def extract_archive(source_path: Path, destination_path: Optional[Path] = None) 
 
 def make_archive(
     source_path: Path,
-    destination_path: Optional[Path] = None,
-    archive_type: Union[ArchiveType, ArchiveFormat] = ArchiveType.TAR_GZ,
+    destination_path: Path | None = None,
+    archive_type: ArchiveType | ArchiveFormat = ArchiveType.TAR_GZ,
 ) -> Path:
     """tar/zip data batch from a folder
     Example: batch_of_samples -> batch_of_samples.tar.gz
@@ -253,7 +287,12 @@ def copy_path(source_path: Path, destination_path: Path, exists_ok: bool = False
 
 
 def remove_path(path: Path, ignore_errors: bool = True):
-    """Removes the contents at the path, if it exists"""
+    """Remove a file or directory at the given path.
+
+    Args:
+        path: The path to remove.
+        ignore_errors: If True, errors are logged but not raised. Defaults to True.
+    """
     try:
         if path.exists():
             if path.is_dir():
@@ -274,6 +313,16 @@ def remove_path(path: Path, ignore_errors: bool = True):
 
 
 def get_path_size_bytes(path: Path) -> int:
+    """Calculate the total size in bytes of all files under a path.
+
+    Handles ``FileNotFoundError`` and stale NFS file handles gracefully.
+
+    Args:
+        path: A file or directory path.
+
+    Returns:
+        The total size in bytes.
+    """
     size_bytes = 0
     file_paths = deque(find_all_paths(path, include_dirs=False, include_files=True))
     while file_paths:
@@ -300,40 +349,13 @@ def get_path_size_bytes(path: Path) -> int:
     return size_bytes
 
 
-@deprecated("Please use `generate_path_hash` from `aibs_informatics_core.utils.hashing` instead")
-def get_path_hash(
-    path: Union[Path, str],
-    includes: Optional[Sequence[Union[Pattern, str]]] = None,
-    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
-) -> str:
-    """Generate the hash based on files found under a given path.
-
-    Args:
-        path (str): path to compute a hash
-        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
-
-    Returns:
-        hash value
-    """
-    from aibs_informatics_core.utils.hashing import generate_file_hash
-
-    paths_to_hash = find_paths(root=path, include_dirs=False, includes=includes, excludes=excludes)
-
-    path_hash = hashlib.sha256()
-    for path in paths_to_hash:
-        path_hash.update(generate_file_hash(path).encode("utf-8"))
-
-    return path_hash.hexdigest()
-
-
 def find_paths(
-    root: Union[str, Path],
+    root: str | Path,
     include_dirs: bool = True,
     include_files: bool = True,
-    includes: Optional[Sequence[Union[Pattern, str]]] = None,
-    excludes: Optional[Sequence[Union[Pattern, str]]] = None,
-) -> List[str]:
+    includes: Sequence[Pattern | str] | None = None,
+    excludes: Sequence[Pattern | str] | None = None,
+) -> list[str]:
     """Find paths that match criteria
 
     Args:
@@ -372,7 +394,19 @@ def find_paths(
     return paths_to_return
 
 
-def get_path_with_root(path: Union[str, Path], root: Union[str, Path]) -> str:
+def get_path_with_root(path: str | Path, root: str | Path) -> str:
+    """Ensure a path is rooted under the given directory.
+
+    If ``path`` is already relative to ``root``, it is returned unchanged.
+    Otherwise, the path is made relative and joined with ``root``.
+
+    Args:
+        path: The path to adjust.
+        root: The root directory.
+
+    Returns:
+        The normalized path string under ``root``.
+    """
     orig_path = path
     root = Path(root)
     path = Path(path)
@@ -383,7 +417,7 @@ def get_path_with_root(path: Union[str, Path], root: Union[str, Path]) -> str:
     return path_with_root
 
 
-def strip_path_root(path: Union[str, Path], root: Optional[Union[str, Path]] = None) -> str:
+def strip_path_root(path: str | Path, root: str | Path | None = None) -> str:
     """Strip the root from the path if path is absolute
 
     Args:
@@ -401,6 +435,8 @@ def strip_path_root(path: Union[str, Path], root: Optional[Union[str, Path]] = N
 
 
 class CannotAcquirePathLockError(Exception):
+    """Raised when a path lock cannot be acquired."""
+
     pass
 
 
@@ -423,8 +459,8 @@ class PathLock:
             will be created. Defaults to None.
     """  # noqa: E501
 
-    path: Union[str, Path]
-    lock_root: Optional[Union[str, Path]] = None
+    path: str | Path
+    lock_root: str | Path | None = None
     raise_if_locked: bool = False
 
     def __post_init__(self):
@@ -447,6 +483,11 @@ class PathLock:
         self.release()
 
     def acquire(self):
+        """Acquire the file lock.
+
+        Raises:
+            CannotAcquirePathLockError: If the lock cannot be acquired.
+        """
         logger.info("Acquiring lock...")
         try:
             self._lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -463,6 +504,7 @@ class PathLock:
             raise CannotAcquirePathLockError(msg) from e
 
     def release(self):
+        """Release the file lock and remove the lock file."""
         logger.info("Releasing lock...")
 
         if self._lock_file and not self._lock_file.closed:
@@ -477,32 +519,3 @@ class PathLock:
         remove_path(self._lock_path)
 
         logger.info("Lock released!")
-
-
-# ---------------
-# Helpers
-
-
-@deprecated("Please use `generate_file_hash` from `aibs_informatics_core.utils.hashing` instead")
-def sha256sum(filename: str, bufsize: int = 128 * 1024) -> str:
-    """
-
-    https://stackoverflow.com/a/70215084/4544508
-
-    Args:
-        filename (str): file to hash
-        bufsize (int, optional): buffer size. Defaults to 128*1024.
-
-    Returns:
-        hash value of file
-    """
-    h = hashlib.sha256()
-    buffer = bytearray(bufsize)
-    buffer_view = memoryview(buffer)
-    with open(filename, "rb", buffering=0) as f:
-        while True:
-            n = f.readinto(buffer_view)  # type: ignore
-            if not n:
-                break
-            h.update(buffer_view[:n])
-    return h.hexdigest()

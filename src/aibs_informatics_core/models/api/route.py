@@ -13,22 +13,13 @@ __all__ = [
 
 import logging
 import re
-import sys
 from abc import abstractmethod
-from dataclasses import dataclass
+from re import Match
 from typing import (
-    Any,
-    Callable,
     ClassVar,
-    Dict,
     Generic,
-    List,
-    Match,
-    Optional,
     Protocol,
-    Type,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -38,34 +29,12 @@ from requests.auth import AuthBase  # type: ignore[import-untyped]
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.api.http_parameters import HTTPParameters
-from aibs_informatics_core.models.base import (
-    CustomStringField,
-    ModelProtocol,
-    SchemaModel,
-    custom_field,
-)
+from aibs_informatics_core.models.base import ModelProtocol, PydanticBaseModel
 from aibs_informatics_core.models.version import VersionStr
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.os_operations import get_env_var
 from aibs_informatics_core.utils.tools.strtools import removesuffix
 from aibs_informatics_core.utils.version import get_version
-
-if sys.version_info >= (3, 10):
-    from inspect import get_annotations
-else:  # pragma: no cover
-    import types
-    from typing import Callable, Mapping, Optional, Union
-
-    # not supported in 3.9
-    def get_annotations(
-        obj: Union[Callable[..., object], Type[Any], types.ModuleType],
-        *,
-        globals: Optional[Mapping[str, Any]] = None,
-        locals: Optional[Mapping[str, Any]] = None,
-        eval_str: bool = False,
-    ) -> Dict[str, Any]:
-        return obj.__annotations__
-
 
 T = TypeVar("T")
 AuthType = TypeVar("AuthType", bound=AuthBase)
@@ -88,16 +57,15 @@ API_REQUEST = TypeVar("API_REQUEST", bound=ModelProtocol)
 API_RESPONSE = TypeVar("API_RESPONSE", bound=ModelProtocol)
 
 
-@dataclass
-class ApiRequestConfig(SchemaModel):
-    client_version: VersionStr = custom_field(mm_field=CustomStringField(VersionStr))
-    service_log_level: Optional[str] = custom_field(default=None)
+class ApiRequestConfig(PydanticBaseModel):
+    client_version: VersionStr
+    service_log_level: str | None = None
 
-    client_version_default: ClassVar[Optional[VersionStr]] = None
+    client_version_default: ClassVar[VersionStr | None] = None
     client_version_package_name_default: ClassVar[str] = aibs_informatics_core.__name__
 
-    def to_headers(self) -> Dict[str, str]:
-        headers: Dict[str, str] = {
+    def to_headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {
             CLIENT_VERSION_KEY: str(self.client_version),
         }
         if self.service_log_level:
@@ -106,7 +74,7 @@ class ApiRequestConfig(SchemaModel):
         return headers
 
     @classmethod
-    def from_headers(cls, headers: Dict[str, str]) -> ApiRequestConfig:
+    def from_headers(cls, headers: dict[str, str]) -> ApiRequestConfig:
         return cls.from_dict(
             dict(
                 client_version=headers.get(CLIENT_VERSION_KEY),
@@ -150,10 +118,10 @@ class ApiRequestConfig(SchemaModel):
 
 
 class ApiHeadersMixin:
-    request_config_cls: ClassVar[Type[ApiRequestConfig]] = ApiRequestConfig
+    request_config_cls: ClassVar[type[ApiRequestConfig]] = ApiRequestConfig
 
     @classmethod
-    def generate_headers(cls) -> Dict[str, str]:
+    def generate_headers(cls) -> dict[str, str]:
         """Custom headers attached with each client request
 
         Returns:
@@ -164,8 +132,8 @@ class ApiHeadersMixin:
     @classmethod
     def validate_headers(
         cls,
-        headers: Dict[str, str],
-        minimum_client_version: Optional[Union[VersionStr, str]] = None,
+        headers: dict[str, str],
+        minimum_client_version: VersionStr | str | None = None,
     ) -> None:
         config = cls.resolve_request_config(headers)
 
@@ -179,7 +147,7 @@ class ApiHeadersMixin:
                 )
 
     @classmethod
-    def resolve_request_config(cls, headers: Dict[str, str]) -> ApiRequestConfig:
+    def resolve_request_config(cls, headers: dict[str, str]) -> ApiRequestConfig:
         return cls.request_config_cls.from_headers(headers)
 
 
@@ -196,7 +164,7 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
 
     @classmethod
     @abstractmethod
-    def route_method(cls) -> Union[str, List[str]]:
+    def route_method(cls) -> str | list[str]:
         """Specifies the methods available
 
         Returns:
@@ -210,7 +178,7 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
         return next(iter(method)) if isinstance(method, list) else method
 
     @classmethod
-    def route_rule_param_keys(cls) -> List[str]:
+    def route_rule_param_keys(cls) -> list[str]:
         return [key for (_, key) in DYNAMIC_ROUTE_PATTERN.findall(cls.route_rule())]
 
     @classmethod
@@ -218,11 +186,11 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
         return cls.__name__
 
     @classmethod
-    def get_request_cls(cls) -> Type[API_REQUEST]:
+    def get_request_cls(cls) -> type[API_REQUEST]:
         return cls.__orig_bases__[0].__args__[0]  # type: ignore
 
     @classmethod
-    def get_response_cls(cls) -> Type[API_RESPONSE]:
+    def get_response_cls(cls) -> type[API_RESPONSE]:
         return cls.__orig_bases__[0].__args__[1]  # type: ignore
 
     @classmethod
@@ -270,7 +238,7 @@ class ApiRoute(Generic[API_REQUEST, API_RESPONSE], ApiHeadersMixin):
 
     @classmethod
     def get_http_parameters_from_request(cls, request: API_REQUEST) -> HTTPParameters:
-        request_body = cast(Dict[str, JSON], request.to_dict())
+        request_body = cast(dict[str, JSON], request.to_dict())
 
         # Initialize the two parameter types
         route_params = {}
@@ -339,19 +307,19 @@ class ClientRouteMethod(Protocol, Generic[API_REQUEST, API_RESPONSE]):  # type: 
 
     @overload
     def __get__(
-        self, obj: ApiClientInterface, objtype: Optional[Type[ApiClientInterface]] = None
+        self, obj: ApiClientInterface, objtype: type[ApiClientInterface] | None = None
     ) -> BoundClientRouteMethod[API_REQUEST, API_RESPONSE]: ...  # pragma: no cover
 
     @overload
     def __get__(  # type: ignore[misc]
-        self, obj: None, objtype: Optional[Type[ApiClientInterface]] = None
+        self, obj: None, objtype: type[ApiClientInterface] | None = None
     ) -> ClientRouteMethod[API_REQUEST, API_RESPONSE]: ...  # pragma: no cover
 
     def __get__(
         self,
-        obj: Optional[ApiClientInterface],
-        objtype: Optional[Type[ApiClientInterface]] = None,
-    ) -> Union[
-        BoundClientRouteMethod[API_REQUEST, API_RESPONSE],
-        ClientRouteMethod[API_REQUEST, API_RESPONSE],
-    ]: ...  # pragma: no cover
+        obj: ApiClientInterface | None,
+        objtype: type[ApiClientInterface] | None = None,
+    ) -> (
+        BoundClientRouteMethod[API_REQUEST, API_RESPONSE]
+        | ClientRouteMethod[API_REQUEST, API_RESPONSE]
+    ): ...  # pragma: no cover

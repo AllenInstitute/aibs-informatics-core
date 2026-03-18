@@ -6,7 +6,7 @@ The `models` module defines protocols and base models used for serialization and
 
 | Module | Description |
 |--------|-------------|
-| [Base](base.md) | Base model classes (`ModelBase`, `DataClassModel`, `SchemaModel`) |
+| [Base](base.md) | Base model classes (`ModelProtocol`, `ModelBase`, `PydanticBaseModel`) |
 | [Status](status.md) | Status-related models |
 | [Unique IDs](unique-ids.md) | Unique identifier models |
 | [Version](version.md) | Version handling models |
@@ -17,19 +17,17 @@ The `models` module defines protocols and base models used for serialization and
 
 There are a few base classes that can be used to create data models:
 
-- **ModelBase**: A base class for creating data models
-- **DataClassModel**: A base class for creating data models using dataclasses
-- **SchemaModel**: A base class for creating data models using marshmallow schemas + dataclass
-- **WithValidation**: A mixin class for adding validation to data models
+- **ModelProtocol**: A runtime-checkable protocol defining the serialization/deserialization interface
+- **ModelBase**: An abstract base class implementing the serialization protocol
+- **PydanticBaseModel**: The primary base class for creating data models (backed by Pydantic)
+- **IsoDateTime / IsoDate**: Annotated Pydantic types for ISO 8601 datetime and date fields
 
 ## Quick Start
 
 ```python
-from dataclasses import dataclass
-from aibs_informatics_core.models import SchemaModel
+from aibs_informatics_core.models.base import PydanticBaseModel
 
-@dataclass
-class MyModel(SchemaModel):
+class MyModel(PydanticBaseModel):
     name: str
     value: int
 

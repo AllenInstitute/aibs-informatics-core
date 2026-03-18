@@ -1,5 +1,4 @@
 from contextlib import nullcontext as does_not_raise
-from typing import Tuple
 
 from pytest import mark, param, raises
 
@@ -35,7 +34,7 @@ from aibs_informatics_core.models.aws.sfn import ExecutionArn, StateMachineArn
         ),
     ],
 )
-def test_StateMachineArn_validation(arn: str, expected: Tuple[str, ...], raises_error):
+def test_StateMachineArn_validation(arn: str, expected: tuple[str, ...], raises_error):
     region, account, state_machine_name = expected
     with raises_error:
         sm_arn = StateMachineArn(arn)
@@ -74,7 +73,7 @@ def test_StateMachineArn_validation(arn: str, expected: Tuple[str, ...], raises_
         ),
     ],
 )
-def test_ExecutionArn_validation(arn: str, expected: Tuple[str, ...], raises_error):
+def test_ExecutionArn_validation(arn: str, expected: tuple[str, ...], raises_error):
     region, account, state_machine_name, exec_name = expected
     with raises_error:
         exec_arn = ExecutionArn(arn)

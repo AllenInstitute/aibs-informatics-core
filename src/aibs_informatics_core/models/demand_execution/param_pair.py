@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, FrozenSet, Iterable, List, Optional, Union
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Annotated, Any, TypeAlias
 
-from aibs_informatics_core.models.aws.s3 import S3URI
-from aibs_informatics_core.models.base import (
-    FrozenSetField,
-    SchemaModel,
-    StringField,
-    custom_field,
-)
-from aibs_informatics_core.models.base.custom_fields import UnionField
+from pydantic import BeforeValidator, Field
+
+from aibs_informatics_core.models.aws.s3 import S3Path
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import ResolvableJobParam
 
 
-@dataclass
-class ParamPair(SchemaModel):
-    """SchemaModel for an input and output parameter pairs as described in demand execution
+class ParamPair(PydanticBaseModel):
+    """PydanticBaseModel for an input and output parameter pairs as described in demand execution
 
     The values for input and output should correspond to the parameter key in the demand execution
 
@@ -32,15 +28,15 @@ class ParamPair(SchemaModel):
 
     """
 
-    input: Optional[str] = custom_field(mm_field=StringField(), default=None)
-    output: Optional[str] = custom_field(mm_field=StringField(), default=None)
+    input: str | None = None
+    output: str | None = None
 
     @classmethod
-    def from_set_pairs(cls, *values: ParamSetPair) -> List[ParamPair]:
+    def from_set_pairs(cls, *values: ParamSetPair) -> list[ParamPair]:
         return [pair for value in values for pair in value.to_pairs()]
 
     @classmethod
-    def from_sets(cls, inputs: Iterable[str], outputs: Iterable[str]) -> List[ParamPair]:
+    def from_sets(cls, inputs: Iterable[str], outputs: Iterable[str]) -> list[ParamPair]:
         if not inputs and not outputs:
             return []
         elif not inputs:
@@ -50,9 +46,19 @@ class ParamPair(SchemaModel):
         return [ParamPair(input=input, output=output) for input in inputs for output in outputs]
 
 
-@dataclass
-class ParamSetPair(SchemaModel):
-    """SchemaModel for a set of input and output parameter pairs as described in demand execution
+def _coerce_to_frozenset(v: Any) -> frozenset[str]:
+    if isinstance(v, frozenset):
+        return v
+    if isinstance(v, (set, list, tuple)):
+        return frozenset(v)
+    # If it is an iterable that is not a string, convert to frozenset
+    if isinstance(v, Iterable) and not isinstance(v, str):
+        return frozenset(v)
+    raise TypeError(f"Value {v} cannot be coerced to frozenset[str]")
+
+
+class ParamSetPair(PydanticBaseModel):
+    """Model for a set of input and output parameter pairs as described in demand execution
 
     The values for inputs and outputs should correspond to the parameter keys in the
     demand execution.
@@ -68,18 +74,14 @@ class ParamSetPair(SchemaModel):
             This is used to represent a single job that has only inputs
     """
 
-    inputs: FrozenSet[str] = custom_field(
-        mm_field=FrozenSetField(StringField), default_factory=frozenset
-    )
-    outputs: FrozenSet[str] = custom_field(
-        mm_field=FrozenSetField(StringField), default_factory=frozenset
-    )
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
+    inputs: Annotated[
+        frozenset[str],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
+    outputs: Annotated[
+        frozenset[str],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
 
     def add_inputs(self, *inputs: str):
         self.inputs = self.inputs.union(inputs)
@@ -93,11 +95,11 @@ class ParamSetPair(SchemaModel):
     def remove_outputs(self, *outputs: str):
         self.outputs = self.outputs.difference(outputs)
 
-    def to_pairs(self) -> List[ParamPair]:
+    def to_pairs(self) -> list[ParamPair]:
         return ParamPair.from_sets(inputs=self.inputs, outputs=self.outputs)
 
     @classmethod
-    def from_pairs(cls, *pairs: ParamPair) -> List[ParamSetPair]:
+    def from_pairs(cls, *pairs: ParamPair) -> list[ParamSetPair]:
         """Converts a list of ParamPairs to a list of ParamSetPairs
 
         This is useful for grouping ParamPairs by output
@@ -106,7 +108,7 @@ class ParamSetPair(SchemaModel):
             A list of ParamSetPairs
         """
         # group pairs only by outputs
-        output_set_pairs: Dict[Union[str, None], ParamSetPair] = {}
+        output_set_pairs: dict[str | None, ParamSetPair] = {}
         for pair in pairs:
             if pair.output not in output_set_pairs:
                 output_set_pairs[pair.output] = ParamSetPair(
@@ -122,7 +124,7 @@ class JobParamPair:
     """models an input and output resolved parameter pair as described in demand execution
 
     The values for input and outputs should account for both the parameter name and the
-    remote location of the parameter value. The remote location can be a S3URI or other
+    remote location of the parameter value. The remote location can be a S3Path or other
     remote location.
 
     This captures all information about a parameter
@@ -138,13 +140,13 @@ class JobParamPair:
             This is used to represent a single job that has only inputs
     """  # noqa: E501
 
-    input: Optional[ResolvableJobParam] = None
-    output: Optional[ResolvableJobParam] = None
+    input: ResolvableJobParam | None = None
+    output: ResolvableJobParam | None = None
 
     @classmethod
     def from_sets(
         cls, inputs: Iterable[ResolvableJobParam], outputs: Iterable[ResolvableJobParam]
-    ) -> List[JobParamPair]:
+    ) -> list[JobParamPair]:
         if not inputs and not outputs:
             return []
         elif not inputs:
@@ -154,16 +156,15 @@ class JobParamPair:
         return [JobParamPair(input=input, output=output) for input in inputs for output in outputs]
 
     @classmethod
-    def from_set_pairs(cls, *values: JobParamSetPair) -> List[JobParamPair]:
+    def from_set_pairs(cls, *values: JobParamSetPair) -> list[JobParamPair]:
         return [pair for value in values for pair in value.to_pairs()]
 
 
-@dataclass
-class JobParamSetPair:
+class JobParamSetPair(PydanticBaseModel):
     """models a set of input and output resolved parameter pairs as described in demand execution
 
     The values for inputs and outputs should account for both the parameter name and the remote location.
-    The remote location can be a S3URI or other remote location.
+    The remote location can be a S3Path or other remote location.
 
     This captures all information about a parameter
 
@@ -178,14 +179,14 @@ class JobParamSetPair:
             This is used to represent a single job that has only inputs
     """  # noqa: E501
 
-    inputs: FrozenSet[ResolvableJobParam] = field(default_factory=frozenset)
-    outputs: FrozenSet[ResolvableJobParam] = field(default_factory=frozenset)
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
+    inputs: Annotated[
+        frozenset[ResolvableJobParam],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
+    outputs: Annotated[
+        frozenset[ResolvableJobParam],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
 
     def add_inputs(self, *inputs: ResolvableJobParam):
         self.inputs = self.inputs.union(inputs)
@@ -199,11 +200,11 @@ class JobParamSetPair:
     def remove_outputs(self, *outputs: ResolvableJobParam):
         self.outputs = self.outputs.difference(outputs)
 
-    def to_pairs(self) -> List[JobParamPair]:
+    def to_pairs(self) -> list[JobParamPair]:
         return JobParamPair.from_sets(inputs=self.inputs, outputs=self.outputs)
 
     @classmethod
-    def from_pairs(cls, *pairs: JobParamPair) -> List[JobParamSetPair]:
+    def from_pairs(cls, *pairs: JobParamPair) -> list[JobParamSetPair]:
         """Converts a list of JobParamPairs to a list of JobParamSetPairs
 
         This is useful for grouping JobParamPairs by output
@@ -212,7 +213,7 @@ class JobParamSetPair:
             A list of JobParamSetPairs
         """
         # group pairs only by outputs
-        output_set_pairs: Dict[Union[ResolvableJobParam, None], JobParamSetPair] = {}
+        output_set_pairs: dict[ResolvableJobParam | None, JobParamSetPair] = {}
         for pair in pairs:
             if pair.output not in output_set_pairs:
                 output_set_pairs[pair.output] = JobParamSetPair(
@@ -223,49 +224,30 @@ class JobParamSetPair:
         return list(output_set_pairs.values())
 
 
-# ResolvableID = Union[S3URI, ...]
+# ResolvableID = Union[S3Path, ...]
 # TODO: need to add additional types.
-ResolvableID = S3URI
+ResolvableID: TypeAlias = S3Path
 
 
-@dataclass
-class ResolvedParamSetPair(SchemaModel):
-    """SchemaModel for a set of input and output resolved parameter pairs as described in demand execution
+class ResolvedParamSetPair(PydanticBaseModel):
+    """PydanticBaseModel for a set of input and output resolved parameter pairs as described in demand execution
 
     This is the other side of the ParamSetPair coin. This is used to represent a set of
-    inputs and outputs' remote locations. The remote location can be a S3URI or other
+    inputs and outputs' remote locations. The remote location can be a S3Path or other
     remote location.
 
     This only captures the remote location of a parameter. It does not capture the parameter name.
 
     """  # noqa: E501
 
-    inputs: FrozenSet[ResolvableID] = custom_field(
-        mm_field=FrozenSetField(
-            UnionField(
-                [
-                    (S3URI, S3URI.as_mm_field()),
-                ]
-            )
-        ),
-        default_factory=frozenset,
-    )
-    outputs: FrozenSet[ResolvableID] = custom_field(
-        mm_field=FrozenSetField(
-            UnionField(
-                [
-                    (S3URI, S3URI.as_mm_field()),
-                ]
-            )
-        ),
-        default_factory=frozenset,
-    )
-
-    def __post_init__(self):
-        if not isinstance(self.inputs, frozenset):
-            self.inputs = frozenset(self.inputs)
-        if not isinstance(self.outputs, frozenset):
-            self.outputs = frozenset(self.outputs)
+    inputs: Annotated[
+        frozenset[ResolvableID],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
+    outputs: Annotated[
+        frozenset[ResolvableID],
+        BeforeValidator(_coerce_to_frozenset),
+    ] = Field(default_factory=frozenset)
 
     def add_inputs(self, *inputs: ResolvableID):
         self.inputs = self.inputs.union(inputs)

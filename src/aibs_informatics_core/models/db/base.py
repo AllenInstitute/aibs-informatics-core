@@ -6,21 +6,19 @@ __all__ = [
     "DBIndex",
 ]
 
-from dataclasses import dataclass
-from typing import List, Literal, Optional, Tuple, Type, TypeVar, overload
+from typing import Literal, TypeVar, overload
 
 from aibs_informatics_core.collections import StrEnum
 from aibs_informatics_core.env import EnvBase
-from aibs_informatics_core.models.base import SchemaModel
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.db.type_defs import DynamoDBItemValue, DynamoDBKey
 
 
 # ========================== DB entry base model =========================
-@dataclass
-class DBModel(SchemaModel):
+class DBModel(PydanticBaseModel):
     """Base class that DB Entry models should all inherit from.
     Used to disambiguate from other model classes that also inherit from
-    SchemaModel (like Request/Response models)"""
+    PydanticBaseModel (like Request/Response models)"""
 
     pass
 
@@ -55,7 +53,7 @@ class DBIndexNameEnum(StrEnum):
 
     @staticmethod
     def from_name_and_key(
-        table_name: str, key: DBKeyNameEnum, sort_key: Optional[DBSortKeyNameEnum] = None
+        table_name: str, key: DBKeyNameEnum, sort_key: DBSortKeyNameEnum | None = None
     ) -> str:
         """Construct an AWS DynamoDB Secondary Index name from table_name, key, and sort_key.
 
@@ -87,15 +85,15 @@ class DBIndex(StrEnum):
 
     _value_: str
     _key_name: DBKeyNameEnum
-    _sort_key_name: Optional[DBSortKeyNameEnum]
-    _index_name: Optional[DBIndexNameEnum]
-    _attributes: Optional[List[str]]
-    _all_values: Tuple[
+    _sort_key_name: DBSortKeyNameEnum | None
+    _index_name: DBIndexNameEnum | None
+    _attributes: list[str] | None
+    _all_values: tuple[
         str,  # _value_
         DBKeyNameEnum,  # _key_name
-        Optional[DBSortKeyNameEnum],  # _sort_key_name
-        Optional[DBIndexNameEnum],  # _index_name
-        Optional[List[str]],  # _attributes
+        DBSortKeyNameEnum | None,  # _sort_key_name
+        DBIndexNameEnum | None,  # _index_name
+        list[str] | None,  # _attributes
     ]
 
     def __new__(cls, *values):
@@ -134,31 +132,31 @@ class DBIndex(StrEnum):
         return self._key_name.value
 
     @property
-    def sort_key_name(self) -> Optional[str]:
+    def sort_key_name(self) -> str | None:
         if self._sort_key_name is not None:
             return self._sort_key_name.value
         return None
 
     @property
-    def index_name(self) -> Optional[str]:
+    def index_name(self) -> str | None:
         if self._index_name is not None:
             return self._index_name.value
         return None
 
     @property
-    def non_key_attributes(self) -> Optional[List[str]]:
+    def non_key_attributes(self) -> list[str] | None:
         return self._attributes
 
     @overload
-    def get_sort_key_name(self) -> Optional[str]: ...
+    def get_sort_key_name(self) -> str | None: ...
 
     @overload
-    def get_sort_key_name(self, raise_if_none: Literal[False] = False) -> Optional[str]: ...
+    def get_sort_key_name(self, raise_if_none: Literal[False] = False) -> str | None: ...
 
     @overload
     def get_sort_key_name(self, raise_if_none: Literal[True] = True) -> str: ...
 
-    def get_sort_key_name(self, raise_if_none: bool = False) -> Optional[str]:
+    def get_sort_key_name(self, raise_if_none: bool = False) -> str | None:
         if self._sort_key_name is not None:
             return self._sort_key_name.value
         if raise_if_none:
@@ -171,7 +169,7 @@ class DBIndex(StrEnum):
     def get_key_filter(
         self,
         partition_value: DynamoDBItemValue,
-        sort_value: Optional[DynamoDBItemValue] = None,
+        sort_value: DynamoDBItemValue | None = None,
     ) -> DynamoDBKey:
         """Create a DynamoDB key filter for primary or composite (partition + sort) keys
 
@@ -192,7 +190,7 @@ class DBIndex(StrEnum):
     def get_primary_key(
         self,
         partition_value: DynamoDBItemValue,
-        sort_value: Optional[DynamoDBItemValue] = None,
+        sort_value: DynamoDBItemValue | None = None,
         strict: bool = True,
     ) -> DynamoDBKey:
         """Create a DynamoDB primary (primary or partition + sort) key for read/write Table item operations.
@@ -239,17 +237,17 @@ class DBIndex(StrEnum):
     def get_table_name(self, env_base: EnvBase) -> str:
         return env_base.get_resource_name(self.table_name())
 
-    def get_index_name(self, env_base: EnvBase) -> Optional[str]:
+    def get_index_name(self, env_base: EnvBase) -> str | None:
         index_name = self.index_name
         return index_name if index_name is None else env_base.prefixed(index_name)
 
     @classmethod
-    def options(cls) -> List[str]:
+    def options(cls) -> list[str]:
         return [_.value for _ in cls]
 
     @classmethod
-    def get_default_index(cls: Type[DB_INDEX]) -> DB_INDEX:
-        indexes: List[DB_INDEX] = list(cls)
+    def get_default_index(cls: type[DB_INDEX]) -> DB_INDEX:
+        indexes: list[DB_INDEX] = list(cls)
         if len(indexes) == 0:
             raise ValueError(f"{cls.__name__} has no members!")
 

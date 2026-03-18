@@ -1,41 +1,22 @@
 import logging
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
+
+from pydantic import model_validator
 
 from aibs_informatics_core.models.aws.sfn import ExecutionArn
-from aibs_informatics_core.models.base import SchemaModel, custom_field, pre_load
-from aibs_informatics_core.models.base.custom_fields import (
-    BooleanField,
-    CustomStringField,
-    DictField,
-    EnumField,
-    ListField,
-    StringField,
-)
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.status import Status
 
 
-@dataclass
-class DemandExecutionMetadata(SchemaModel):
-    user: Optional[str] = custom_field(default=None)
-    arn: Optional[ExecutionArn] = custom_field(
-        mm_field=CustomStringField(ExecutionArn), default=None
-    )
-    tags: Optional[Dict[str, str]] = custom_field(
-        mm_field=DictField(StringField(), StringField(), allow_none=True),
-        default=None,
-    )
-    notify_on: Optional[Dict[Status, bool]] = custom_field(
-        mm_field=DictField(keys=EnumField(Status), values=BooleanField(), allow_none=True),
-        default=None,
-    )
-    notify_list: Optional[List[str]] = custom_field(
-        mm_field=ListField(StringField(), allow_none=True),
-        default=None,
-    )
+class DemandExecutionMetadata(PydanticBaseModel):
+    user: str | None = None
+    arn: ExecutionArn | None = None
+    tags: dict[str, str] | None = None
+    notify_on: dict[Status, bool] | None = None
+    notify_list: list[str] | None = None
 
     @property
-    def tag(self) -> Optional[str]:
+    def tag(self) -> str | None:
         """Return all tags as a comma separated string if available.
 
         Example:
@@ -60,9 +41,9 @@ class DemandExecutionMetadata(SchemaModel):
             return ",".join([f"{k}={v}" if k != v else k for k, v in self.tags.items()])
         return None
 
+    @model_validator(mode="before")
     @classmethod
-    @pre_load
-    def sanitize_tags(cls, data: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+    def _sanitize_tags(cls, data: Any) -> dict[str, Any]:
         """Sanitize tags and tag fields in the input data.
 
         If the `tag` field is present, it will be converted to a dictionary format. It supports

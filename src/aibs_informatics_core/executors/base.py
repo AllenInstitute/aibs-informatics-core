@@ -6,7 +6,7 @@ import os
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, Optional, Type, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from aibs_informatics_core.collections import PostInitMixin
 from aibs_informatics_core.env import EnvBaseMixins
@@ -25,8 +25,15 @@ E = TypeVar("E", bound="BaseExecutor")
 
 @dataclass  # type: ignore[misc] # mypy #5374
 class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
+    """Abstract base executor for handling typed request/response workflows.
+
+    Subclasses must parameterize with request and response model types and
+    implement the ``handle`` method. Provides serialization, deserialization,
+    and CLI/remote I/O utilities.
+    """
+
     @abstractmethod
-    def handle(self, request: REQUEST) -> Optional[RESPONSE]:  # pragma: no cover
+    def handle(self, request: REQUEST) -> RESPONSE | None:  # pragma: no cover
         """Core logic for handling request
 
         NOT IMPLEMENTED
@@ -44,12 +51,37 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
     # --------------------------------------------------------------------
 
     @classmethod
-    def get_request_cls(cls) -> Type[REQUEST]:
-        return cls.__orig_bases__[0].__args__[0]  # type: ignore
+    def _get_generic_args(cls) -> tuple[type, ...]:
+        """Walk the MRO looking for the parameterised ``BaseExecutor[REQ, RESP]`` base."""
+        for klass in cls.__mro__:
+            for base in getattr(klass, "__orig_bases__", ()):
+                origin = getattr(base, "__origin__", None)
+                if origin is BaseExecutor or origin is klass:
+                    args = getattr(base, "__args__", None)
+                    if args and not any(isinstance(a, TypeVar) for a in args):
+                        return args
+        raise TypeError(
+            f"Could not determine generic type arguments for {cls}. "
+            "Ensure the class directly parameterises BaseExecutor[REQUEST, RESPONSE]."
+        )
 
     @classmethod
-    def get_response_cls(cls) -> Type[RESPONSE]:
-        return cls.__orig_bases__[0].__args__[1]  # type: ignore
+    def get_request_cls(cls) -> type[REQUEST]:
+        """Return the request model class from the generic type arguments.
+
+        Returns:
+            The request model class.
+        """
+        return cls._get_generic_args()[0]  # type: ignore
+
+    @classmethod
+    def get_response_cls(cls) -> type[RESPONSE]:
+        """Return the response model class from the generic type arguments.
+
+        Returns:
+            The response model class.
+        """
+        return cls._get_generic_args()[1]  # type: ignore
 
     @classmethod
     def deserialize_request(cls, request: JSON) -> REQUEST:
@@ -151,7 +183,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         return load_json_object(local_path)
 
     @classmethod
-    def write_output(cls, output: JSON, path: Union[str, Path]) -> None:
+    def write_output(cls, output: JSON, path: str | Path) -> None:
         """Writes output to location
 
         Args:
@@ -205,7 +237,7 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
         return cls.__name__
 
     @classmethod
-    def build_from_env(cls: Type[E], **kwargs) -> E:
+    def build_from_env(cls: type[E], **kwargs) -> E:
         """Creates an executor from environment
 
         Must be able to create an executor from environment variables
@@ -217,8 +249,8 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
 
     @classmethod
     def run_executor(
-        cls, input: JSON, output_location: Optional[Union[str, Path]] = None, **kwargs
-    ) -> Optional[JSON]:
+        cls, input: JSON, output_location: str | Path | None = None, **kwargs
+    ) -> JSON | None:
         """Runs an executor
 
         Args:

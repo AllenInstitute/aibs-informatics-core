@@ -1,5 +1,4 @@
 import datetime as dt
-from typing import Optional
 
 from pytest import mark, param, raises
 
@@ -52,7 +51,7 @@ from test.base import does_not_raise
     ],
 )
 def test__from_isoformat_8601__works_as_expected(
-    isoformat_str: str, expected_dt: Optional[dt.datetime], raises_error
+    isoformat_str: str, expected_dt: dt.datetime | None, raises_error
 ):
     with raises_error:
         actual_dt = from_isoformat_8601(iso8601_str=isoformat_str)

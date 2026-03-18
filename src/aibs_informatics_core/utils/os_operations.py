@@ -19,19 +19,14 @@ __all__ = [
 
 import os
 import re
+from collections.abc import Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import (
     Any,
-    Dict,
-    List,
     Literal,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
     TypedDict,
     Union,
     cast,
@@ -55,8 +50,8 @@ def expandvars(path, default=None, skip_escaped=False):
 
 
 def find_all_paths(
-    root: Union[str, Path], include_dirs: bool = True, include_files: bool = True
-) -> List[str]:
+    root: str | Path, include_dirs: bool = True, include_files: bool = True
+) -> list[str]:
     """Find all paths below root path
 
     Args:
@@ -79,18 +74,18 @@ def find_all_paths(
 
 
 @overload
-def get_env_var(*keys: str) -> Optional[str]: ...  # pragma: no cover
+def get_env_var(*keys: str) -> str | None: ...  # pragma: no cover
 
 
 @overload
-def get_env_var(*keys: str, default_value: Literal[None]) -> Optional[str]: ...  # pragma: no cover
+def get_env_var(*keys: str, default_value: Literal[None]) -> str | None: ...  # pragma: no cover
 
 
 @overload
 def get_env_var(*keys: str, default_value: str) -> str: ...  # pragma: no cover
 
 
-def get_env_var(*keys: str, default_value: Optional[str] = None) -> Optional[str]:
+def get_env_var(*keys: str, default_value: str | None = None) -> str | None:
     """get env variable using one of keys (sorted by priority)
 
     Arguments:
@@ -110,24 +105,41 @@ def get_env_var(*keys: str, default_value: Optional[str] = None) -> Optional[str
 
 
 def set_env_var(key: str, value: str):
+    """Set an environment variable.
+
+    Args:
+        key: The environment variable name.
+        value: The value to assign.
+    """
     os.environ[key] = value
 
 
 class EnvVarDictItemUpper(TypedDict):
+    """Environment variable as a dictionary with uppercase keys."""
+
     Key: str
     Value: str
 
 
 class EnvVarDictItemLower(TypedDict):
+    """Environment variable as a dictionary with lowercase keys."""
+
     key: str
     value: str
 
 
-EnvVarTupleItem = Tuple[str, str]
+EnvVarTupleItem = tuple[str, str]
 
 
 @dataclass
 class EnvVarItem:
+    """Dataclass representing an environment variable key-value pair.
+
+    Attributes:
+        key: The variable name.
+        value: The variable value.
+    """
+
     key: str
     value: str
 
@@ -137,17 +149,38 @@ class EnvVarItem:
     @overload
     def to_dict(self, lower: Literal[True]) -> EnvVarDictItemLower: ...
 
-    def to_dict(self, lower: bool = False) -> Union[EnvVarDictItemUpper, EnvVarDictItemLower]:
+    def to_dict(self, lower: bool = False) -> EnvVarDictItemUpper | EnvVarDictItemLower:
+        """Convert to a ``TypedDict`` representation.
+
+        Args:
+            lower: If True, use lowercase keys.
+
+        Returns:
+            An ``EnvVarDictItemLower`` or ``EnvVarDictItemUpper``.
+        """
         if lower:
             return EnvVarDictItemLower(key=self.key, value=self.value)
         else:
             return EnvVarDictItemUpper(Key=self.key, Value=self.value)
 
     def to_tuple(self) -> EnvVarTupleItem:
+        """Convert to a ``(key, value)`` tuple."""
         return (self.key, self.value)
 
     @classmethod
     def from_any(cls, value: Any) -> "EnvVarItem":
+        """Create an ``EnvVarItem`` from a dict, tuple, or existing instance.
+
+        Args:
+            value: An ``EnvVarItem``, a 2-tuple, or a dict with
+                ``key``/``Key`` and ``value``/``Value`` entries.
+
+        Returns:
+            A new ``EnvVarItem``.
+
+        Raises:
+            ValueError: If ``value`` is not a supported type.
+        """
         if isinstance(value, cls):
             return value
         elif isinstance(value, tuple):
@@ -168,6 +201,8 @@ EnvVarItemType = Union[
 
 
 class EnvVarFormat(Enum):
+    """Output format for environment variable conversions."""
+
     OBJECT = "object"
     TUPLE = "tuple"
     DICT_LOWER = "dict_lower"
@@ -183,11 +218,11 @@ EnvVarSequence = Union[
 
 EnvVarCollection = Union[
     EnvVarSequence,
-    Dict[str, str],
+    dict[str, str],
 ]
 
 
-def to_env_var_dict(env_vars: EnvVarCollection) -> Dict[str, str]:
+def to_env_var_dict(env_vars: EnvVarCollection) -> dict[str, str]:
     """Converts env vars to a dict
 
     Args:
@@ -207,36 +242,45 @@ def to_env_var_dict(env_vars: EnvVarCollection) -> Dict[str, str]:
 
 
 @overload
-def to_env_var_list(env_vars: EnvVarCollection) -> List[EnvVarTupleItem]: ...
+def to_env_var_list(env_vars: EnvVarCollection) -> list[EnvVarTupleItem]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.TUPLE]
-) -> List[EnvVarTupleItem]: ...
+) -> list[EnvVarTupleItem]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.OBJECT]
-) -> List[EnvVarItem]: ...
+) -> list[EnvVarItem]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_LOWER]
-) -> List[EnvVarDictItemLower]: ...
+) -> list[EnvVarDictItemLower]: ...
 
 
 @overload
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_UPPER]
-) -> List[EnvVarDictItemUpper]: ...
+) -> list[EnvVarDictItemUpper]: ...
 
 
 def to_env_var_list(
     env_vars: EnvVarCollection, env_var_format: EnvVarFormat = EnvVarFormat.TUPLE
 ) -> EnvVarSequence:
+    """Convert an environment variable collection to a list in the given format.
+
+    Args:
+        env_vars: Environment variables as a dict or sequence.
+        env_var_format: Desired output format.
+
+    Returns:
+        A list of environment variables in the requested format.
+    """
     if isinstance(env_vars, dict):
         env_var_list = [EnvVarItem(key, value) for key, value in env_vars.items()]
     else:
@@ -260,25 +304,25 @@ def to_env_var_list(
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.OBJECT]
-) -> List[EnvVarItem]: ...
+) -> list[EnvVarItem]: ...
 
 
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.TUPLE]
-) -> List[EnvVarTupleItem]: ...
+) -> list[EnvVarTupleItem]: ...
 
 
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_LOWER]
-) -> List[EnvVarDictItemLower]: ...
+) -> list[EnvVarDictItemLower]: ...
 
 
 @overload
 def order_env_vars(
     env_vars: EnvVarCollection, env_var_format: Literal[EnvVarFormat.DICT_UPPER]
-) -> List[EnvVarDictItemUpper]: ...
+) -> list[EnvVarDictItemUpper]: ...
 
 
 def order_env_vars(
@@ -307,12 +351,12 @@ def order_env_vars(
     env_keys = list(env_var_dict.keys())
 
     # Initialize dependency maps
-    env_key_deps: Dict[str, Set[str]] = {k: set() for k in env_keys}
-    env_key_deps_rev: Dict[str, Set[str]] = {k: set() for k in env_keys}
+    env_key_deps: dict[str, set[str]] = {k: set() for k in env_keys}
+    env_key_deps_rev: dict[str, set[str]] = {k: set() for k in env_keys}
 
     # Populate dependency maps
     for k, v in env_var_dict.items():
-        for match in cast(List[Tuple[str, str]], re.findall(r"(?:\$\{([^\}]+)\}|\$([\w]+))", v)):
+        for match in cast(list[tuple[str, str]], re.findall(r"(?:\$\{([^\}]+)\}|\$([\w]+))", v)):
             if (value := match[0] or match[1]) in env_keys:
                 # Add dependencies
                 env_key_deps[k].add(value)
@@ -322,7 +366,7 @@ def order_env_vars(
     unordered_env_keys = sorted(env_keys, key=lambda k: len(env_key_deps[k]), reverse=False)
 
     # Initialize the list of ordered environment key-value pairs
-    ordered_env_key_pairs: List[EnvVarItem] = []
+    ordered_env_key_pairs: list[EnvVarItem] = []
 
     # Order environment keys
     while unordered_env_keys:
@@ -370,7 +414,7 @@ def generate_env_file_content(env_vars: EnvVarCollection) -> str:
     )
 
 
-def write_env_file(env_vars: EnvVarCollection, path: Union[str, Path]):
+def write_env_file(env_vars: EnvVarCollection, path: str | Path):
     """Write environment variables to a file.
 
     Args:
@@ -383,7 +427,14 @@ def write_env_file(env_vars: EnvVarCollection, path: Union[str, Path]):
 
 @contextmanager
 def env_var_overrides(*env_vars: EnvVarItemType):
-    """Temporarily override environment variables"""
+    """Context manager to temporarily override environment variables.
+
+    On exit, all overridden variables are restored to their original values
+    (or removed if they were unset).
+
+    Args:
+        *env_vars: Environment variable items to set.
+    """
     original_env_vars = {}
     env_var_dict = to_env_var_dict(env_vars)  # type: ignore[arg-type]
     for key, value in env_var_dict.items():

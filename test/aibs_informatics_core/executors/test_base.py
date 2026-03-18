@@ -1,26 +1,22 @@
 import json
-from dataclasses import dataclass
-from typing import Optional
 
-from marshmallow import ValidationError
-
+from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.executors import BaseExecutor, run_cli_executor
 from aibs_informatics_core.models.aws.s3 import S3Path
-from aibs_informatics_core.models.base import SchemaModel
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.modules import get_qualified_name
 from test.base import BaseTest
 
 
-@dataclass
-class NoOpRequest(SchemaModel):
+class NoOpRequest(PydanticBaseModel):
     any_string: str
     any_int: int
     include_response: bool
 
 
 class NoOpExecutor(BaseExecutor[NoOpRequest, NoOpRequest]):
-    def handle(self, request: NoOpRequest) -> Optional[NoOpRequest]:
+    def handle(self, request: NoOpRequest) -> NoOpRequest | None:
         if request.include_response:
             return request
         return None
@@ -44,31 +40,31 @@ class BaseExecutorTests(BaseTest):
         self.assertEqual(actual, NoOpRequest)
 
     def test__deserialize_request__handles_dict(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
 
         actual_request = NoOpExecutor.deserialize_request(request.to_dict())
         self.assertEqual(request, actual_request)
 
     def test__deserialize_request__handles_string(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
 
         actual_request = NoOpExecutor.deserialize_request(request.to_json())
         self.assertEqual(request, actual_request)
 
     def test__deserialize_request__handles_object(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
 
         actual_request = NoOpExecutor.deserialize_request(request)
         self.assertEqual(request, actual_request)
 
     def test__deserialize_request__handles_remote(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
 
         actual_request = NoOpExecutor.deserialize_request("s3://bucket/key")
         self.assertEqual(request, actual_request)
 
     def test__deserialize_request__handles_local(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
 
         local_path = self.tmp_file(content=request.to_json())
         actual_request = NoOpExecutor.deserialize_request(local_path)
@@ -108,43 +104,43 @@ class BaseExecutorTests(BaseTest):
         NoOpExecutor.write_output({}, s3_path)
 
     def test__serialize_response__works(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
 
         response = NoOpExecutor.serialize_response(request)
         self.assertDictEqual(request.to_dict(), response)
 
     def test__handle__returns_no_response(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
 
         response = NoOpExecutor().handle(request)
         self.assertIsNone(response)
 
     def test__handle__returns_response(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
 
         response = NoOpExecutor().handle(request)
         self.assertEqual(request, response)
 
     def test__run_executor__handles_no_response__no_output_location(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
 
         response = NoOpExecutor.run_executor(request.to_dict())
         self.assertIsNone(response)
 
     def test__run_executor__handles_no_response__with_output_location(self):
-        request = NoOpRequest("any_string", 123, False)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=False)
         output_path = self.tmp_file()
         response = NoOpExecutor.run_executor(request.to_dict(), output_path)
         self.assertIsNone(response)
         assert output_path.read_text() == "{}"
 
     def test__run_executor__handles_response__no_output_location(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
         response = NoOpExecutor.run_executor(request.to_dict())
         self.assertEqual(request.to_dict(), response)
 
     def test__run_executor__handles_response__with_output_location(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
         output_path = self.tmp_file()
         response = NoOpExecutor.run_executor(request.to_dict(), output_path)
         self.assertEqual(request.to_dict(), response)
@@ -153,7 +149,7 @@ class BaseExecutorTests(BaseTest):
 
 class RunCliExecutorTests(BaseTest):
     def test__run_cli_executor__handles_simple_case(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
         executor_name = get_qualified_name(NoOpExecutor)
 
         output_path = self.tmp_file()
@@ -171,7 +167,7 @@ class RunCliExecutorTests(BaseTest):
         self.assertDictEqual(json.loads(output_path.read_text()), request.to_dict())
 
     def test__run_cli_executor__fails_for_invalid_executor(self):
-        request = NoOpRequest("any_string", 123, True)
+        request = NoOpRequest(any_string="any_string", any_int=123, include_response=True)
 
         output_path = self.tmp_file()
         args = [

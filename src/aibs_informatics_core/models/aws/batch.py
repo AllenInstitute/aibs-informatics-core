@@ -1,148 +1,128 @@
 import re
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+
+from pydantic import Field
 
 from aibs_informatics_core.collections import ValidatedStr
-from aibs_informatics_core.models.base import IntegerField, ListField, SchemaModel, custom_field
+from aibs_informatics_core.models.base import PydanticBaseModel
 
 
 class JobName(ValidatedStr):
     regex_pattern = re.compile(r"([a-zA-Z0-9][\w_-]{0,127})")
 
 
-@dataclass
-class ResourceRequirements(SchemaModel):
-    GPU: Optional[int] = custom_field(mm_field=IntegerField(strict=False), default=None)
-    MEMORY: Optional[int] = custom_field(mm_field=IntegerField(strict=False), default=None)
-    VCPU: Optional[int] = custom_field(mm_field=IntegerField(strict=False), default=None)
+class ResourceRequirements(PydanticBaseModel):
+    GPU: int | None = None
+    MEMORY: int | None = None
+    VCPU: int | None = None
 
 
-@dataclass
-class KeyValuePairType(SchemaModel):
+class KeyValuePairType(PydanticBaseModel):
     Name: str
     Value: str
 
 
-@dataclass
-class ContainerDetail(SchemaModel):
-    Image: str = custom_field()
-    Environment: List[KeyValuePairType] = custom_field(
-        mm_field=ListField(KeyValuePairType.as_mm_field())
-    )
-    ContainerInstanceArn: str = custom_field()
-    TaskArn: str = custom_field()
+class ContainerDetail(PydanticBaseModel):
+    Image: str
+    Environment: list[KeyValuePairType]
+    ContainerInstanceArn: str
+    TaskArn: str
 
 
-@dataclass
-class AttemptContainerDetail(SchemaModel):
-    ContainerInstanceArn: Optional[str] = custom_field(default=None)
-    TaskArn: Optional[str] = custom_field(default=None)
-    ExitCode: Optional[int] = custom_field(default=None)
-    Reason: Optional[str] = custom_field(default=None)
-    LogStreamName: Optional[str] = custom_field(default=None)
+class AttemptContainerDetail(PydanticBaseModel):
+    ContainerInstanceArn: str | None = None
+    TaskArn: str | None = None
+    ExitCode: int | None = None
+    Reason: str | None = None
+    LogStreamName: str | None = None
 
 
-@dataclass
-class AttemptDetail(SchemaModel):
-    Container: Optional[AttemptContainerDetail] = custom_field(
-        mm_field=AttemptContainerDetail.as_mm_field(), default=None
-    )
-    StartedAt: Optional[int] = custom_field(default=None)
-    StoppedAt: Optional[int] = custom_field(default=None)
-    StatusReason: Optional[str] = custom_field(default=None)
+class AttemptDetail(PydanticBaseModel):
+    Container: AttemptContainerDetail | None = None
+    StartedAt: int | None = None
+    StoppedAt: int | None = None
+    StatusReason: str | None = None
 
     @property
-    def duration(self) -> Optional[int]:
+    def duration(self) -> int | None:
         if self.StoppedAt and self.StartedAt:
             return self.StoppedAt - self.StartedAt
         return None
 
     @property
-    def container_instance_arn(self) -> Optional[str]:
+    def container_instance_arn(self) -> str | None:
         if self.Container:
             return self.Container.ContainerInstanceArn
         return None
 
     @property
-    def container_task_arn(self) -> Optional[str]:
+    def container_task_arn(self) -> str | None:
         if self.Container:
             return self.Container.TaskArn
         return None
 
 
-@dataclass
-class BatchJobDetail(SchemaModel):
-    JobName: str = custom_field()
-    JobId: str = custom_field()
-    JobQueue: str = custom_field()
-    Status: str = custom_field()
-    StartedAt: int = custom_field()
-    JobDefinition: str = custom_field()
+class BatchJobDetail(PydanticBaseModel):
+    JobName: str
+    JobId: str
+    JobQueue: str
+    Status: str
+    StartedAt: int
+    JobDefinition: str
 
     # Optional
-    JobArn: Optional[str] = custom_field(default=None, repr=False)
-    StatusReason: Optional[str] = custom_field(default=None, repr=False)
-    Attempts: List[AttemptDetail] = custom_field(
-        mm_field=ListField(AttemptDetail.as_mm_field()), default_factory=list, repr=False
-    )
-    Container: Optional[ContainerDetail] = custom_field(
-        mm_field=ContainerDetail.as_mm_field(), default=None, repr=False
-    )
-    Parameters: Dict[str, str] = custom_field(default_factory=dict, repr=False)
-    CreatedAt: Optional[int] = custom_field(default=None, repr=False)
-    StoppedAt: Optional[int] = custom_field(default=None, repr=False)
-    IsCancelled: Optional[bool] = custom_field(default=None, repr=False)
-    IsTerminated: Optional[bool] = custom_field(default=None, repr=False)
+    JobArn: str | None = Field(default=None, repr=False)
+    StatusReason: str | None = Field(default=None, repr=False)
+    Attempts: list[AttemptDetail] = Field(default_factory=list, repr=False)
+    Container: ContainerDetail | None = Field(default=None, repr=False)
+    Parameters: dict[str, str] = Field(default_factory=dict, repr=False)
+    CreatedAt: int | None = Field(default=None, repr=False)
+    StoppedAt: int | None = Field(default=None, repr=False)
+    IsCancelled: bool | None = Field(default=None, repr=False)
+    IsTerminated: bool | None = Field(default=None, repr=False)
 
     @property
-    def duration(self) -> Optional[int]:
+    def duration(self) -> int | None:
         if self.StoppedAt and self.StartedAt:
             return self.StoppedAt - self.StartedAt
         return None
 
     @property
-    def container_name_and_tag(self) -> Tuple[str, Optional[str]]:
+    def container_name_and_tag(self) -> tuple[str, str | None]:
         if self.Container:
             (container, container_tag) = self.Container.Image.split(":", maxsplit=1)
             return (container, container_tag)
         return ("NotAvailable", None)
 
     @property
-    def container_tag(self) -> Optional[str]:
+    def container_tag(self) -> str | None:
         return self.container_name_and_tag[1]
 
     @property
-    def container_environment(self) -> Dict[str, str]:
+    def container_environment(self) -> dict[str, str]:
         return {
             env_var.Name: env_var.Value
             for env_var in (self.Container.Environment if self.Container else {})
         }
 
     @property
-    def container_instance_arn(self) -> Optional[str]:
+    def container_instance_arn(self) -> str | None:
         if self.Container:
             return self.Container.ContainerInstanceArn
         return None
 
     @property
-    def container_instance_arns(self) -> List[str]:
+    def container_instance_arns(self) -> list[str]:
         return [
             _
-            for _ in set(
-                [
-                    self.container_instance_arn,
-                    *[
-                        a.Container.ContainerInstanceArn
-                        for a in self.Attempts or []
-                        if a.Container
-                    ],
-                ]
-            )
+            for _ in {
+                self.container_instance_arn,
+                *[a.Container.ContainerInstanceArn for a in self.Attempts or [] if a.Container],
+            }
             if _ is not None
         ]
 
     @property
-    def container_task_arn(self) -> Optional[str]:
+    def container_task_arn(self) -> str | None:
         if self.Container:
             return self.Container.TaskArn
         return None

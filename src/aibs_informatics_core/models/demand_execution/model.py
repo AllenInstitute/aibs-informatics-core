@@ -1,7 +1,8 @@
-from dataclasses import dataclass
-from typing import Any, List, cast
+from typing import Any, cast
 
-from aibs_informatics_core.models.base import SchemaModel, StringField, custom_field
+from pydantic import Field
+
+from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
 from aibs_informatics_core.models.demand_execution.platform import ExecutionPlatform
@@ -13,29 +14,21 @@ from aibs_informatics_core.utils.json import JSON
 from aibs_informatics_core.utils.time import get_current_time
 
 
-@dataclass
-class DemandExecution(SchemaModel):
-    execution_type: str = custom_field()
-    execution_id: str = custom_field()
-    execution_image: str = custom_field(mm_field=StringField())
-    execution_parameters: DemandExecutionParameters = custom_field(
-        mm_field=DemandExecutionParameters.as_mm_field(),
-        default_factory=DemandExecutionParameters,
+class DemandExecution(PydanticBaseModel):
+    execution_type: str
+    execution_id: str
+    execution_image: str
+    execution_parameters: DemandExecutionParameters = Field(
+        default_factory=DemandExecutionParameters
     )
-    execution_metadata: DemandExecutionMetadata = custom_field(
-        mm_field=DemandExecutionMetadata.as_mm_field(),
-        default_factory=DemandExecutionMetadata,
-    )
-    execution_platform: ExecutionPlatform = custom_field(
-        mm_field=ExecutionPlatform.as_mm_field(), default_factory=ExecutionPlatform
-    )
-    resource_requirements: DemandResourceRequirements = custom_field(
-        mm_field=DemandResourceRequirements.as_mm_field(),
-        default_factory=DemandResourceRequirements,
+    execution_metadata: DemandExecutionMetadata = Field(default_factory=DemandExecutionMetadata)
+    execution_platform: ExecutionPlatform = Field(default_factory=ExecutionPlatform)
+    resource_requirements: DemandResourceRequirements = Field(
+        default_factory=DemandResourceRequirements
     )
 
     def get_execution_hash(self, strict: bool = True) -> str:
-        hash_components: List[Any] = [
+        hash_components: list[Any] = [
             self.execution_type,
             self.execution_image,
             self.execution_parameters.command,
