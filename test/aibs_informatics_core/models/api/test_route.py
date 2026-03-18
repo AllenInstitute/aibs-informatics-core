@@ -240,7 +240,7 @@ class ApiRequestConfigTests(BaseTest):
         self.set_env_vars((API_SERVICE_LOG_LEVEL_ENV_VAR, "INFO"))
         config2 = ApiRequestConfig.build()
 
-        expected_client_version = VersionStr("1.*")
+        expected_client_version = VersionStr("2.*")
         assert config1.client_version < expected_client_version
         assert config2.client_version < expected_client_version
         self.assertIsNone(config1.service_log_level)

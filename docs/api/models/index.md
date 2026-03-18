@@ -20,7 +20,7 @@ There are a few base classes that can be used to create data models:
 - **ModelProtocol**: A runtime-checkable protocol defining the serialization/deserialization interface
 - **ModelBase**: An abstract base class implementing the serialization protocol
 - **PydanticBaseModel**: The primary base class for creating data models (backed by Pydantic)
-- **IsoDateTime / IsoDate**: Annotated Pydantic types for ISO 8601 datetime and date fields
+- **AwareIsoDateTime / IsoDateTime / IsoDate**: Annotated Pydantic types for ISO 8601 datetime and date fields
 
 ## Quick Start
 
