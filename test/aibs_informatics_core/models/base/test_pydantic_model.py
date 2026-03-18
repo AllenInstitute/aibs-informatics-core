@@ -104,7 +104,7 @@ class ComplexNested(PydanticBaseModel):
             {
                 "required": {
                     "uuid_value": "dfe7b672-91e0-4c2d-ac06-30dd1ac2eb96",
-                    "dt_value": "2022-03-11T08:23:51.248794+00:00",
+                    "dt_value": "2022-03-11T08:23:51.248794Z",
                 },
             },
             does_not_raise(),

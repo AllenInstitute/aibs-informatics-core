@@ -38,7 +38,14 @@ from typing import (
 )
 
 from pydantic import GetCoreSchemaHandler
-from pydantic_core.core_schema import CoreSchema, no_info_after_validator_function
+from pydantic_core import SchemaValidator
+from pydantic_core.core_schema import (
+    CoreSchema,
+    StringSchema,
+    chain_schema,
+    no_info_plain_validator_function,
+    str_schema,
+)
 
 from aibs_informatics_core.exceptions import ValidationError
 
@@ -163,7 +170,42 @@ class PydanticStrMixin:
     def __get_pydantic_core_schema__(
         cls, source_type: object, handler: GetCoreSchemaHandler
     ) -> CoreSchema:
-        return no_info_after_validator_function(lambda x: cls(x), handler(str))  # type: ignore[call-arg] # Mixin is intended to be used with string subclasses, so this will work as long as the subclass can be instantiated with a single string argument.
+        if not issubclass(cls, str):
+            raise TypeError("PydanticStrMixin can only be used with subclasses of str")
+
+        str_schema_kwargs: dict[str, Any] = {}
+        if issubclass(cls, ValidatedStr):
+            if cls.has_regex_pattern():
+                pattern = cls.regex_pattern
+                str_schema_kwargs["pattern"] = (
+                    pattern.pattern if hasattr(pattern, "pattern") else str(pattern)
+                )
+            if cls.min_len is not None:
+                str_schema_kwargs["min_length"] = cls.min_len
+            if cls.max_len is not None:
+                str_schema_kwargs["max_length"] = cls.max_len
+
+        input_schema: StringSchema | CoreSchema
+        if str_schema_kwargs:
+            try:
+                input_schema = str_schema(**str_schema_kwargs, regex_engine="rust-regex")
+                # Probe the schema to catch rust-regex incompatibilities (e.g. lookaheads)
+                # since str_schema() only builds a dict and defers compilation.
+                SchemaValidator(input_schema)
+            except TypeError:
+                # regex_engine kwarg not supported (older pydantic-core)
+                input_schema = str_schema(**str_schema_kwargs)
+            except Exception:
+                input_schema = str_schema(**str_schema_kwargs, regex_engine="python-re")
+        else:
+            input_schema = handler(str)
+
+        return chain_schema(
+            [
+                input_schema,
+                no_info_plain_validator_function(lambda x: cls(x)),
+            ]
+        )
 
 
 class ValidatedStr(str, PostInitMixin, PydanticStrMixin):

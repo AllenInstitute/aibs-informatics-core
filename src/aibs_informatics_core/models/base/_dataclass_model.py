@@ -114,7 +114,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
         return value is dataclass_MISSING or value is MISSING or value is ...
 
     @classmethod
-    def __get_pydantic_core_schema__( # noqa: C901
+    def __get_pydantic_core_schema__(  # noqa: C901
         cls, source_type: Any, handler: GetCoreSchemaHandler
     ) -> CoreSchema:
         # 1. Define how to turn incoming data into an instance
@@ -147,8 +147,7 @@ class DataClassModel(DataClassJsonMixin, ModelBase):
                     except Exception:
                         field_schema = core_schema.any_schema()
                     is_required = (
-                        f.default is dataclass_MISSING
-                        and f.default_factory is dataclass_MISSING
+                        f.default is dataclass_MISSING and f.default_factory is dataclass_MISSING
                     )
                     td_field_kwargs: Dict[str, Any] = {}
                     if not is_required:
