@@ -3,7 +3,7 @@ from typing import Any
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.demand_execution.resolvables import (
     R,
     Resolvable,
@@ -134,7 +134,7 @@ def test__StringifiedResolvable__parses_local_and_remote(
         param(
             "s3://bucket/key",
             [S3Resolvable, Resolvable],
-            S3Resolvable(local="tmp558ca153", remote=S3URI("s3://bucket/key")),
+            S3Resolvable(local="tmp558ca153", remote=S3Path("s3://bucket/key")),
             does_not_raise(),
             id="s3 path string, parsed first resolvable class",
         ),
@@ -195,10 +195,10 @@ def test__get_resolvable_from_value__parses_stuff(
     [
         param(
             S3Resolvable,
-            S3Resolvable(local="/tmp/somefile", remote=S3URI("s3://bucket/key")),
+            S3Resolvable(local="/tmp/somefile", remote=S3Path("s3://bucket/key")),
             None,
             None,
-            S3Resolvable(local="/tmp/somefile", remote=S3URI("s3://bucket/key")),
+            S3Resolvable(local="/tmp/somefile", remote=S3Path("s3://bucket/key")),
             does_not_raise(),
             id="object is returned as is",
         ),
@@ -252,19 +252,19 @@ def test__from_any__works_as_intended(
     [
         param(
             "s3://bucket/key",
-            S3Resolvable(local="tmp558ca153", remote=S3URI("s3://bucket/key")),
+            S3Resolvable(local="tmp558ca153", remote=S3Path("s3://bucket/key")),
             does_not_raise(),
             id="Simple s3 path",
         ),
         param(
             "s3://bucket/key @ /tmp/somefile",
-            S3Resolvable(local="/tmp/somefile", remote=S3URI("s3://bucket/key")),
+            S3Resolvable(local="/tmp/somefile", remote=S3Path("s3://bucket/key")),
             does_not_raise(),
             id="Simple s3 path to local file",
         ),
         param(
             "/tmp/somefile @ s3://bucket/key",
-            Uploadable(local="/tmp/somefile", remote=S3URI("s3://bucket/key")),
+            Uploadable(local="/tmp/somefile", remote=S3Path("s3://bucket/key")),
             does_not_raise(),
             id="local file to Simple s3 path",
         ),
@@ -280,13 +280,13 @@ def test__from_str__works(value: str, expected: Resolvable, raise_expectation):
     "value, expected, raise_expectation",
     [
         param(
-            Uploadable(local="/tmp/somefile", remote=S3URI("s3://bucket/key")),
+            Uploadable(local="/tmp/somefile", remote=S3Path("s3://bucket/key")),
             "/tmp/somefile @ s3://bucket/key",
             does_not_raise(),
             id="local file to Simple s3 path",
         ),
         param(
-            S3Resolvable(local="/tmp/somefile", remote=S3URI("s3://bucket/key")),
+            S3Resolvable(local="/tmp/somefile", remote=S3Path("s3://bucket/key")),
             "s3://bucket/key @ /tmp/somefile",
             does_not_raise(),
             id="Simple s3 path to local file",

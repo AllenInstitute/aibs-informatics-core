@@ -1,7 +1,7 @@
 from pytest import mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.demand_execution.job_param import JobParam
 from aibs_informatics_core.models.demand_execution.job_param_resolver import JobParamResolver
 from aibs_informatics_core.models.unique_ids import UniqueID
@@ -10,7 +10,7 @@ from test.base import does_not_raise
 THIS_UUID = UniqueID.create()
 ANOTHER_UUID = UniqueID.create()
 
-S3_URI = S3URI.build(bucket_name="bucket", key="key")
+S3_URI = S3Path.build(bucket_name="bucket", key="key")
 
 
 @mark.parametrize(

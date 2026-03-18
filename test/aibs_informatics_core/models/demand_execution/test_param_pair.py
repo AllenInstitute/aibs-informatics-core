@@ -1,6 +1,6 @@
 from pytest import mark, param
 
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.demand_execution.job_param import (
     DownloadableJobParam,
     UploadableJobParam,
@@ -133,14 +133,14 @@ def test__ParamSetPair__from_pairs__works(pairs, expected):
     assert actual == expected
 
 
-INP1 = DownloadableJobParam("input1", "local_value1", S3URI("s3://any-bucket/any-key"))
-INP2 = DownloadableJobParam("input2", "local_value2", S3URI("s3://another-bucket/another-key"))
+INP1 = DownloadableJobParam("input1", "local_value1", S3Path("s3://any-bucket/any-key"))
+INP2 = DownloadableJobParam("input2", "local_value2", S3Path("s3://another-bucket/another-key"))
 INP3 = DownloadableJobParam("input3", "local_value3", UniqueID.create("i3"))
 INP3 = DownloadableJobParam("input3", "local_value3", UniqueID.create("i4"))
 
 OUT1 = UploadableJobParam("output1", "local_output1", UniqueID.create("o1"))
 OUT2 = UploadableJobParam("output2", "local_output2", UniqueID.create("o2"))
-OUT3 = UploadableJobParam("output3", "local_output3", S3URI("s3://another-bucket/a-third-key"))
+OUT3 = UploadableJobParam("output3", "local_output3", S3Path("s3://another-bucket/a-third-key"))
 OUT4 = UploadableJobParam("output4", "local_output4", UniqueID.create("o4"))
 
 
@@ -285,16 +285,16 @@ def test__JobParamSetPairs__add_outputs__remove_outputs():
 
 
 def test__ResolvedParamSetPair__to_dict():
-    r1 = S3URI("s3://any-bucket/any-key")
-    r2 = S3URI("s3://another-bucket/another-key")
+    r1 = S3Path("s3://any-bucket/any-key")
+    r2 = S3Path("s3://another-bucket/another-key")
 
     p = ResolvedParamSetPair(inputs={r1}, outputs={r2})
     assert p.to_dict() == {"inputs": [r1], "outputs": [r2]}
 
 
 def test__ResolvedParamSetPair__from_dict():
-    r1 = S3URI("s3://any-bucket/any-key")
-    r2 = S3URI("s3://another-bucket/another-key")
+    r1 = S3Path("s3://any-bucket/any-key")
+    r2 = S3Path("s3://another-bucket/another-key")
 
     p = ResolvedParamSetPair.from_dict({"inputs": [r1], "outputs": [r2]})
     assert p.inputs == frozenset({r1})
@@ -308,30 +308,30 @@ def test__ResolvedParamSetPair__defaults_to_empty():
 
 
 def test__ResolvedParamSetPair__accepts_list_input():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
     p = ResolvedParamSetPair(inputs=[r1], outputs=[r2])
     assert p.inputs == frozenset({r1})
     assert p.outputs == frozenset({r2})
 
 
 def test__ResolvedParamSetPair__accepts_set_input():
-    r1 = S3URI("s3://bucket-a/key-a")
+    r1 = S3Path("s3://bucket-a/key-a")
     p = ResolvedParamSetPair(inputs={r1}, outputs=set())
     assert p.inputs == frozenset({r1})
     assert p.outputs == frozenset()
 
 
 def test__ResolvedParamSetPair__accepts_tuple_input():
-    r1 = S3URI("s3://bucket-a/key-a")
+    r1 = S3Path("s3://bucket-a/key-a")
     p = ResolvedParamSetPair(inputs=(r1,), outputs=())
     assert p.inputs == frozenset({r1})
     assert p.outputs == frozenset()
 
 
 def test__ResolvedParamSetPair__add_inputs():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
     p = ResolvedParamSetPair(inputs={r1})
     p.add_inputs(r2)
     assert p.inputs == frozenset({r1, r2})
@@ -341,8 +341,8 @@ def test__ResolvedParamSetPair__add_inputs():
 
 
 def test__ResolvedParamSetPair__add_outputs():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
     p = ResolvedParamSetPair(outputs={r1})
     p.add_outputs(r2)
     assert p.outputs == frozenset({r1, r2})
@@ -352,8 +352,8 @@ def test__ResolvedParamSetPair__add_outputs():
 
 
 def test__ResolvedParamSetPair__remove_inputs():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
     p = ResolvedParamSetPair(inputs={r1, r2})
     p.remove_inputs(r1)
     assert p.inputs == frozenset({r2})
@@ -363,8 +363,8 @@ def test__ResolvedParamSetPair__remove_inputs():
 
 
 def test__ResolvedParamSetPair__remove_outputs():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
     p = ResolvedParamSetPair(outputs={r1, r2})
     p.remove_outputs(r2)
     assert p.outputs == frozenset({r1})
@@ -374,18 +374,18 @@ def test__ResolvedParamSetPair__remove_outputs():
 
 
 def test__ResolvedParamSetPair__add_multiple_inputs_at_once():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
-    r3 = S3URI("s3://bucket-c/key-c")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
+    r3 = S3Path("s3://bucket-c/key-c")
     p = ResolvedParamSetPair()
     p.add_inputs(r1, r2, r3)
     assert p.inputs == frozenset({r1, r2, r3})
 
 
 def test__ResolvedParamSetPair__remove_multiple_outputs_at_once():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
-    r3 = S3URI("s3://bucket-c/key-c")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
+    r3 = S3Path("s3://bucket-c/key-c")
     p = ResolvedParamSetPair(outputs={r1, r2, r3})
     p.remove_outputs(r1, r3)
     assert p.outputs == frozenset({r2})
@@ -398,9 +398,9 @@ def test__ResolvedParamSetPair__from_dict_empty():
 
 
 def test__ResolvedParamSetPair__roundtrip_to_dict_from_dict():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
-    r3 = S3URI("s3://bucket-c/key-c")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
+    r3 = S3Path("s3://bucket-c/key-c")
     original = ResolvedParamSetPair(inputs={r1, r2}, outputs={r3})
     restored = ResolvedParamSetPair.from_dict(original.to_dict())
     assert restored.inputs == original.inputs
@@ -408,22 +408,22 @@ def test__ResolvedParamSetPair__roundtrip_to_dict_from_dict():
 
 
 def test__ResolvedParamSetPair__equality():
-    r1 = S3URI("s3://bucket-a/key-a")
-    r2 = S3URI("s3://bucket-b/key-b")
+    r1 = S3Path("s3://bucket-a/key-a")
+    r2 = S3Path("s3://bucket-b/key-b")
     p1 = ResolvedParamSetPair(inputs={r1}, outputs={r2})
     p2 = ResolvedParamSetPair(inputs={r1}, outputs={r2})
     assert p1 == p2
 
 
 def test__ResolvedParamSetPair__inputs_only():
-    r1 = S3URI("s3://bucket-a/key-a")
+    r1 = S3Path("s3://bucket-a/key-a")
     p = ResolvedParamSetPair(inputs={r1})
     assert p.inputs == frozenset({r1})
     assert p.outputs == frozenset()
 
 
 def test__ResolvedParamSetPair__outputs_only():
-    r1 = S3URI("s3://bucket-a/key-a")
+    r1 = S3Path("s3://bucket-a/key-a")
     p = ResolvedParamSetPair(outputs={r1})
     assert p.inputs == frozenset()
     assert p.outputs == frozenset({r1})

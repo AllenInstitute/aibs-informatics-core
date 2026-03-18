@@ -7,7 +7,7 @@ from typing import Any
 from pydantic import Field, JsonValue, PrivateAttr, field_serializer, model_validator
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI, S3PathPlaceholder
+from aibs_informatics_core.models.aws.s3 import S3Path, S3PathPlaceholder
 from aibs_informatics_core.models.base._pydantic_model import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import (
     DownloadableJobParam,
@@ -61,7 +61,7 @@ class DemandExecutionParameters(PydanticBaseModel):
     inputs: list[str] = Field(default_factory=list)
     outputs: list[str] = Field(default_factory=list)
     outputs_metadata: dict[str, dict[str, JSON]] = Field(default_factory=dict)
-    output_s3_prefix: S3URI | None = None
+    output_s3_prefix: S3Path | None = None
     param_pair_overrides: list[ParamSetPair | ParamPair] | None = None
     verbosity: bool = False
 

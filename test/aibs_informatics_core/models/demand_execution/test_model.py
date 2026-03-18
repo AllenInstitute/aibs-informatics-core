@@ -2,7 +2,7 @@ import unittest
 
 from pytest import mark, param
 
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.demand_execution.metadata import DemandExecutionMetadata
 from aibs_informatics_core.models.demand_execution.model import DemandExecution
 from aibs_informatics_core.models.demand_execution.parameters import DemandExecutionParameters
@@ -15,7 +15,7 @@ from aibs_informatics_core.models.unique_ids import UniqueID
 THIS_UUID = UniqueID.create()
 ANOTHER_UUID = UniqueID.create()
 
-S3_URI = S3URI.build(bucket_name="bucket", key="key")
+S3_URI = S3Path.build(bucket_name="bucket", key="key")
 
 
 EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/test_image:latest"

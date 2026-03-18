@@ -3,7 +3,7 @@ from unittest import mock
 from pytest import fixture, mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.demand_execution import (
     DemandExecutionParameters,
     DownloadableJobParam,
@@ -23,10 +23,10 @@ from test.base import does_not_raise
 THIS_UUID = UniqueID.create()
 THAT_UUID = UniqueID.create()
 
-S3_URI = S3URI.build(bucket_name="bucket", key="key")
-ANOTHER_S3_URI = S3URI.build(bucket_name="bucket", key="key2")
+S3_URI = S3Path.build(bucket_name="bucket", key="key")
+ANOTHER_S3_URI = S3Path.build(bucket_name="bucket", key="key2")
 
-S3_PREFIX = S3URI.build(bucket_name="bucket", key="prefix/")
+S3_PREFIX = S3Path.build(bucket_name="bucket", key="prefix/")
 
 
 @fixture(scope="function")
@@ -510,7 +510,7 @@ def test__add_outputs__redundant_outputs_handled():
     parameters = DemandExecutionParameters(
         params=dict(output1="a", output2="b", output3="c"),
         outputs=["output2"],
-        output_s3_prefix=S3URI("s3://bucket"),
+        output_s3_prefix=S3Path("s3://bucket"),
     )
 
     parameters.add_outputs("output1", "output2", output3="C @ s3://bucket2/C", output4="D")

@@ -2,7 +2,6 @@ __all__ = [
     "S3PathStats",
     "S3Path",
     "S3PathPlaceholder",
-    "S3URI",
     "S3BucketName",
     "S3BucketNamePlaceholder",
     "S3KeyPrefix",
@@ -307,10 +306,6 @@ class S3Path(ValidatedStr):
         if isinstance(__other, S3Path):
             __other = __other.key
         return S3Path.build(bucket_name=self.bucket, key=__other)
-
-
-# Ensure backwards compatibility with old S3URI class name
-S3URI = S3Path
 
 
 class ConditionalPlaceholderStr(ValidatedStr):

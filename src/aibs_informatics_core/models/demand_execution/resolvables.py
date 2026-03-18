@@ -22,7 +22,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.exceptions import ValidationError
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.utils.hashing import sha256_hexdigest
 from aibs_informatics_core.utils.json import JSON
@@ -256,8 +256,8 @@ class Resolvable(ResolvableBase[str]):
     remote: str
 
 
-class S3Resolvable(ResolvableBase[S3URI]):
-    remote: S3URI
+class S3Resolvable(ResolvableBase[S3Path]):
+    remote: S3Path
 
 
 class Uploadable(Resolvable):

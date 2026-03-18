@@ -6,7 +6,7 @@ from typing import Annotated, Any, TypeAlias
 
 from pydantic import BeforeValidator, Field
 
-from aibs_informatics_core.models.aws.s3 import S3URI
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.models.demand_execution.job_param import ResolvableJobParam
 
@@ -124,7 +124,7 @@ class JobParamPair:
     """models an input and output resolved parameter pair as described in demand execution
 
     The values for input and outputs should account for both the parameter name and the
-    remote location of the parameter value. The remote location can be a S3URI or other
+    remote location of the parameter value. The remote location can be a S3Path or other
     remote location.
 
     This captures all information about a parameter
@@ -164,7 +164,7 @@ class JobParamSetPair(PydanticBaseModel):
     """models a set of input and output resolved parameter pairs as described in demand execution
 
     The values for inputs and outputs should account for both the parameter name and the remote location.
-    The remote location can be a S3URI or other remote location.
+    The remote location can be a S3Path or other remote location.
 
     This captures all information about a parameter
 
@@ -224,16 +224,16 @@ class JobParamSetPair(PydanticBaseModel):
         return list(output_set_pairs.values())
 
 
-# ResolvableID = Union[S3URI, ...]
+# ResolvableID = Union[S3Path, ...]
 # TODO: need to add additional types.
-ResolvableID: TypeAlias = S3URI
+ResolvableID: TypeAlias = S3Path
 
 
 class ResolvedParamSetPair(PydanticBaseModel):
     """PydanticBaseModel for a set of input and output resolved parameter pairs as described in demand execution
 
     This is the other side of the ParamSetPair coin. This is used to represent a set of
-    inputs and outputs' remote locations. The remote location can be a S3URI or other
+    inputs and outputs' remote locations. The remote location can be a S3Path or other
     remote location.
 
     This only captures the remote location of a parameter. It does not capture the parameter name.
