@@ -6,7 +6,9 @@ import os
 from abc import abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generic, TypeVar, get_args, get_original_bases
+from typing import Any, Generic, TypeVar
+
+from typing_extensions import get_args, get_origin, get_original_bases
 
 from aibs_informatics_core.collections import PostInitMixin
 from aibs_informatics_core.env import EnvBaseMixins
@@ -54,14 +56,10 @@ class BaseExecutor(EnvBaseMixins, PostInitMixin, Generic[REQUEST, RESPONSE]):
     def _get_generic_args(cls) -> tuple[type, ...]:
         """Walk the MRO looking for the parameterised ``BaseExecutor[REQ, RESP]`` base."""
         for klass in cls.__mro__:
-            for base in getattr(klass, "__orig_bases__", ()):
-                origin = getattr(base, "__origin__", None)
-                if (
-                    origin is not None
-                    and isinstance(origin, type)
-                    and issubclass(origin, BaseExecutor)
-                ):
-                    args = getattr(base, "__args__", None)
+            for base in get_original_bases(klass):
+                origin = get_origin(base)
+                if isinstance(origin, type) and issubclass(origin, BaseExecutor):
+                    args = get_args(base)
                     if args and not any(isinstance(a, TypeVar) for a in args):
                         return args
         raise TypeError(
