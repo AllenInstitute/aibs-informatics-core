@@ -5,6 +5,7 @@ from aibs_informatics_core.executors import BaseExecutor, run_cli_executor
 from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import PydanticBaseModel
 from aibs_informatics_core.utils.json import JSON
+from aibs_informatics_core.utils.logging import LoggingMixin
 from aibs_informatics_core.utils.modules import get_qualified_name
 from test.base import BaseTest
 
@@ -30,6 +31,13 @@ class NoOpExecutor(BaseExecutor[NoOpRequest, NoOpRequest]):
         return None
 
 
+class MultiBaseNoOpExecutor(LoggingMixin, BaseExecutor[NoOpRequest, NoOpRequest]):
+    def handle(self, request: NoOpRequest) -> NoOpRequest | None:
+        if request.include_response:
+            return request
+        return None
+
+
 class BaseExecutorTests(BaseTest):
     def test__get_executor_name__returns_correct_name(self):
         actual = NoOpExecutor.get_executor_name()
@@ -37,6 +45,10 @@ class BaseExecutorTests(BaseTest):
 
     def test__get_response_cls__returns_correct_class(self):
         actual = NoOpExecutor.get_response_cls()
+        self.assertEqual(actual, NoOpRequest)
+
+    def test__get_request_cls__returns_correct_class__multi_base_class(self):
+        actual = MultiBaseNoOpExecutor.get_request_cls()
         self.assertEqual(actual, NoOpRequest)
 
     def test__deserialize_request__handles_dict(self):

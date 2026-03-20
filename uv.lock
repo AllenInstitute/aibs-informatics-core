@@ -13,6 +13,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "stringcase" },
+    { name = "typing-extensions" },
     { name = "typing-inspect" },
 ]
 
@@ -60,6 +61,7 @@ requires-dist = [
     { name = "pyyaml", specifier = "~=6.0" },
     { name = "requests" },
     { name = "stringcase", specifier = "~=1.2" },
+    { name = "typing-extensions", specifier = ">=4.12.0" },
     { name = "typing-inspect" },
 ]
 
