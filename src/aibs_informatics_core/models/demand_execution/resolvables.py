@@ -227,7 +227,7 @@ def get_resolvable_from_value(value: Any, resolvable_classes: Sequence[type[R]])
 
     Raises:
         ValueError: The input is not a valid type.
-        mm.ValidationError: No resolvable object could be constructed from input
+        ValidationError: No resolvable object could be constructed from input
 
     Returns:
         resolvable object
