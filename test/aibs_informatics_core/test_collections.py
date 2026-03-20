@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from re import Pattern
 from typing import ClassVar
 
+from pydantic import BaseModel, Field
+
 from aibs_informatics_core.collections import (
     BaseEnum,
     DeepChainMap,
@@ -412,6 +414,14 @@ class LookaheadStr(ValidatedStr):
     regex_pattern: ClassVar[Pattern] = r"^(?=.*\d).+$"
 
 
+class NumberStr(ValidatedStr):
+    regex_pattern: ClassVar[Pattern] = r"^\d+$"
+
+
+class UnionModel(BaseModel):
+    value: NumberStr | LookaheadStr | PlainValidatedStr | str = Field(union_mode="left_to_right")
+
+
 class PydanticStrMixinTests(unittest.TestCase):
     """Tests for PydanticStrMixin JSON schema generation via ValidatedStr subclasses."""
 
@@ -486,3 +496,27 @@ class PydanticStrMixinTests(unittest.TestCase):
         schema = self._get_field_schema(LookaheadStr)
         self.assertEqual(schema["type"], "string")
         self.assertEqual(schema["pattern"], r"^(?=.*\d).+$")
+
+    def test__union__with_unsupported_pattern__falls_back_to_python_re(self):
+        """Union should still work with unsupported patterns, falling back to python-re."""
+        m = UnionModel(value="Hello1")
+        self.assertIsInstance(m.value, LookaheadStr)
+        self.assertEqual(m.value, "Hello1")
+
+        schema = m.model_json_schema()
+        self.assertIn("anyOf", schema["properties"]["value"])
+        patterns = [s.get("pattern") for s in schema["properties"]["value"]["anyOf"]]
+        self.assertIn(r"^(?=.*\d).+$", patterns)
+
+    def test__union__resolution_works_as_expected(self):
+        m2 = UnionModel(value="12345")
+        self.assertIsInstance(m2.value, NumberStr)
+        self.assertEqual(m2.value, "12345")
+
+        m = UnionModel(value="Hello1")
+        self.assertIsInstance(m.value, LookaheadStr)
+        self.assertEqual(m.value, "Hello1")
+
+        m3 = UnionModel(value="Just a string")
+        self.assertIsInstance(m3.value, PlainValidatedStr)
+        self.assertEqual(m3.value, "Just a string")

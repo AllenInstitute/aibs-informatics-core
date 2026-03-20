@@ -73,7 +73,7 @@ install: .uv  ## Installs package dependencies
 	uv sync --frozen --all-extras
 
 
-rebuild-lockfile: .uv  ## Rebuilds the lockfile
+upgrade-lockfile: .uv  ## Upgrade lockfile to latest compatible versions (uv lock --upgrade)
 	uv lock --upgrade
 
 
@@ -113,7 +113,7 @@ unlink-packages: ## Unlink local packages from virtualenv
 		make install; \
 	fi
 
-.PHONY: .uv install install-release rebuild-lockfile link-packages unlink-packages
+.PHONY: .uv install install-release upgrade-lockfile link-packages unlink-packages
 
 #######################
 ##@ Formatting Commands
