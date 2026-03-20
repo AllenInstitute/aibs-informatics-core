@@ -224,10 +224,7 @@ class PydanticStrMixin:
         str_schema_kwargs: dict[str, Any] = {}
         if issubclass(cls, ValidatedStr):
             if cls.has_regex_pattern():
-                pattern = cls.regex_pattern
-                str_schema_kwargs["pattern"] = (
-                    pattern.pattern if hasattr(pattern, "pattern") else str(pattern)
-                )
+                str_schema_kwargs["pattern"] = cls.regex_pattern
             if cls.min_len is not None:
                 str_schema_kwargs["min_length"] = cls.min_len
             if cls.max_len is not None:
