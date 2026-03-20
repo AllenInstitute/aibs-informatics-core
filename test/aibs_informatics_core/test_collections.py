@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from re import Pattern
 from typing import ClassVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from aibs_informatics_core.collections import (
     BaseEnum,
@@ -419,7 +419,7 @@ class NumberStr(ValidatedStr):
 
 
 class UnionModel(BaseModel):
-    value: NumberStr | LookaheadStr | PlainValidatedStr | str
+    value: NumberStr | LookaheadStr | PlainValidatedStr | str = Field(union_mode="left_to_right")
 
 
 class PydanticStrMixinTests(unittest.TestCase):
