@@ -63,7 +63,7 @@ typing = [
 [package.metadata]
 requires-dist = [
     { name = "dataclasses-json", specifier = "~=0.6.7" },
-    { name = "marshmallow", specifier = "~=3.22.0" },
+    { name = "marshmallow", specifier = "~=3.22" },
     { name = "pathlib-abc" },
     { name = "pydantic", specifier = ">=2.0.3,<3" },
     { name = "python-dateutil" },
