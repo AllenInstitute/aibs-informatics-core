@@ -30,6 +30,7 @@ from typing import (
 )
 
 from pydantic import GetCoreSchemaHandler
+from pydantic.version import VERSION as PYDANTIC_VERSION
 from pydantic_core import SchemaValidator
 from pydantic_core.core_schema import (
     CoreSchema,
@@ -224,7 +225,15 @@ class PydanticStrMixin:
         str_schema_kwargs: dict[str, Any] = {}
         if issubclass(cls, ValidatedStr):
             if cls.has_regex_pattern():
-                str_schema_kwargs["pattern"] = cls.regex_pattern
+                major, minor, *_ = (int(part) for part in PYDANTIC_VERSION.split("."))
+                if (major, minor) < (2, 8) and isinstance(cls.regex_pattern, Pattern):
+                    logger.warning(
+                        f"pydantic v{PYDANTIC_VERSION} does not support compiled regex patterns. "
+                        f"Attempting to use the pattern string instead."
+                    )
+                    str_schema_kwargs["pattern"] = cls.regex_pattern.pattern
+                else:
+                    str_schema_kwargs["pattern"] = cls.regex_pattern
             if cls.min_len is not None:
                 str_schema_kwargs["min_length"] = cls.min_len
             if cls.max_len is not None:
