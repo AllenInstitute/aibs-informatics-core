@@ -535,8 +535,9 @@ class PydanticStrMixinTests(unittest.TestCase):
         self.assertEqual(schema["type"], "string")
         self.assertEqual(schema["pattern"], "^[a-z]+$")
 
-    def test__compiled_pattern__new_pydantic_passes_pattern_through(self):
-        """On pydantic >= 2.8, compiled Pattern objects should be passed through directly."""
+    def test__compiled_pattern__new_pydantic_schema_includes_pattern(self):
+        """On pydantic >= 2.8 with a compiled Pattern, the schema should include the correct
+        pattern."""
 
         class CompiledPatternStr2(ValidatedStr):
             regex_pattern: ClassVar[Pattern] = re.compile(r"^[a-z]+$")
@@ -547,11 +548,23 @@ class PydanticStrMixinTests(unittest.TestCase):
         self.assertEqual(schema["type"], "string")
         self.assertEqual(schema["pattern"], "^[a-z]+$")
 
-    def test__string_pattern__old_pydantic_no_warning(self):
-        """On pydantic < 2.8, a plain string pattern should not trigger the warning."""
+    def test__string_pattern__old_pydantic_schema_includes_pattern(self):
+        """On pydantic < 2.8, a plain string pattern should produce a valid schema."""
 
         with patch("aibs_informatics_core.collections.PYDANTIC_VERSION", "2.7.0"):
             schema = self._get_field_schema(AlphaOnlyStr)
 
         self.assertEqual(schema["type"], "string")
         self.assertEqual(schema["pattern"], "^[a-zA-Z]+$")
+
+    def test__prerelease_pydantic_version__does_not_crash(self):
+        """Pre-release versions like '2.13.0b2' should not raise ValueError."""
+
+        class CompiledPatternStr3(ValidatedStr):
+            regex_pattern: ClassVar[Pattern] = re.compile(r"^[a-z]+$")
+
+        with patch("aibs_informatics_core.collections.PYDANTIC_VERSION", "2.13.0b2"):
+            schema = self._get_field_schema(CompiledPatternStr3)
+
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], "^[a-z]+$")

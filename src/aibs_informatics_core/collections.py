@@ -225,7 +225,10 @@ class PydanticStrMixin:
         str_schema_kwargs: dict[str, Any] = {}
         if issubclass(cls, ValidatedStr):
             if cls.has_regex_pattern():
-                major, minor, *_ = (int(part) for part in PYDANTIC_VERSION.split("."))
+                major, minor, *_ = (
+                    int("".join(c for c in part if c.isdigit()) or "0")
+                    for part in PYDANTIC_VERSION.split(".")
+                )
                 if (major, minor) < (2, 8) and isinstance(cls.regex_pattern, Pattern):
                     logger.warning(
                         f"pydantic v{PYDANTIC_VERSION} does not support compiled regex patterns. "
