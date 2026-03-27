@@ -1,7 +1,9 @@
+import re
 import unittest
 from dataclasses import dataclass
 from re import Pattern
 from typing import ClassVar
+from unittest.mock import patch
 
 from pydantic import BaseModel, Field
 
@@ -520,3 +522,36 @@ class PydanticStrMixinTests(unittest.TestCase):
         m3 = UnionModel(value="Just a string")
         self.assertIsInstance(m3.value, PlainValidatedStr)
         self.assertEqual(m3.value, "Just a string")
+
+    def test__compiled_pattern__old_pydantic_extracts_pattern_string(self):
+        """On pydantic < 2.8 with a compiled Pattern, the pattern string should be extracted."""
+
+        class CompiledPatternStr(ValidatedStr):
+            regex_pattern: ClassVar[Pattern] = re.compile(r"^[a-z]+$")
+
+        with patch("aibs_informatics_core.collections.PYDANTIC_VERSION", "2.7.0"):
+            schema = self._get_field_schema(CompiledPatternStr)
+
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], "^[a-z]+$")
+
+    def test__compiled_pattern__new_pydantic_passes_pattern_through(self):
+        """On pydantic >= 2.8, compiled Pattern objects should be passed through directly."""
+
+        class CompiledPatternStr2(ValidatedStr):
+            regex_pattern: ClassVar[Pattern] = re.compile(r"^[a-z]+$")
+
+        with patch("aibs_informatics_core.collections.PYDANTIC_VERSION", "2.8.0"):
+            schema = self._get_field_schema(CompiledPatternStr2)
+
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], "^[a-z]+$")
+
+    def test__string_pattern__old_pydantic_no_warning(self):
+        """On pydantic < 2.8, a plain string pattern should not trigger the warning."""
+
+        with patch("aibs_informatics_core.collections.PYDANTIC_VERSION", "2.7.0"):
+            schema = self._get_field_schema(AlphaOnlyStr)
+
+        self.assertEqual(schema["type"], "string")
+        self.assertEqual(schema["pattern"], "^[a-zA-Z]+$")
