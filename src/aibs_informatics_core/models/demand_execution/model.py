@@ -37,7 +37,10 @@ class DemandExecution(PydanticBaseModel):
             hash_components.extend(
                 [
                     self.execution_id,
-                    self.execution_parameters.params,
+                    # This ensures that the params are sanitized properly before hashing
+                    self.execution_parameters.sanitize_serialized_params(
+                        self.execution_parameters.params
+                    ),
                     self.execution_parameters.inputs,
                     self.execution_parameters.outputs,
                 ]
