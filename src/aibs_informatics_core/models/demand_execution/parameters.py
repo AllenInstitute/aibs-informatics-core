@@ -4,7 +4,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from pydantic import Field, JsonValue, PrivateAttr, field_serializer, model_validator
+from pydantic import BaseModel, Field, JsonValue, PrivateAttr, field_serializer, model_validator
 
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3Path, S3PathPlaceholder
@@ -57,7 +57,7 @@ def refresh_params(func: Callable | None = None, force: bool = True, pre_validat
 
 class DemandExecutionParameters(PydanticBaseModel):
     command: list[str] = Field(default_factory=list)
-    params: dict[str, JsonValue] = Field(default_factory=dict)
+    params: dict[str, JsonValue | BaseModel] = Field(default_factory=dict)
     inputs: list[str] = Field(default_factory=list)
     outputs: list[str] = Field(default_factory=list)
     outputs_metadata: dict[str, dict[str, JSON]] = Field(default_factory=dict)
@@ -411,9 +411,26 @@ class DemandExecutionParameters(PydanticBaseModel):
         return data
 
     @field_serializer("params", mode="plain")
-    def _sanitize_params(self, value: Any) -> dict[str, Any]:
+    def sanitize_serialized_params(self, value: Any) -> dict[str, Any]:
+        """Serializer that sanitizes params by converting any complex objects to their serializable representation
+
+        Expected Behavior:
+            * Resolvable objects are converted to their string representation using to_str()
+            * PydanticBaseModel objects are converted to dicts using to_dict()
+            * Pydantic BaseModel objects are converted to dicts using model_dump(mode="json")
+
+        Args:
+            value (Any): The params value to be sanitized.
+
+        Returns:
+            The sanitized params dictionary.
+        """  # noqa: E501
         params = dict(value)
         for k, v in params.items():
             if isinstance(v, Resolvable):
                 params[k] = v.to_str()
+            elif isinstance(v, PydanticBaseModel):
+                params[k] = v.to_dict()
+            elif isinstance(v, BaseModel):
+                params[k] = v.model_dump(mode="json")
         return params

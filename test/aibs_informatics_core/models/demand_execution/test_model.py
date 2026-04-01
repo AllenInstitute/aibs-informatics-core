@@ -1,5 +1,6 @@
 import unittest
 
+from pydantic import BaseModel
 from pytest import mark, param
 
 from aibs_informatics_core.models.aws.s3 import S3Path
@@ -10,6 +11,7 @@ from aibs_informatics_core.models.demand_execution.platform import (
     AWSBatchExecutionPlatform,
     ExecutionPlatform,
 )
+from aibs_informatics_core.models.demand_execution.resolvables import Uploadable
 from aibs_informatics_core.models.unique_ids import UniqueID
 
 THIS_UUID = UniqueID.create()
@@ -20,6 +22,10 @@ S3_URI = S3Path.build(bucket_name="bucket", key="key")
 
 EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/test_image:latest"
 ANOTHER_EXECUTION_IMAGE = "051791135335.dkr.ecr.us-west-2.amazonaws.com/another_image:latest"
+
+
+class DummyModel(BaseModel):
+    value: str
 
 
 def get_any_demand_execution(
@@ -63,6 +69,39 @@ def get_any_demand_execution(
             True,
             True,
             id="Executions with no diffs generate same not-/strict hash: True/True",
+        ),
+        param(
+            get_any_demand_execution(
+                execution_type="operationA",
+                execution_image=EXECUTION_IMAGE,
+                execution_parameters=DemandExecutionParameters(
+                    command=["my_exe"],
+                    params={
+                        "uploadable": Uploadable(local="/path/to/file", remote=S3_URI),
+                        "exec_params": DemandExecutionParameters(
+                            command=["inner_exe"], params={"inner": "value"}
+                        ),
+                        "base_model": DummyModel(value="test"),
+                    },
+                ),
+            ),
+            get_any_demand_execution(
+                execution_type="operationA",
+                execution_image=EXECUTION_IMAGE,
+                execution_parameters=DemandExecutionParameters(
+                    command=["my_exe"],
+                    params={
+                        "uploadable": Uploadable(local="/path/to/file", remote=S3_URI).to_str(),
+                        "exec_params": DemandExecutionParameters(
+                            command=["inner_exe"], params={"inner": "value"}
+                        ).to_dict(),
+                        "base_model": DummyModel(value="test").model_dump(mode="json"),
+                    },
+                ),
+            ),
+            True,
+            True,
+            id="Executions with complex param object values but no diffs generate same not-/strict hash: True/True",  # noqa: E501
         ),
         param(
             get_any_demand_execution(
