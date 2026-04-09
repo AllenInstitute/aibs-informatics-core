@@ -17,7 +17,7 @@ from test.base import does_not_raise
         ),
         param(
             "2022-06-09T06:58:14Z",
-            dt.datetime(2022, 6, 9, 6, 58, 14),
+            dt.datetime(2022, 6, 9, 6, 58, 14, tzinfo=dt.timezone.utc),
             does_not_raise(),
             id="VALID no microseconds, Z timezone",
         ),
@@ -35,7 +35,7 @@ from test.base import does_not_raise
         ),
         param(
             "2022-06-09T06:58:14.000Z",
-            dt.datetime(2022, 6, 9, 6, 58, 14),
+            dt.datetime(2022, 6, 9, 6, 58, 14, tzinfo=dt.timezone.utc),
             does_not_raise(),
             id="VALID with microseconds, Z timezone",
         ),
@@ -67,6 +67,11 @@ def test__from_isoformat_8601__works_as_expected(
             dt.datetime(2022, 6, 9, 6, 58, 14, tzinfo=dt.timezone.utc),
             "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
             id="UTC datetime",
+        ),
+        param(
+            dt.datetime(2022, 6, 9, 6, 58, 14),
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="naive datetime assumed UTC",
         ),
         param(
             dt.datetime(2022, 6, 9, 6, 58, 14, 500000, tzinfo=dt.timezone.utc),
@@ -106,7 +111,28 @@ def test__from_isoformat_8601__works_as_expected(
             "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
             id="string input with microseconds and +00:00 offset",
         ),
+        param(
+            "2022-06-09T06:58:14Z",
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="string input with Z suffix",
+        ),
+        param(
+            "2022-06-09T06:58:14.000Z",
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="string input with microseconds and Z suffix",
+        ),
     ],
 )
 def test__to_zulu_isoformat_8601__works_as_expected(value: dt.datetime | str, expected_str: str):
     assert to_zulu_isoformat_8601(value) == expected_str
+
+
+def test__to_zulu_isoformat_8601__naive_datetime_error_mode():
+    naive = dt.datetime(2022, 6, 9, 6, 58, 14)
+    with raises(ValueError, match="naive_handling='error'"):
+        to_zulu_isoformat_8601(naive, naive_handling="error")
+
+
+def test__to_zulu_isoformat_8601__naive_datetime_coerce_mode():
+    naive = dt.datetime(2022, 6, 9, 6, 58, 14)
+    assert to_zulu_isoformat_8601(naive, naive_handling="coerce") == "2022-06-09T06:58:14Z"
