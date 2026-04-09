@@ -2,7 +2,7 @@ import datetime as dt
 
 from pytest import mark, param, raises
 
-from aibs_informatics_core.utils.time import from_isoformat_8601
+from aibs_informatics_core.utils.time import from_isoformat_8601, to_zulu_isoformat_8601
 from test.base import does_not_raise
 
 
@@ -58,3 +58,55 @@ def test__from_isoformat_8601__works_as_expected(
 
     if expected_dt is not None:
         assert actual_dt == expected_dt
+
+
+@mark.parametrize(
+    "value, expected_str",
+    [
+        param(
+            dt.datetime(2022, 6, 9, 6, 58, 14, tzinfo=dt.timezone.utc),
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="UTC datetime",
+        ),
+        param(
+            dt.datetime(2022, 6, 9, 6, 58, 14, 500000, tzinfo=dt.timezone.utc),
+            "2022-06-09T06:58:14.500000+00:00".replace("+00:00", "Z"),
+            id="UTC datetime with microseconds",
+        ),
+        param(
+            dt.datetime(
+                2022,
+                6,
+                9,
+                17,
+                58,
+                14,
+                tzinfo=dt.timezone(dt.timedelta(hours=11)),
+            ),
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="non-UTC datetime converted to Zulu",
+        ),
+        param(
+            "2022-06-09T06:58:14+05:30",
+            "2022-06-09T01:28:14+00:00".replace("+00:00", "Z"),
+            id="string input with +05:30 offset",
+        ),
+        param(
+            "2022-06-09T06:58:14+00:00",
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="string input with +00:00 offset",
+        ),
+        param(
+            "2022-06-09T17:58:14+11:00",
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="string input with non-UTC offset",
+        ),
+        param(
+            "2022-06-09T06:58:14.000+00:00",
+            "2022-06-09T06:58:14+00:00".replace("+00:00", "Z"),
+            id="string input with microseconds and +00:00 offset",
+        ),
+    ],
+)
+def test__to_zulu_isoformat_8601__works_as_expected(value: dt.datetime | str, expected_str: str):
+    assert to_zulu_isoformat_8601(value) == expected_str

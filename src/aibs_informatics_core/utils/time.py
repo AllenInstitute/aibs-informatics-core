@@ -61,3 +61,16 @@ def from_isoformat_8601(iso8601_str: str) -> dt.datetime:
     elif iso8601_str[-1] == "Z":
         fmt = fmt + "Z"
     return dt.datetime.strptime(iso8601_str, fmt)
+
+
+def to_zulu_isoformat_8601(value: dt.datetime | str) -> str:
+    """Convert a datetime object to a Zulu ISO 8601 formatted string.
+
+    Args:
+        dt_obj (dt.datetime): The datetime object to convert.
+
+    Returns:
+        str: The Zulu ISO 8601 formatted string.
+    """
+    dt_obj = from_isoformat_8601(value) if isinstance(value, str) else value
+    return dt_obj.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
