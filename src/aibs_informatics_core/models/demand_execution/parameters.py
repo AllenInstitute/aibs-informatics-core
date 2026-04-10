@@ -1,6 +1,6 @@
 import logging
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from functools import wraps
 from typing import Any
 
@@ -396,14 +396,26 @@ class DemandExecutionParameters(PydanticBaseModel):
             "input_output_pair_overrides",
         ]
 
-        param_pairs = []
+        param_pairs: list[Any] = []
 
-        if in_use_key in data:
-            param_pairs.extend(data.pop(in_use_key))
+        overrides = data.pop(in_use_key, None)
+        if overrides is not None:
+            if not isinstance(overrides, Sequence) or isinstance(overrides, (str, bytes)):
+                raise ValidationError(
+                    f"{in_use_key} must be a sequence of ParamPair or ParamSetPair objects"
+                )
+            param_pairs.extend(overrides)
 
         for k in deprecated_keys:
-            if k in data:
-                param_pairs.extend(data.pop(k))
+            deprecated_overrides = data.pop(k, None)
+            if deprecated_overrides is not None:
+                if not isinstance(deprecated_overrides, Sequence) or isinstance(
+                    deprecated_overrides, (str, bytes)
+                ):
+                    raise ValidationError(
+                        f"{k} must be a sequence of ParamPair or ParamSetPair objects"
+                    )
+                param_pairs.extend(deprecated_overrides)
 
         if param_pairs:
             data[in_use_key] = param_pairs

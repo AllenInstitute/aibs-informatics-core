@@ -1,5 +1,6 @@
 from unittest import mock
 
+from pydantic import ValidationError as PydanticValidationError
 from pytest import fixture, mark, param, raises
 
 from aibs_informatics_core.exceptions import ValidationError
@@ -609,6 +610,50 @@ def test__has_param__works():
     assert parameters.has_param("${HYPENATED_PARAM}")
 
     assert not parameters.has_param("not_a_param")
+
+
+def test__DemandExecutionParameters__init__explicit_param_pair_overrides_handles_Nonetype():
+    parameters = DemandExecutionParameters(
+        params={
+            "param_in1": S3_URI + "1",
+            "param_out1": "foo",
+        },
+        inputs=["param_in1"],
+        outputs=["param_out1"],
+        param_pair_overrides=None,
+        output_s3_prefix=S3_PREFIX,
+    )
+
+    assert parameters.param_pairs == [
+        ParamPair(input="param_in1", output="param_out1"),
+    ]
+
+
+def test__DemandExecutionParameters__init__explicit_param_pair_overrides_raises_for_invalid_type():
+    with raises(PydanticValidationError):
+        DemandExecutionParameters(
+            params={
+                "param_in1": S3_URI + "1",
+                "param_out1": "foo",
+            },
+            inputs=["param_in1"],
+            outputs=["param_out1"],
+            param_pair_overrides="not_a_valid_type",  # type: ignore
+            output_s3_prefix=S3_PREFIX,
+        )
+
+    with raises(PydanticValidationError):
+        DemandExecutionParameters(
+            params={
+                "param_in1": S3_URI + "1",
+                "param_out1": "foo",
+            },
+            inputs=["param_in1"],
+            outputs=["param_out1"],
+            # deprecated key
+            param_pairs="not_a_valid_type",  # type: ignore
+            output_s3_prefix=S3_PREFIX,
+        )
 
 
 def test__get_input_job_param__handles_valid_and_missing():
