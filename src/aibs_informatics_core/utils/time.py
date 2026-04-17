@@ -3,9 +3,11 @@ __all__ = [
     "get_current_time",
     "get_duration_in_secs",
     "from_isoformat_8601",
+    "to_zulu_isoformat_8601",
 ]
 
 import datetime as dt
+from typing import Literal
 
 BEGINNING_OF_TIME = dt.datetime.fromtimestamp(0.0, tz=dt.timezone.utc)
 
@@ -60,4 +62,38 @@ def from_isoformat_8601(iso8601_str: str) -> dt.datetime:
         fmt = fmt + "%z"
     elif iso8601_str[-1] == "Z":
         fmt = fmt + "Z"
-    return dt.datetime.strptime(iso8601_str, fmt)
+    result = dt.datetime.strptime(iso8601_str, fmt)
+    # strptime treats 'Z' as a literal, producing a naive datetime.
+    # Since Z unambiguously means UTC, attach the UTC tzinfo.
+    if result.tzinfo is None and iso8601_str[-1] == "Z":
+        result = result.replace(tzinfo=dt.timezone.utc)
+    return result
+
+
+def to_zulu_isoformat_8601(
+    value: dt.datetime | str,
+    naive_handling: Literal["coerce", "error"] = "coerce",
+) -> str:
+    """Convert a datetime object or ISO 8601 string to a Zulu ISO 8601 formatted string.
+
+    Args:
+        value: The datetime object or ISO 8601 string to convert.
+        naive_handling: How to handle naive (timezone-unaware) datetimes.
+            ``"coerce"`` (default) treats them as UTC.
+            ``"error"`` raises a :class:`ValueError`.
+
+    Returns:
+        The Zulu ISO 8601 formatted string.
+
+    Raises:
+        ValueError: If *naive_handling* is ``"error"`` and the datetime is naive.
+    """
+    dt_obj = from_isoformat_8601(value) if isinstance(value, str) else value
+    if dt_obj.tzinfo is None:
+        if naive_handling == "error":
+            raise ValueError(
+                "Naive datetime provided but naive_handling='error'. "
+                "Supply a timezone-aware datetime or use naive_handling='coerce'."
+            )
+        dt_obj = dt_obj.replace(tzinfo=dt.timezone.utc)
+    return dt_obj.astimezone(dt.timezone.utc).isoformat().replace("+00:00", "Z")
