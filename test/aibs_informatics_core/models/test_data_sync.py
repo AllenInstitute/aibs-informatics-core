@@ -6,12 +6,14 @@ from aibs_informatics_core.models.data_sync import (
     BatchDataSyncResponse,
     BatchDataSyncResult,
     DataSyncConfig,
+    DataSyncFilterConfig,
     DataSyncRequest,
     DataSyncResult,
     DataSyncTask,
     JSONContent,
     JSONReference,
     PrepareBatchDataSyncResponse,
+    RemoteToLocalConfig,
 )
 
 S3_URI = S3Path.build(bucket_name="bucket", key="key")
@@ -136,6 +138,7 @@ def test__BatchDataSyncRequest__to_dict():
                 "force": False,
                 "size_only": False,
                 "retain_source_data": True,
+                "delete": True,
                 "include_detailed_response": False,
                 "remote_to_local_config": {"use_custom_tmp_dir": False},
             },
@@ -185,6 +188,7 @@ def test__PrepareBatchDataSyncResponse__to_dict():
                         "force": False,
                         "size_only": False,
                         "retain_source_data": True,
+                        "delete": True,
                         "include_detailed_response": False,
                         "remote_to_local_config": {"use_custom_tmp_dir": False},
                     },
@@ -286,3 +290,173 @@ def test__BatchDataSyncResult__increment_counts():
     assert result.failed_requests_count == 3
     # Total requests count should now be 2 (from successful) + 3 (from failed) = 5
     assert result.total_requests_count == 5
+
+
+def test__DataSyncFilterConfig__defaults_to_no_filters():
+    config = DataSyncFilterConfig()
+    assert config.include is None
+    assert config.exclude is None
+    assert config.include_patterns is None
+    assert config.exclude_patterns is None
+
+
+def test__DataSyncFilterConfig__compiles_single_pattern():
+    config = DataSyncFilterConfig(include=r".*\.bam", exclude=r".*\.bai")
+    assert [p.pattern for p in config.include_patterns] == [r".*\.bam"]
+    assert [p.pattern for p in config.exclude_patterns] == [r".*\.bai"]
+
+
+def test__DataSyncFilterConfig__compiles_pattern_list():
+    config = DataSyncFilterConfig(include=[r".*\.bam", r".*\.vcf"], exclude=[])
+    assert [p.pattern for p in config.include_patterns] == [r".*\.bam", r".*\.vcf"]
+    assert config.exclude_patterns is None
+
+
+def test__DataSyncFilterConfig__round_trip():
+    config = DataSyncFilterConfig(include=[r"s1/.*"], exclude=r".*\.bam")
+    model_dict = config.to_dict()
+    assert model_dict == {"include": [r"s1/.*"], "exclude": r".*\.bam"}
+    assert DataSyncFilterConfig.from_dict(model_dict) == config
+
+
+def test__DataSyncFilterConfig__cached_properties_do_not_leak_into_serialization():
+    # cached_property values live on the instance; ensure they stay out of to_dict()
+    # and out of equality.
+    config = DataSyncFilterConfig(include=r"s1/.*")
+    assert config.include_patterns is not None
+    assert config.exclude_patterns is None
+    assert config.to_dict() == {"include": r"s1/.*"}
+    assert config == DataSyncFilterConfig(include=r"s1/.*")
+
+
+def test__DataSyncTask__round_trip__with_filter_config():
+    task = DataSyncTask(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        filter_config=DataSyncFilterConfig(include=r"s1/.*"),
+        filter_root=str(S3_URI),
+    )
+    model_dict = task.to_dict()
+    assert model_dict["filter_config"] == {"include": r"s1/.*"}
+    assert model_dict["filter_root"] == str(S3_URI)
+    assert DataSyncTask.from_dict(model_dict) == task
+
+
+def test__DataSyncTask__round_trip__without_filter_config():
+    task = DataSyncTask(source_path=S3_URI, destination_path=S3_URI)
+    model_dict = task.to_dict()
+    assert "filter_config" not in model_dict
+    assert "filter_root" not in model_dict
+    assert DataSyncTask.from_dict(model_dict) == task
+
+
+def test__DataSyncRequest__round_trip__with_filter_config():
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        filter_config=DataSyncFilterConfig(include=[r"s1/.*"], exclude=r".*\.bam"),
+        filter_root=str(S3_URI),
+        delete=False,
+    )
+    model_dict = request.to_dict()
+    assert model_dict["filter_config"] == {"include": [r"s1/.*"], "exclude": r".*\.bam"}
+    assert model_dict["delete"] is False
+    assert DataSyncRequest.from_dict(model_dict) == request
+
+
+def test__DataSyncRequest__round_trip__without_filter_config():
+    request = DataSyncRequest(source_path=S3_URI, destination_path=S3_URI)
+    model_dict = request.to_dict()
+    assert "filter_config" not in model_dict
+    assert model_dict["delete"] is True
+    assert DataSyncRequest.from_dict(model_dict) == request
+
+
+def test__DataSyncRequest__config_carries_every_config_field():
+    # The config property enumerates fields by hand, so new fields are silently dropped
+    # unless added. Every field is set to a non-default value to catch that.
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        max_concurrency=1,
+        retain_source_data=False,
+        delete=False,
+        require_lock=True,
+        force=True,
+        size_only=True,
+        fail_if_missing=False,
+        include_detailed_response=True,
+        remote_to_local_config=RemoteToLocalConfig(use_custom_tmp_dir=True),
+    )
+    config = request.config
+    for field_name in DataSyncConfig.model_fields:
+        assert getattr(config, field_name) == getattr(request, field_name), field_name
+
+
+def test__DataSyncRequest__task_carries_every_task_field():
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        source_path_prefix=S3KeyPrefix("prefix"),
+        filter_config=DataSyncFilterConfig(include=r"s1/.*", exclude=r".*\.bam"),
+        filter_root=str(S3_URI),
+    )
+    task = request.task
+    for field_name in DataSyncTask.model_fields:
+        assert getattr(task, field_name) == getattr(request, field_name), field_name
+
+
+def test__BatchDataSyncRequest__from_dict__flattened_request_with_filter_config():
+    # A single flattened DataSyncRequest -- including a nested filter_config -- is still
+    # recognized by _handle_single_flattened_request and wrapped into a batch.
+    single_request = {
+        "source_path": str(S3_URI),
+        "destination_path": str(S3_URI),
+        "filter_config": {"include": [r"s1/.*"], "exclude": r".*\.bam"},
+        "filter_root": str(S3_URI),
+        "delete": False,
+    }
+    actual = BatchDataSyncRequest.from_dict(single_request)
+    assert actual.requests == [DataSyncRequest.from_dict(single_request)]
+    assert actual.requests[0].filter_config == DataSyncFilterConfig(
+        include=[r"s1/.*"], exclude=r".*\.bam"
+    )
+    assert actual.requests[0].filter_root == str(S3_URI)
+    assert actual.requests[0].delete is False
+
+
+def test__BatchDataSyncRequest__round_trip__with_filter_config():
+    # This is the seam the SFN Map state crosses -- filters must survive it.
+    request = BatchDataSyncRequest(
+        requests=[
+            DataSyncRequest(
+                source_path=S3_URI,
+                destination_path=S3_URI,
+                filter_config=DataSyncFilterConfig(include=r"s1/.*"),
+                filter_root=str(S3_URI),
+                delete=False,
+            ),
+        ],
+    )
+    assert BatchDataSyncRequest.from_dict(request.to_dict()) == request
+
+
+def test__PrepareBatchDataSyncResponse__round_trip__with_filter_config():
+    response = PrepareBatchDataSyncResponse(
+        requests=[
+            BatchDataSyncRequest(
+                requests=[
+                    DataSyncRequest(
+                        source_path=S3_URI,
+                        destination_path=S3_URI,
+                        filter_config=DataSyncFilterConfig(
+                            include=[r"s1/.*"], exclude=[r".*\.bam"]
+                        ),
+                        filter_root=str(S3_URI),
+                        delete=False,
+                    ),
+                ],
+            ),
+        ],
+    )
+    assert PrepareBatchDataSyncResponse.from_dict(response.to_dict()) == response

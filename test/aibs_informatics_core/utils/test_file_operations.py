@@ -337,6 +337,38 @@ class FileOperationsTests(FileOperationsBaseTest):
         result = find_paths(root, include_dirs=False, excludes=[r".*\.log", r".*\.csv"])
         self.assertEqual(result, [str(root / "a.txt")])
 
+    def test__find_paths__patterns_are_matched_relative_to_root(self):
+        # Patterns describe the path relative to root. Previously they were matched against
+        # the full absolute path, so a root-relative pattern like "sub/.*" matched nothing.
+        root = self.tmp_path()
+        self.create_dir(root, ["sub/a.txt", "other/b.txt"])
+        result = find_paths(root, include_dirs=False, includes=[r"sub/.*"])
+        self.assertEqual(result, [str(root / "sub" / "a.txt")])
+
+    def test__find_paths__absolute_patterns_no_longer_match(self):
+        # The flip side of relative anchoring: a pattern carrying the absolute prefix
+        # no longer matches, since it is compared against the relative path.
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt"])
+        result = find_paths(root, include_dirs=False, includes=[f"{root}/.*"])
+        self.assertEqual(result, [])
+
+    def test__find_paths__exclude_is_relative_to_root(self):
+        root = self.tmp_path()
+        self.create_dir(root, ["sample/a.txt", "keep/b.txt"])
+        result = find_paths(root, include_dirs=False, excludes=[r"sample/.*"])
+        self.assertEqual(result, [str(root / "keep" / "b.txt")])
+
+    def test__find_paths__handles_file_root(self):
+        # When the root is itself a file, patterns match against its name.
+        root = self.tmp_path()
+        self.create_dir(root, ["a.txt"])
+        file_root = root / "a.txt"
+        self.assertEqual(
+            find_paths(file_root, include_dirs=False, includes=[r".*\.txt"]), [str(file_root)]
+        )
+        self.assertEqual(find_paths(file_root, include_dirs=False, includes=[r".*\.csv"]), [])
+
     def test__move_path__handles_file(self):
         path = self.tmp_file()
         path.write_text("_" * 5)

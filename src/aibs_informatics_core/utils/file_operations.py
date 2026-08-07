@@ -18,7 +18,6 @@ import fcntl
 import hashlib
 import logging
 import os
-import re
 import shutil
 import tarfile
 import tempfile
@@ -32,6 +31,7 @@ from pathlib import Path
 from re import Pattern
 from typing import Literal, Union, cast
 
+from aibs_informatics_core.utils.filters import filter_paths
 from aibs_informatics_core.utils.os_operations import find_all_paths
 
 ArchiveFile = Union[tarfile.TarFile, zipfile.ZipFile]
@@ -358,6 +358,11 @@ def find_paths(
 ) -> list[str]:
     """Find paths that match criteria
 
+    Patterns follow the shared filter contract in
+    :mod:`aibs_informatics_core.utils.filters`: they are regexes matched with
+    ``fullmatch`` against the path **relative to** ``root``, and excludes take
+    precedence over includes.
+
     Args:
         root (Union[str, Path]): root path
         include_dirs (bool, optional): whether to include directories. Defaults to True.
@@ -367,31 +372,15 @@ def find_paths(
         excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
 
     Returns:
-        list of paths matching criteria
+        list of paths matching criteria (as absolute paths under ``root``)
     """
 
-    paths_to_return = []
     paths = find_all_paths(root, include_dirs=include_dirs, include_files=include_files)
 
     if not includes and not excludes:
         return paths
 
-    include_patterns = [re.compile(include) for include in includes or [r".*"]]
-    exclude_patterns = [re.compile(exclude) for exclude in excludes or []]
-
-    for path in paths:
-        target_path = path  # if check_absolute_path else strip_path_root(root=root, path=path)
-        # First check exclude patterns
-        for exclude_pattern in exclude_patterns:
-            if exclude_pattern.fullmatch(target_path):
-                break
-        else:
-            # Now check include patterns
-            for include_pattern in include_patterns:
-                if include_pattern.fullmatch(target_path):
-                    paths_to_return.append(path)
-                    break
-    return paths_to_return
+    return filter_paths(paths, root=root, include=includes, exclude=excludes)
 
 
 def get_path_with_root(path: str | Path, root: str | Path) -> str:
