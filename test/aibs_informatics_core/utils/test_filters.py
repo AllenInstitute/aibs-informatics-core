@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.utils.filters import (
     compile_patterns,
     filter_paths,
@@ -120,9 +121,33 @@ def test__filter_paths__exclude_beats_include_and_preserves_order():
     assert actual == ["/r/c.txt", "/r/a.txt"]
 
 
-def test__filter_paths__no_filters_returns_all_paths_as_strings():
-    paths = [Path("/r/a.txt"), "/r/b.txt"]
-    assert filter_paths(paths) == ["/r/a.txt", "/r/b.txt"]
+def test__filter_paths__no_filters_returns_all_paths():
+    paths = ["/r/a.txt", "/r/b.txt"]
+    assert filter_paths(paths) == paths
+
+
+def test__filter_paths__preserves_path_objects():
+    # Paths are selected, never rewritten, so Path in means Path out.
+    paths = [Path("/r/a.txt"), Path("/r/b.log")]
+    actual = filter_paths(paths, root="/r", include=r".*\.txt")
+    assert actual == [Path("/r/a.txt")]
+    assert all(isinstance(p, Path) for p in actual)
+    # ... including on the unfiltered fast path.
+    assert filter_paths(paths) == paths
+    assert all(isinstance(p, Path) for p in filter_paths(paths))
+
+
+def test__filter_paths__preserves_str_subclasses():
+    # S3Path subclasses str; filtering must not widen it back to a plain str, since
+    # downstream callers keep working with S3Path objects.
+    paths = [
+        S3Path.build(bucket_name="bucket", key="run1/s1/a.bam"),
+        S3Path.build(bucket_name="bucket", key="run1/s2/b.bam"),
+    ]
+    root = S3Path.build(bucket_name="bucket", key="run1")
+    actual = filter_paths(paths, root=root, include=r"s1/.*")
+    assert actual == [S3Path.build(bucket_name="bucket", key="run1/s1/a.bam")]
+    assert all(isinstance(p, S3Path) for p in actual)
 
 
 def test__filter_paths__empty_include_includes_everything():

@@ -21,6 +21,8 @@ The contract implemented here is:
 """
 
 __all__ = [
+    "AnyPath",
+    "Patterns",
     "compile_patterns",
     "get_relative_path",
     "path_matches_filters",
@@ -32,8 +34,15 @@ from collections.abc import Iterable, Sequence
 from os.path import basename
 from pathlib import Path
 from re import Pattern
+from typing import TypeAlias, TypeVar
 
-Patterns = str | Pattern | Sequence[str | Pattern] | None
+Patterns: TypeAlias = str | Pattern | Sequence[str | Pattern] | None
+
+#: Filtering never rewrites the paths it is given, so callers get back exactly the type they
+#: passed in. Bound (rather than constrained) so that ``str`` subclasses such as
+#: :class:`~aibs_informatics_core.models.aws.s3.S3Path` survive a round trip as themselves
+#: instead of being widened to ``str``.
+AnyPath = TypeVar("AnyPath", bound=str | Path)
 
 
 def compile_patterns(patterns: Patterns) -> list[Pattern] | None:
@@ -122,15 +131,20 @@ def path_matches_filters(
 
 
 def filter_paths(
-    paths: Iterable[str | Path],
+    paths: Iterable[AnyPath],
     root: str | Path | None = None,
     include: Patterns = None,
     exclude: Patterns = None,
-) -> list[str]:
+) -> list[AnyPath]:
     """Filter an iterable of paths with the include/exclude filters.
 
     Equivalent to calling :func:`path_matches_filters` for each path, but the
     patterns are only compiled once.
+
+    This selects from ``paths`` without rewriting them, so the element type is
+    preserved: pass :class:`~pathlib.Path` objects and get ``Path`` objects
+    back, pass :class:`~aibs_informatics_core.models.aws.s3.S3Path` objects and
+    get ``S3Path`` objects back. Only the *matching* is done on strings.
 
     Args:
         paths: The paths to filter.
@@ -140,14 +154,15 @@ def filter_paths(
         exclude: Pattern(s) that drop a path. Takes precedence over ``include``.
 
     Returns:
-        The paths that passed the filters, as strings, in their original order.
+        The paths that passed the filters, in their original order and of the
+        same type they were passed in as.
     """
     include_patterns = compile_patterns(include)
     exclude_patterns = compile_patterns(exclude)
     if include_patterns is None and exclude_patterns is None:
-        return [str(path) for path in paths]
+        return list(paths)
     return [
-        str(path)
+        path
         for path in paths
         if _matches(
             get_relative_path(path, root),
