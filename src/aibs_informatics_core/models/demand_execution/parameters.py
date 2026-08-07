@@ -331,7 +331,7 @@ class DemandExecutionParameters(PydanticBaseModel):
 
     def _param_to_job_params__build_input(self, k: str, v: Any) -> JobParam:
         resolvable = get_resolvable_from_value(value=v, resolvable_classes=[Resolvable])
-        return DownloadableJobParam(k, resolvable.local, resolvable.remote)
+        return DownloadableJobParam.from_resolvable(name=k, resolvable=resolvable)
 
     def _param_to_job_params__build_output(self, k: str, v: Any) -> JobParam:
         if StringifiedUploadable.is_valid(v):
@@ -353,7 +353,7 @@ class DemandExecutionParameters(PydanticBaseModel):
                 else None
             )
             uploadable = Uploadable.from_any(value=v, default_remote=default_remote)
-            return UploadableJobParam(k, uploadable.local, uploadable.remote)
+            return UploadableJobParam.from_resolvable(name=k, resolvable=uploadable)
 
     def _set_job_params(self, job_params: list[JobParam]):
         self._job_params = JobParamResolver.resolve_references(job_params)
@@ -427,9 +427,20 @@ class DemandExecutionParameters(PydanticBaseModel):
         """Serializer that sanitizes params by converting any complex objects to their serializable representation
 
         Expected Behavior:
-            * Resolvable objects are converted to their string representation using to_str()
+            * Resolvable objects WITHOUT filters are converted to their string
+              representation using to_str()
+            * Resolvable objects WITH filters are converted to dicts using to_dict(),
+              because to_str() collapses them to "remote @ local" and would drop the
+              filters
             * PydanticBaseModel objects are converted to dicts using to_dict()
             * Pydantic BaseModel objects are converted to dicts using model_dump(mode="json")
+
+        The Resolvable branch is conditional on purpose. ``DemandExecution.get_execution_hash``
+        hashes these sanitized params, and that hash drives ``job_definition_name`` and
+        ``job_name`` for every demand execution. Emitting the dict form unconditionally would
+        change the serialization -- and therefore the hash -- of every *unfiltered* execution
+        in the system, silently re-registering every existing job definition. Unfiltered
+        resolvables must keep serializing exactly as they did before.
 
         Args:
             value (Any): The params value to be sanitized.
@@ -440,7 +451,8 @@ class DemandExecutionParameters(PydanticBaseModel):
         params = dict(value)
         for k, v in params.items():
             if isinstance(v, Resolvable):
-                params[k] = v.to_str()
+                # Only the dict form survives filters; see note above on hash stability.
+                params[k] = v.to_dict() if v.has_filters() else v.to_str()
             elif isinstance(v, PydanticBaseModel):
                 params[k] = v.to_dict()
             elif isinstance(v, BaseModel):
