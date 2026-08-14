@@ -368,11 +368,15 @@ def find_paths(
         include_dirs (bool, optional): whether to include directories. Defaults to True.
         include_files (bool, optional): whether to include files. Defaults to True.
 
-        includes (Sequence[str], optional): list of regex patterns to include. Defaults to all.
-        excludes (Sequence[str], optional): list of regex patterns to exclude. Defaults to None.
+        includes (Sequence[Pattern | str], optional): regex patterns, already compiled
+            or not, to include. Defaults to all.
+        excludes (Sequence[Pattern | str], optional): regex patterns, already compiled
+            or not, to exclude. Defaults to None.
 
     Returns:
-        list of paths matching criteria (as absolute paths under ``root``)
+        list of paths matching criteria, each prefixed with ``root`` as given -- an
+        absolute ``root`` yields absolute paths, a relative one yields relative paths.
+        Patterns are matched against the path relative to ``root`` either way.
     """
 
     paths = find_all_paths(root, include_dirs=include_dirs, include_files=include_files)
