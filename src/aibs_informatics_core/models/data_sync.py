@@ -83,6 +83,39 @@ class DataSyncFilterConfig(PydanticBaseModel):
     include: str | list[str] | None = None
     exclude: str | list[str] | None = None
 
+    @classmethod
+    def from_patterns(
+        cls,
+        include: str | list[str] | None = None,
+        exclude: str | list[str] | None = None,
+    ) -> "DataSyncFilterConfig | None":
+        """Build a config from raw patterns, or ``None`` when nothing is filtered.
+
+        The single definition of "are these filters actually filtering anything". Empty
+        counts as absent -- ``None``, ``""`` and ``[]`` all yield ``None`` rather than a
+        config that matches everything.
+
+        That distinction is load-bearing for callers that branch on whether filters are
+        present. ``DemandExecutionParameters.sanitize_serialized_params`` serializes a
+        resolvable one way when it has filters and another way when it does not, and the
+        result feeds an execution hash -- so an empty-but-present config must not read as
+        "filtered", or it would change the hash while filtering nothing.
+
+        Callers holding raw ``include``/``exclude`` should route through here rather than
+        writing the emptiness check themselves; it has already been written two different
+        ways in this codebase.
+
+        Args:
+            include: Optional regex pattern(s) for files to include.
+            exclude: Optional regex pattern(s) for files to exclude.
+
+        Returns:
+            A config, or ``None`` if neither argument carries a pattern.
+        """
+        if not include and not exclude:
+            return None
+        return cls(include=include, exclude=exclude)
+
     # Deliberately plain properties, not cached_property. This model is mutable, and a
     # cached compile would go stale the moment `include`/`exclude` changed -- leaving the
     # config serializing one set of patterns while filtering by another. The staleness

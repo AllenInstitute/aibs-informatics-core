@@ -1,6 +1,8 @@
 import re
 from pathlib import Path
 
+from pytest import mark, param
+
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
 from aibs_informatics_core.models.data_sync import (
     BatchDataSyncRequest,
@@ -482,3 +484,50 @@ def test__PrepareBatchDataSyncResponse__round_trip__with_filter_config():
         ],
     )
     assert PrepareBatchDataSyncResponse.from_dict(response.to_dict()) == response
+
+
+@mark.parametrize(
+    "include, exclude, expected_present",
+    [
+        param(None, None, False, id="both None"),
+        param("", "", False, id="both empty strings"),
+        param([], [], False, id="both empty lists"),
+        param([], None, False, id="empty list and None"),
+        param(r"a.*", None, True, id="include only"),
+        param(None, r"b.*", True, id="exclude only"),
+        param([r"a.*"], [r"b.*"], True, id="both"),
+    ],
+)
+def test__DataSyncFilterConfig__from_patterns(include, exclude, expected_present):
+    # One definition of "are these filters actually filtering anything". Empty must read
+    # as absent: callers branch on presence, and one of them (sanitize_serialized_params)
+    # feeds an execution hash, so an empty-but-present config would change the hash while
+    # filtering nothing.
+    config = DataSyncFilterConfig.from_patterns(include=include, exclude=exclude)
+    assert (config is not None) == expected_present
+    if config is not None:
+        assert config.include == include
+        assert config.exclude == exclude
+
+
+def test__DataSyncFilterConfig__fields_are_mirrored_by_hand_elsewhere():
+    """Fail loudly if DataSyncFilterConfig grows a field.
+
+    ResolvableBase and ResolvableJobParam carry `include`/`exclude` as their own flat
+    fields and adapt them via `from_patterns`, rather than nesting this model. That keeps
+    the demand execution models from depending on the data sync schema, at the cost of a
+    hand-maintained mirror: a new field added here would be silently absent there, and a
+    value-comparing test would stay green.
+
+    If this fails, a field was added. Either mirror it in
+    `models/demand_execution/resolvables.py::ResolvableBase` and
+    `models/demand_execution/job_param.py::ResolvableJobParam` (and thread it through
+    `from_patterns` and `from_resolvable`), or take it as the signal to switch those
+    models to a nested `filter_config: DataSyncFilterConfig` field.
+
+    If you do switch: `PydanticBaseModel` sets `extra="ignore"`, so payloads still using
+    the flat keys would be accepted with their filters SILENTLY DROPPED. That migration
+    needs a `model_validator(mode="before")` that either folds the flat keys into the
+    nested config or rejects them outright -- never a bare field swap.
+    """
+    assert set(DataSyncFilterConfig.model_fields) == {"include", "exclude"}
