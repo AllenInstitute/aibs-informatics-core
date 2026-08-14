@@ -16,7 +16,6 @@ __all__ = [
     "PrepareBatchDataSyncResponse",
 ]
 
-from functools import cached_property
 from pathlib import Path
 from re import Pattern
 
@@ -84,11 +83,17 @@ class DataSyncFilterConfig(PydanticBaseModel):
     include: str | list[str] | None = None
     exclude: str | list[str] | None = None
 
-    @cached_property
+    # Deliberately plain properties, not cached_property. This model is mutable, and a
+    # cached compile would go stale the moment `include`/`exclude` changed -- leaving the
+    # config serializing one set of patterns while filtering by another. The staleness
+    # also survives `model_copy(update=...)`, which copies the populated instance __dict__
+    # along with the fields, so freezing the model would not close that path either.
+    # Recompiling is cheap: `re.compile` keeps its own module-level cache.
+    @property
     def include_patterns(self) -> list[Pattern] | None:
         return compile_patterns(self.include)
 
-    @cached_property
+    @property
     def exclude_patterns(self) -> list[Pattern] | None:
         return compile_patterns(self.exclude)
 
@@ -109,7 +114,13 @@ class DataSyncTask(PydanticBaseModel):
             sub-requests rooted at ``s3://b/run1/sampleA/``. Each sub-request
             re-lists from its own root, so patterns written against ``run1/``
             would silently stop matching. Sub-requests therefore carry the
-            original root here. Defaults to the source path when unset.
+            original root here.
+
+            ``None`` means "not set" rather than a resolved default: this model
+            applies no fallback, and consumers are expected to treat ``None`` as
+            "anchor to ``source_path``". Resolving it here instead would
+            materialize the source path into the serialized task, which
+            ``to_dict()`` currently omits while the field is ``None``.
     """
 
     source_path: S3Path | EFSPath | Path

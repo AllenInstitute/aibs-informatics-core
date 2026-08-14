@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
@@ -319,14 +320,35 @@ def test__DataSyncFilterConfig__round_trip():
     assert DataSyncFilterConfig.from_dict(model_dict) == config
 
 
-def test__DataSyncFilterConfig__cached_properties_do_not_leak_into_serialization():
-    # cached_property values live on the instance; ensure they stay out of to_dict()
-    # and out of equality.
+def test__DataSyncFilterConfig__pattern_properties_do_not_leak_into_serialization():
+    # The pattern accessors are derived, not fields: keep them out of to_dict() and equality.
     config = DataSyncFilterConfig(include=r"s1/.*")
     assert config.include_patterns is not None
     assert config.exclude_patterns is None
     assert config.to_dict() == {"include": r"s1/.*"}
     assert config == DataSyncFilterConfig(include=r"s1/.*")
+
+
+def test__DataSyncFilterConfig__patterns_track_mutation():
+    # These are plain properties rather than cached_property precisely so this holds. With a
+    # cache, the config would serialize one set of patterns while filtering by another.
+    config = DataSyncFilterConfig(include=r"s1/.*")
+    assert config.include_patterns == [re.compile(r"s1/.*")]
+
+    config.include = r"s2/.*"
+    assert config.include_patterns == [re.compile(r"s2/.*")]
+    assert config.to_dict() == {"include": r"s2/.*"}
+
+
+def test__DataSyncFilterConfig__patterns_track_model_copy_update():
+    # model_copy copies the instance __dict__, so a populated cache would survive the update
+    # here even on a frozen model -- which is why freezing alone would not have fixed this.
+    config = DataSyncFilterConfig(include=r"s1/.*", exclude=r".*\.bam")
+    assert config.include_patterns == [re.compile(r"s1/.*")]  # warm any cache first
+
+    copied = config.model_copy(update={"include": r"s2/.*"})
+    assert copied.include_patterns == [re.compile(r"s2/.*")]
+    assert copied.exclude_patterns == [re.compile(r".*\.bam")]
 
 
 def test__DataSyncTask__round_trip__with_filter_config():
