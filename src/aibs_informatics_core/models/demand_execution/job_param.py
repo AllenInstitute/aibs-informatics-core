@@ -133,10 +133,18 @@ class ResolvableJobParam(JobParam):
 
     @property
     def filter_config(self) -> DataSyncFilterConfig | None:
-        """The filters as a :class:`DataSyncFilterConfig`, or None if unfiltered."""
-        if not self.include and not self.exclude:
-            return None
-        return DataSyncFilterConfig(include=self.include, exclude=self.exclude)
+        """The filters as a :class:`DataSyncFilterConfig`, or None if unfiltered.
+
+        Same adapter as
+        :attr:`~aibs_informatics_core.models.demand_execution.resolvables.ResolvableBase.filter_config`,
+        routed through the same constructor so the "is anything actually filtered" rule
+        is defined once rather than re-derived here.
+        """
+        return DataSyncFilterConfig.from_patterns(include=self.include, exclude=self.exclude)
+
+    def has_filters(self) -> bool:
+        """Whether any include/exclude filter is set. See :attr:`filter_config`."""
+        return self.filter_config is not None
 
     def find_references(self) -> list[JobParamRef]:
         """Find ``${REF}`` references in this param's values.

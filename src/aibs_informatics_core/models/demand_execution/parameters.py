@@ -436,11 +436,16 @@ class DemandExecutionParameters(PydanticBaseModel):
             * Pydantic BaseModel objects are converted to dicts using model_dump(mode="json")
 
         The Resolvable branch is conditional on purpose. ``DemandExecution.get_execution_hash``
-        hashes these sanitized params, and that hash drives ``job_definition_name`` and
-        ``job_name`` for every demand execution. Emitting the dict form unconditionally would
-        change the serialization -- and therefore the hash -- of every *unfiltered* execution
-        in the system, silently re-registering every existing job definition. Unfiltered
-        resolvables must keep serializing exactly as they did before.
+        hashes these sanitized params, so emitting the dict form unconditionally would change
+        the hash of every *unfiltered* execution in the system. Unfiltered resolvables must
+        keep serializing exactly as they did before.
+
+        Scope of that exposure, since it is easy to overstate: params are hashed only under
+        ``strict=True``. ``get_execution_hash(strict=False)`` covers ``execution_type``,
+        ``execution_image`` and ``command`` alone, so ``job_definition_name`` -- which uses
+        the non-strict hash -- cannot change from anything this method does. The affected
+        value is ``job_name``. Real, and worth protecting, but it does not re-register job
+        definitions.
 
         Args:
             value (Any): The params value to be sanitized.

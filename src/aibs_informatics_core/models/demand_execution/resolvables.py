@@ -152,10 +152,13 @@ class ResolvableBase(PydanticBaseModel, Generic[T]):
 
     @property
     def filter_config(self) -> DataSyncFilterConfig | None:
-        """The filters as a :class:`DataSyncFilterConfig`, or None if unfiltered."""
-        if not self.has_filters():
-            return None
-        return DataSyncFilterConfig(include=self.include, exclude=self.exclude)
+        """The filters as a :class:`DataSyncFilterConfig`, or None if unfiltered.
+
+        An adapter, not storage. ``include``/``exclude`` are this model's own fields;
+        this translates them at the boundary into the type the data sync layer consumes,
+        so the demand execution models stay independent of the data sync schema.
+        """
+        return DataSyncFilterConfig.from_patterns(include=self.include, exclude=self.exclude)
 
     def has_filters(self) -> bool:
         """Whether any include/exclude filter is set.
@@ -163,9 +166,10 @@ class ResolvableBase(PydanticBaseModel, Generic[T]):
         Drives the conditional serialization in
         ``DemandExecutionParameters.sanitize_serialized_params``, so an empty list
         counts as no filter -- it would otherwise force the dict form (and a new
-        execution hash) while filtering nothing.
+        execution hash) while filtering nothing. Defers to
+        :meth:`DataSyncFilterConfig.from_patterns` so that rule lives in one place.
         """
-        return bool(self.include) or bool(self.exclude)
+        return self.filter_config is not None
 
     @classmethod
     def get_action(cls) -> ResolvableAction:
