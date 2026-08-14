@@ -5,6 +5,7 @@ __all__ = [
     "PutJSONToFileResponse",
     "GetJSONFromFileRequest",
     "GetJSONFromFileResponse",
+    "DataSyncFilterConfig",
     "DataSyncTask",
     "DataSyncConfig",
     "DataSyncRequest",
@@ -16,12 +17,14 @@ __all__ = [
 ]
 
 from pathlib import Path
+from re import Pattern
 
 from pydantic import Field, JsonValue, model_validator
 
 from aibs_informatics_core.models.aws.efs import EFSPath
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
 from aibs_informatics_core.models.base import PydanticBaseModel
+from aibs_informatics_core.utils.filters import compile_patterns
 from aibs_informatics_core.utils.json import JSON
 
 
@@ -61,12 +64,103 @@ class GetJSONFromFileResponse(JSONContent):
     pass
 
 
+class DataSyncFilterConfig(PydanticBaseModel):
+    """Include/exclude filters restricting which files a data sync moves.
+
+    Patterns follow the shared contract in
+    :mod:`aibs_informatics_core.utils.filters`: they are regular expressions
+    (not globs) matched with ``fullmatch`` against the path *relative to* the
+    filter root, and exclude patterns take precedence over include patterns.
+    An absent or empty ``include`` includes everything.
+
+    Attributes:
+        include: Optional regex pattern(s) for files to include.
+            If multiple patterns, includes files matching any pattern.
+        exclude: Optional regex pattern(s) for files to exclude.
+            Exclude patterns take precedence over include patterns.
+    """
+
+    include: str | list[str] | None = None
+    exclude: str | list[str] | None = None
+
+    @classmethod
+    def from_patterns(
+        cls,
+        include: str | list[str] | None = None,
+        exclude: str | list[str] | None = None,
+    ) -> "DataSyncFilterConfig | None":
+        """Build a config from raw patterns, or ``None`` when nothing is filtered.
+
+        The single definition of "are these filters actually filtering anything". Empty
+        counts as absent -- ``None``, ``""`` and ``[]`` all yield ``None`` rather than a
+        config that matches everything.
+
+        That distinction is load-bearing for callers that branch on whether filters are
+        present. ``DemandExecutionParameters.sanitize_serialized_params`` serializes a
+        resolvable one way when it has filters and another way when it does not, and the
+        result feeds an execution hash -- so an empty-but-present config must not read as
+        "filtered", or it would change the hash while filtering nothing.
+
+        Callers holding raw ``include``/``exclude`` should route through here rather than
+        writing the emptiness check themselves; it has already been written two different
+        ways in this codebase.
+
+        Args:
+            include: Optional regex pattern(s) for files to include.
+            exclude: Optional regex pattern(s) for files to exclude.
+
+        Returns:
+            A config, or ``None`` if neither argument carries a pattern.
+        """
+        if not include and not exclude:
+            return None
+        return cls(include=include, exclude=exclude)
+
+    # Deliberately plain properties, not cached_property. This model is mutable, and a
+    # cached compile would go stale the moment `include`/`exclude` changed -- leaving the
+    # config serializing one set of patterns while filtering by another. The staleness
+    # also survives `model_copy(update=...)`, which copies the populated instance __dict__
+    # along with the fields, so freezing the model would not close that path either.
+    # Recompiling is cheap: `re.compile` keeps its own module-level cache.
+    @property
+    def include_patterns(self) -> list[Pattern] | None:
+        return compile_patterns(self.include)
+
+    @property
+    def exclude_patterns(self) -> list[Pattern] | None:
+        return compile_patterns(self.exclude)
+
+
 class DataSyncTask(PydanticBaseModel):
-    """Defines source and destination paths for a data sync operation."""
+    """Defines source and destination paths for a data sync operation.
+
+    Attributes:
+        source_path: Path to sync data from.
+        destination_path: Path to sync data to.
+        source_path_prefix: Optional S3 key prefix scoping the source.
+        filter_config: Optional include/exclude filters describing *what* to
+            move. Filters live on the task rather than the config because they
+            change the set of data transferred, not how the transfer runs.
+        filter_root: Root that filter patterns are matched relative to.
+            **Internal plumbing -- set by the prepare handler, never by users.**
+            The distributed sync workflow splits a sync of ``s3://b/run1/`` into
+            sub-requests rooted at ``s3://b/run1/sampleA/``. Each sub-request
+            re-lists from its own root, so patterns written against ``run1/``
+            would silently stop matching. Sub-requests therefore carry the
+            original root here.
+
+            ``None`` means "not set" rather than a resolved default: this model
+            applies no fallback, and consumers are expected to treat ``None`` as
+            "anchor to ``source_path``". Resolving it here instead would
+            materialize the source path into the serialized task, which
+            ``to_dict()`` currently omits while the field is ``None``.
+    """
 
     source_path: S3Path | EFSPath | Path
     destination_path: S3Path | EFSPath | Path
     source_path_prefix: S3KeyPrefix | None = None
+    filter_config: DataSyncFilterConfig | None = None
+    filter_root: str | None = None
 
 
 class RemoteToLocalConfig(PydanticBaseModel):
@@ -80,10 +174,40 @@ class RemoteToLocalConfig(PydanticBaseModel):
 
 
 class DataSyncConfig(PydanticBaseModel):
-    """Configuration options for data sync operations."""
+    """Configuration options for data sync operations.
+
+    Attributes:
+        max_concurrency: Maximum number of concurrent transfer operations.
+        retain_source_data: Whether to keep the source data after syncing.
+        delete: Whether the sync deletes destination paths that are not present
+            in the (filtered) source -- i.e. whether the destination is made to
+            *mirror* the source rather than merely receive from it.
+
+            .. warning::
+                **This interacts destructively with**
+                :class:`DataSyncFilterConfig`. Filters narrow what the sync
+                considers to be "the source", so with ``delete=True`` any file
+                already at the destination that the filters exclude is treated
+                as unexpected and **deleted**. Syncing a filtered subset into a
+                directory that holds an earlier unfiltered copy will therefore
+                remove the non-matching files.
+
+                This is deliberately *not* guarded by validation -- ``delete``
+                is the gate, and mirroring remains a legitimate use of a
+                filtered sync. Callers that pass a ``filter_config`` are
+                expected to pass ``delete=False`` unless they specifically want
+                the destination mirrored to the filtered subset.
+        require_lock: Whether to acquire a lock on the destination path.
+        force: Whether to transfer regardless of existing destination content.
+        size_only: Whether to compare only file sizes when deciding to transfer.
+        fail_if_missing: Whether to raise if the source path does not exist.
+        include_detailed_response: Whether to compute detailed transfer metrics.
+        remote_to_local_config: Options specific to remote-to-local syncs.
+    """
 
     max_concurrency: int = 25
     retain_source_data: bool = True
+    delete: bool = True
     require_lock: bool = False
     force: bool = False
     size_only: bool = False
@@ -97,10 +221,17 @@ class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
 
     @property
     def config(self) -> DataSyncConfig:
-        """Extract the configuration portion of this request."""
+        """Extract the configuration portion of this request.
+
+        Note:
+            Fields are enumerated by hand -- any field added to
+            :class:`DataSyncConfig` must be added here too, or it will be
+            silently dropped.
+        """
         return DataSyncConfig(
             max_concurrency=self.max_concurrency,
             retain_source_data=self.retain_source_data,
+            delete=self.delete,
             require_lock=self.require_lock,
             force=self.force,
             size_only=self.size_only,
@@ -111,11 +242,19 @@ class DataSyncRequest(DataSyncConfig, DataSyncTask):  # type: ignore[misc]
 
     @property
     def task(self) -> DataSyncTask:
-        """Extract the task portion of this request."""
+        """Extract the task portion of this request.
+
+        Note:
+            Fields are enumerated by hand -- any field added to
+            :class:`DataSyncTask` must be added here too, or it will be
+            silently dropped.
+        """
         return DataSyncTask(
             source_path=self.source_path,
             destination_path=self.destination_path,
             source_path_prefix=self.source_path_prefix,
+            filter_config=self.filter_config,
+            filter_root=self.filter_root,
         )
 
 

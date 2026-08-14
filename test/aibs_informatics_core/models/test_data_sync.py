@@ -1,4 +1,7 @@
+import re
 from pathlib import Path
+
+from pytest import mark, param
 
 from aibs_informatics_core.models.aws.s3 import S3KeyPrefix, S3Path
 from aibs_informatics_core.models.data_sync import (
@@ -6,12 +9,14 @@ from aibs_informatics_core.models.data_sync import (
     BatchDataSyncResponse,
     BatchDataSyncResult,
     DataSyncConfig,
+    DataSyncFilterConfig,
     DataSyncRequest,
     DataSyncResult,
     DataSyncTask,
     JSONContent,
     JSONReference,
     PrepareBatchDataSyncResponse,
+    RemoteToLocalConfig,
 )
 
 S3_URI = S3Path.build(bucket_name="bucket", key="key")
@@ -136,6 +141,7 @@ def test__BatchDataSyncRequest__to_dict():
                 "force": False,
                 "size_only": False,
                 "retain_source_data": True,
+                "delete": True,
                 "include_detailed_response": False,
                 "remote_to_local_config": {"use_custom_tmp_dir": False},
             },
@@ -185,6 +191,7 @@ def test__PrepareBatchDataSyncResponse__to_dict():
                         "force": False,
                         "size_only": False,
                         "retain_source_data": True,
+                        "delete": True,
                         "include_detailed_response": False,
                         "remote_to_local_config": {"use_custom_tmp_dir": False},
                     },
@@ -286,3 +293,241 @@ def test__BatchDataSyncResult__increment_counts():
     assert result.failed_requests_count == 3
     # Total requests count should now be 2 (from successful) + 3 (from failed) = 5
     assert result.total_requests_count == 5
+
+
+def test__DataSyncFilterConfig__defaults_to_no_filters():
+    config = DataSyncFilterConfig()
+    assert config.include is None
+    assert config.exclude is None
+    assert config.include_patterns is None
+    assert config.exclude_patterns is None
+
+
+def test__DataSyncFilterConfig__compiles_single_pattern():
+    config = DataSyncFilterConfig(include=r".*\.bam", exclude=r".*\.bai")
+    assert [p.pattern for p in config.include_patterns] == [r".*\.bam"]
+    assert [p.pattern for p in config.exclude_patterns] == [r".*\.bai"]
+
+
+def test__DataSyncFilterConfig__compiles_pattern_list():
+    config = DataSyncFilterConfig(include=[r".*\.bam", r".*\.vcf"], exclude=[])
+    assert [p.pattern for p in config.include_patterns] == [r".*\.bam", r".*\.vcf"]
+    assert config.exclude_patterns is None
+
+
+def test__DataSyncFilterConfig__round_trip():
+    config = DataSyncFilterConfig(include=[r"s1/.*"], exclude=r".*\.bam")
+    model_dict = config.to_dict()
+    assert model_dict == {"include": [r"s1/.*"], "exclude": r".*\.bam"}
+    assert DataSyncFilterConfig.from_dict(model_dict) == config
+
+
+def test__DataSyncFilterConfig__pattern_properties_do_not_leak_into_serialization():
+    # The pattern accessors are derived, not fields: keep them out of to_dict() and equality.
+    config = DataSyncFilterConfig(include=r"s1/.*")
+    assert config.include_patterns is not None
+    assert config.exclude_patterns is None
+    assert config.to_dict() == {"include": r"s1/.*"}
+    assert config == DataSyncFilterConfig(include=r"s1/.*")
+
+
+def test__DataSyncFilterConfig__patterns_track_mutation():
+    # These are plain properties rather than cached_property precisely so this holds. With a
+    # cache, the config would serialize one set of patterns while filtering by another.
+    config = DataSyncFilterConfig(include=r"s1/.*")
+    assert config.include_patterns == [re.compile(r"s1/.*")]
+
+    config.include = r"s2/.*"
+    assert config.include_patterns == [re.compile(r"s2/.*")]
+    assert config.to_dict() == {"include": r"s2/.*"}
+
+
+def test__DataSyncFilterConfig__patterns_track_model_copy_update():
+    # model_copy copies the instance __dict__, so a populated cache would survive the update
+    # here even on a frozen model -- which is why freezing alone would not have fixed this.
+    config = DataSyncFilterConfig(include=r"s1/.*", exclude=r".*\.bam")
+    assert config.include_patterns == [re.compile(r"s1/.*")]  # warm any cache first
+
+    copied = config.model_copy(update={"include": r"s2/.*"})
+    assert copied.include_patterns == [re.compile(r"s2/.*")]
+    assert copied.exclude_patterns == [re.compile(r".*\.bam")]
+
+
+def test__DataSyncTask__round_trip__with_filter_config():
+    task = DataSyncTask(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        filter_config=DataSyncFilterConfig(include=r"s1/.*"),
+        filter_root=str(S3_URI),
+    )
+    model_dict = task.to_dict()
+    assert model_dict["filter_config"] == {"include": r"s1/.*"}
+    assert model_dict["filter_root"] == str(S3_URI)
+    assert DataSyncTask.from_dict(model_dict) == task
+
+
+def test__DataSyncTask__round_trip__without_filter_config():
+    task = DataSyncTask(source_path=S3_URI, destination_path=S3_URI)
+    model_dict = task.to_dict()
+    assert "filter_config" not in model_dict
+    assert "filter_root" not in model_dict
+    assert DataSyncTask.from_dict(model_dict) == task
+
+
+def test__DataSyncRequest__round_trip__with_filter_config():
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        filter_config=DataSyncFilterConfig(include=[r"s1/.*"], exclude=r".*\.bam"),
+        filter_root=str(S3_URI),
+        delete=False,
+    )
+    model_dict = request.to_dict()
+    assert model_dict["filter_config"] == {"include": [r"s1/.*"], "exclude": r".*\.bam"}
+    assert model_dict["delete"] is False
+    assert DataSyncRequest.from_dict(model_dict) == request
+
+
+def test__DataSyncRequest__round_trip__without_filter_config():
+    request = DataSyncRequest(source_path=S3_URI, destination_path=S3_URI)
+    model_dict = request.to_dict()
+    assert "filter_config" not in model_dict
+    assert model_dict["delete"] is True
+    assert DataSyncRequest.from_dict(model_dict) == request
+
+
+def test__DataSyncRequest__config_carries_every_config_field():
+    # The config property enumerates fields by hand, so new fields are silently dropped
+    # unless added. Every field is set to a non-default value to catch that.
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        max_concurrency=1,
+        retain_source_data=False,
+        delete=False,
+        require_lock=True,
+        force=True,
+        size_only=True,
+        fail_if_missing=False,
+        include_detailed_response=True,
+        remote_to_local_config=RemoteToLocalConfig(use_custom_tmp_dir=True),
+    )
+    config = request.config
+    for field_name in DataSyncConfig.model_fields:
+        assert getattr(config, field_name) == getattr(request, field_name), field_name
+
+
+def test__DataSyncRequest__task_carries_every_task_field():
+    request = DataSyncRequest(
+        source_path=S3_URI,
+        destination_path=S3_URI,
+        source_path_prefix=S3KeyPrefix("prefix"),
+        filter_config=DataSyncFilterConfig(include=r"s1/.*", exclude=r".*\.bam"),
+        filter_root=str(S3_URI),
+    )
+    task = request.task
+    for field_name in DataSyncTask.model_fields:
+        assert getattr(task, field_name) == getattr(request, field_name), field_name
+
+
+def test__BatchDataSyncRequest__from_dict__flattened_request_with_filter_config():
+    # A single flattened DataSyncRequest -- including a nested filter_config -- is still
+    # recognized by _handle_single_flattened_request and wrapped into a batch.
+    single_request = {
+        "source_path": str(S3_URI),
+        "destination_path": str(S3_URI),
+        "filter_config": {"include": [r"s1/.*"], "exclude": r".*\.bam"},
+        "filter_root": str(S3_URI),
+        "delete": False,
+    }
+    actual = BatchDataSyncRequest.from_dict(single_request)
+    assert actual.requests == [DataSyncRequest.from_dict(single_request)]
+    assert actual.requests[0].filter_config == DataSyncFilterConfig(
+        include=[r"s1/.*"], exclude=r".*\.bam"
+    )
+    assert actual.requests[0].filter_root == str(S3_URI)
+    assert actual.requests[0].delete is False
+
+
+def test__BatchDataSyncRequest__round_trip__with_filter_config():
+    # This is the seam the SFN Map state crosses -- filters must survive it.
+    request = BatchDataSyncRequest(
+        requests=[
+            DataSyncRequest(
+                source_path=S3_URI,
+                destination_path=S3_URI,
+                filter_config=DataSyncFilterConfig(include=r"s1/.*"),
+                filter_root=str(S3_URI),
+                delete=False,
+            ),
+        ],
+    )
+    assert BatchDataSyncRequest.from_dict(request.to_dict()) == request
+
+
+def test__PrepareBatchDataSyncResponse__round_trip__with_filter_config():
+    response = PrepareBatchDataSyncResponse(
+        requests=[
+            BatchDataSyncRequest(
+                requests=[
+                    DataSyncRequest(
+                        source_path=S3_URI,
+                        destination_path=S3_URI,
+                        filter_config=DataSyncFilterConfig(
+                            include=[r"s1/.*"], exclude=[r".*\.bam"]
+                        ),
+                        filter_root=str(S3_URI),
+                        delete=False,
+                    ),
+                ],
+            ),
+        ],
+    )
+    assert PrepareBatchDataSyncResponse.from_dict(response.to_dict()) == response
+
+
+@mark.parametrize(
+    "include, exclude, expected_present",
+    [
+        param(None, None, False, id="both None"),
+        param("", "", False, id="both empty strings"),
+        param([], [], False, id="both empty lists"),
+        param([], None, False, id="empty list and None"),
+        param(r"a.*", None, True, id="include only"),
+        param(None, r"b.*", True, id="exclude only"),
+        param([r"a.*"], [r"b.*"], True, id="both"),
+    ],
+)
+def test__DataSyncFilterConfig__from_patterns(include, exclude, expected_present):
+    # One definition of "are these filters actually filtering anything". Empty must read
+    # as absent: callers branch on presence, and one of them (sanitize_serialized_params)
+    # feeds an execution hash, so an empty-but-present config would change the hash while
+    # filtering nothing.
+    config = DataSyncFilterConfig.from_patterns(include=include, exclude=exclude)
+    assert (config is not None) == expected_present
+    if config is not None:
+        assert config.include == include
+        assert config.exclude == exclude
+
+
+def test__DataSyncFilterConfig__fields_are_mirrored_by_hand_elsewhere():
+    """Fail loudly if DataSyncFilterConfig grows a field.
+
+    ResolvableBase and ResolvableJobParam carry `include`/`exclude` as their own flat
+    fields and adapt them via `from_patterns`, rather than nesting this model. That keeps
+    the demand execution models from depending on the data sync schema, at the cost of a
+    hand-maintained mirror: a new field added here would be silently absent there, and a
+    value-comparing test would stay green.
+
+    If this fails, a field was added. Either mirror it in
+    `models/demand_execution/resolvables.py::ResolvableBase` and
+    `models/demand_execution/job_param.py::ResolvableJobParam` (and thread it through
+    `from_patterns` and `from_resolvable`), or take it as the signal to switch those
+    models to a nested `filter_config: DataSyncFilterConfig` field.
+
+    If you do switch: `PydanticBaseModel` sets `extra="ignore"`, so payloads still using
+    the flat keys would be accepted with their filters SILENTLY DROPPED. That migration
+    needs a `model_validator(mode="before")` that either folds the flat keys into the
+    nested config or rejects them outright -- never a bare field swap.
+    """
+    assert set(DataSyncFilterConfig.model_fields) == {"include", "exclude"}

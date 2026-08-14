@@ -24,6 +24,7 @@ from aibs_informatics_core.collections import ValidatedStr
 from aibs_informatics_core.exceptions import ValidationError
 from aibs_informatics_core.models.aws.s3 import S3Path
 from aibs_informatics_core.models.base import PydanticBaseModel
+from aibs_informatics_core.models.data_sync import DataSyncFilterConfig
 from aibs_informatics_core.utils.hashing import sha256_hexdigest
 from aibs_informatics_core.utils.json import JSON
 
@@ -116,8 +117,59 @@ class ResolvableAction(str, Enum):
 # TODO: rename to rename resolvable subclasses to uploadable
 #       Also add action and maybe a type field (s3, gfs, etc.)
 class ResolvableBase(PydanticBaseModel, Generic[T]):
+    """A path pair that a demand execution localizes or delocalizes.
+
+    Attributes:
+        local: The local (EFS) side of the pair.
+        remote: The remote (usually S3) side of the pair.
+        include: Optional regex pattern(s) restricting which files are transferred.
+            An absent or empty ``include`` includes everything.
+        exclude: Optional regex pattern(s) for files to skip. Exclude patterns take
+            precedence over include patterns.
+
+    ``include``/``exclude`` follow the shared contract in
+    :mod:`aibs_informatics_core.utils.filters`: they are regular expressions (not
+    globs), matched with ``fullmatch`` against the path relative to the filter root.
+    They sit next to the path they filter rather than in a nested object so the
+    wire format stays flat::
+
+        {"remote": "s3://bucket/run1/", "local": "aligned", "exclude": [".*\\\\.bam"]}
+
+    :attr:`filter_config` re-exposes them as the :class:`DataSyncFilterConfig` that
+    the data sync layer consumes.
+
+    .. warning::
+        On an :class:`Uploadable`, filtering means *do not upload*, not *keep
+        locally*. Post-execution syncs run with ``retain_source_data=False`` and the
+        working directory is cleaned up regardless, so excluded outputs are still
+        deleted from EFS -- they simply never reach S3.
+    """
+
     local: str
     remote: T
+    include: str | list[str] | None = None
+    exclude: str | list[str] | None = None
+
+    @property
+    def filter_config(self) -> DataSyncFilterConfig | None:
+        """The filters as a :class:`DataSyncFilterConfig`, or None if unfiltered.
+
+        An adapter, not storage. ``include``/``exclude`` are this model's own fields;
+        this translates them at the boundary into the type the data sync layer consumes,
+        so the demand execution models stay independent of the data sync schema.
+        """
+        return DataSyncFilterConfig.from_patterns(include=self.include, exclude=self.exclude)
+
+    def has_filters(self) -> bool:
+        """Whether any include/exclude filter is set.
+
+        Drives the conditional serialization in
+        ``DemandExecutionParameters.sanitize_serialized_params``, so an empty list
+        counts as no filter -- it would otherwise force the dict form (and a new
+        execution hash) while filtering nothing. Defers to
+        :meth:`DataSyncFilterConfig.from_patterns` so that rule lives in one place.
+        """
+        return self.filter_config is not None
 
     @classmethod
     def get_action(cls) -> ResolvableAction:

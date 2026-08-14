@@ -5,6 +5,7 @@ from re import Match, Pattern
 from typing import ClassVar, TypeVar
 
 from aibs_informatics_core.collections import ValidatedStr
+from aibs_informatics_core.models.data_sync import DataSyncFilterConfig
 from aibs_informatics_core.models.demand_execution.resolvables import Resolvable
 
 
@@ -114,12 +115,45 @@ RP = TypeVar("RP", bound="ResolvableJobParam")
 
 @dataclass
 class ResolvableJobParam(JobParam):
+    """A job param whose value is a local path paired with a remote one.
+
+    ``include``/``exclude`` mirror the fields on
+    :class:`~aibs_informatics_core.models.demand_execution.resolvables.ResolvableBase`
+    and carry per-param filters through to the data sync requests. They are
+    deliberately excluded from ``__hash__`` and from reference resolution -- see
+    :meth:`find_references`.
+    """
+
     remote_value: str
+    include: str | list[str] | None = None
+    exclude: str | list[str] | None = None
 
     def __hash__(self) -> int:
         return hash(self.name + self.value + self.remote_value)
 
+    @property
+    def filter_config(self) -> DataSyncFilterConfig | None:
+        """The filters as a :class:`DataSyncFilterConfig`, or None if unfiltered.
+
+        Same adapter as
+        :attr:`~aibs_informatics_core.models.demand_execution.resolvables.ResolvableBase.filter_config`,
+        routed through the same constructor so the "is anything actually filtered" rule
+        is defined once rather than re-derived here.
+        """
+        return DataSyncFilterConfig.from_patterns(include=self.include, exclude=self.exclude)
+
+    def has_filters(self) -> bool:
+        """Whether any include/exclude filter is set. See :attr:`filter_config`."""
+        return self.filter_config is not None
+
     def find_references(self) -> list[JobParamRef]:
+        """Find ``${REF}`` references in this param's values.
+
+        Filter patterns are intentionally not scanned. They are regexes, and
+        regex syntax legitimately contains ``$``, ``{`` and ``}`` (``\\d{2}``,
+        ``foo$``), so running ``${...}`` substitution over them risks mangling a
+        valid pattern. Filters are literal data, not templated values.
+        """
         return super().find_references() + JobParamRef.findall(self.remote_value)
 
     def replace_references(self, reference_replacement: dict[str, str] | Callable[[Match], str]):
@@ -130,7 +164,13 @@ class ResolvableJobParam(JobParam):
 
     @classmethod
     def from_resolvable(cls: type[RP], name: str, resolvable: Resolvable) -> RP:
-        return cls(name=name, value=resolvable.local, remote_value=resolvable.remote)
+        return cls(
+            name=name,
+            value=resolvable.local,
+            remote_value=resolvable.remote,
+            include=resolvable.include,
+            exclude=resolvable.exclude,
+        )
 
 
 @dataclass
