@@ -5,23 +5,31 @@ on:
     paths: [mkdocs.yml, docs/**, src/**]
   workflow_dispatch:
 
+# Shared with the docs job in release.yml -- both commit to gh-pages, and mike
+# rejects a deploy when its local view of the branch is behind the remote.
+concurrency:
+  group: publish-docs
+  cancel-in-progress: false
+
 jobs:
   build-deploy:
+    name: Deploy dev docs
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch gh-pages branch
+        run: git fetch origin gh-pages:gh-pages || echo "No gh-pages branch yet; mike will create it."
       - name: Install uv
         uses: astral-sh/setup-uv@v7
       - name: Sync dependencies
         run: make install
-      - name: Build site
-        run: make docs-build
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/documentation/site
-          publish_branch: gh-pages
-          force_orphan: true
+      - name: Configure git for github-actions[bot]
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Deploy the dev version to GitHub Pages
+        run: make docs-deploy-dev DOCS_PUSH=true
