@@ -85,4 +85,6 @@ markdown_extensions:
       alternate_style: true
 extra:
   version:
-    provider: mkdocs
+    provider: mike
+    default: latest
+    alias: true

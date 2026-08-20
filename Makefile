@@ -11,6 +11,19 @@ DEVELOPER_MODE := 1
 COVERAGE_SERVER_PORT := 8000
 COVERAGE_DIR := $(PACKAGE_DIR)/build/documentation/coverage/
 
+# Versioned documentation (mike). DOCS_PUSH=true pushes $(DOCS_BRANCH) to $(DOCS_REMOTE);
+# leave it unset to build the commit locally so you can inspect it before publishing.
+DOCS_BRANCH := gh-pages
+DOCS_REMOTE := origin
+DOCS_PUSH ?= false
+DOCS_VERSION ?=
+MIKE_FLAGS := --branch $(DOCS_BRANCH) --remote $(DOCS_REMOTE)
+MIKE_PUSH_FLAG := $(if $(filter true,$(DOCS_PUSH)),--push)
+# `copy` aliases are plain directories, so they do not depend on the host resolving
+# git symlinks (mike's default). Git de-duplicates the identical blobs, so the
+# duplicated files cost almost nothing on the $(DOCS_BRANCH) branch.
+MIKE_DEPLOY_FLAGS := $(MIKE_FLAGS) $(MIKE_PUSH_FLAG) --update-aliases --alias-type=copy
+
 DEP_FILES := $(wildcard setup.*) $(wildcard requirements*.txt) $(wildcard pyproject.toml)
 
 
@@ -160,13 +173,27 @@ coverage-server: .uv ## Run coverage server
 ##@ Documentation Commands
 ########################
 
-docs-serve: .uv ## Serve MkDocs site locally
+docs-serve: .uv ## Serve MkDocs site locally (single version, from the working tree)
 	uv run mkdocs serve --watch-theme
 
 docs-build: .uv ## Build MkDocs site into build/documentation/site
 	uv run mkdocs build --clean
 
-.PHONY: docs-serve docs-build
+docs-versions: .uv ## List the doc versions published on the $(DOCS_BRANCH) branch
+	uv run mike list $(MIKE_FLAGS)
+
+docs-serve-versions: .uv ## Serve all published doc versions locally, with the version selector
+	uv run mike serve $(MIKE_FLAGS)
+
+docs-deploy-dev: .uv ## Deploy working-tree docs as the `dev` version (DOCS_PUSH=true to push)
+	uv run mike deploy $(MIKE_DEPLOY_FLAGS) dev
+
+docs-deploy-release: .uv ## Deploy docs as DOCS_VERSION + `latest` alias (DOCS_PUSH=true to push)
+	@test -n "$(DOCS_VERSION)" || { echo "DOCS_VERSION is required, e.g. make docs-deploy-release DOCS_VERSION=1.1"; exit 1; }
+	uv run mike deploy $(MIKE_DEPLOY_FLAGS) --title "$(DOCS_VERSION)" $(DOCS_VERSION) latest
+	uv run mike set-default $(MIKE_FLAGS) $(MIKE_PUSH_FLAG) latest
+
+.PHONY: docs-serve docs-build docs-versions docs-serve-versions docs-deploy-dev docs-deploy-release
 
 #####################
 ##@ Docker Commands
