@@ -131,25 +131,35 @@ def generate_path_hash(
     Returns:
         hash value
     """
-    paths = find_all_paths(path, include_dirs=False)
+    root = Path(path)
+    paths = find_all_paths(root, include_dirs=False)
     include_patterns = [re.compile(include) for include in includes or [r".*"]]
     exclude_patterns = [re.compile(exclude) for exclude in excludes or []]
 
     paths_to_hash = []
-    for path in paths:
+    for candidate in paths:
         # First check exclude patterns
         for exclude_pattern in exclude_patterns:
-            if exclude_pattern.fullmatch(path):
+            if exclude_pattern.fullmatch(candidate):
                 break
         else:
             # Now check include patterns
             for include_pattern in include_patterns:
-                if include_pattern.fullmatch(path):
-                    paths_to_hash.append(path)
+                if include_pattern.fullmatch(candidate):
+                    paths_to_hash.append(candidate)
                     break
     path_hash = hashlib.new(hash_type)
-    for path in paths_to_hash:
-        path_hash.update(generate_file_hash(path, hash_type=hash_type).encode("utf-8"))
+    # Sort, and digest each file's path alongside its contents. `find_all_paths`
+    # walks with `os.walk`, which yields entries in filesystem order, so without
+    # both of these the digest is a function of the tree *and the filesystem it
+    # lives on* rather than of the tree alone. Paths are relativized to `root`
+    # and posix-normalized so that identical trees in different locations (or on
+    # different platforms) agree.
+    for file_path in sorted(paths_to_hash):
+        relative_path = Path(file_path).relative_to(root).as_posix()
+        path_hash.update(relative_path.encode("utf-8"))
+        path_hash.update(b"\0")
+        path_hash.update(generate_file_hash(file_path, hash_type=hash_type).encode("utf-8"))
 
     return path_hash.hexdigest()
 
