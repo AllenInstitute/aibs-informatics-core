@@ -2,6 +2,7 @@ __all__ = [
     "b64_decoded_str",
     "b64_encoded_str",
     "generate_file_hash",
+    "relative_digest_path",
     "generate_path_hash",
     "sha256_hexdigest",
     "urlsafe_b64_decoded_str",
@@ -113,6 +114,22 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
     return urlsafe_b64encode(decoded_str.encode()).decode()
 
 
+def relative_digest_path(file_path: str | Path, root: Path) -> str:
+    """Identity of `file_path` within `root`, as fed into `generate_path_hash`.
+
+    Posix-normalized so that the same tree agrees across platforms.
+
+    `root` itself relativizes to ".", which happens when `generate_path_hash` is
+    given a single file rather than a directory. Fall back to the file's own name
+    there, so the name is part of the digest in that case too -- otherwise two
+    same-content files hash identically and renaming one does not change its
+    hash. (Resolving `root.parent` instead would need a special case of its own
+    for a root without a parent.)
+    """
+    relative_path = Path(file_path).relative_to(root).as_posix()
+    return Path(file_path).name if relative_path == "." else relative_path
+
+
 def generate_path_hash(
     path: str | Path,
     includes: list[str] | None = None,
@@ -149,14 +166,20 @@ def generate_path_hash(
                     paths_to_hash.append(candidate)
                     break
     path_hash = hashlib.new(hash_type)
-    # Sort, and digest each file's path alongside its contents. `find_all_paths`
-    # walks with `os.walk`, which yields entries in filesystem order, so without
-    # both of these the digest is a function of the tree *and the filesystem it
-    # lives on* rather than of the tree alone. Paths are relativized to `root`
-    # and posix-normalized so that identical trees in different locations (or on
-    # different platforms) agree.
-    for file_path in sorted(paths_to_hash):
-        relative_path = Path(file_path).relative_to(root).as_posix()
+    # Digest each file's path alongside its contents, ordered by that path.
+    # `find_all_paths` walks with `os.walk`, which yields entries in filesystem
+    # order, so without the sort the digest is a function of the tree *and the
+    # filesystem it lives on* rather than of the tree alone.
+    #
+    # The sort key is the same posix-normalized string that gets hashed, not the
+    # OS-native path. Sorting native paths would reorder platforms against each
+    # other, because the separator sorts differently: "/" is 0x2F and "\\" is
+    # 0x5C, so a tree holding both "a/b.py" and "aZ.py" sorts the directory
+    # first on posix and second on Windows.
+    digest_paths = sorted(
+        (relative_digest_path(candidate, root), candidate) for candidate in paths_to_hash
+    )
+    for relative_path, file_path in digest_paths:
         path_hash.update(relative_path.encode("utf-8"))
         path_hash.update(b"\0")
         path_hash.update(generate_file_hash(file_path, hash_type=hash_type).encode("utf-8"))
