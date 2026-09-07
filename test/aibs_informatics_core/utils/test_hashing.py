@@ -1,18 +1,25 @@
+import hashlib
 import re
+import shutil
+from pathlib import Path
 from re import Pattern
+from unittest.mock import patch
 
 from pytest import mark, param, raises
 
 from aibs_informatics_core.utils.hashing import (
     b64_decoded_str,
     b64_encoded_str,
+    generate_file_hash,
     generate_path_hash,
+    relative_digest_path,
     sha256_hexdigest,
     urlsafe_b64_decoded_str,
     urlsafe_b64_encoded_str,
     uuid_str,
 )
 from aibs_informatics_core.utils.json import JSON
+from aibs_informatics_core.utils.os_operations import find_all_paths
 from test.base import BaseTest, does_not_raise
 
 
@@ -168,3 +175,80 @@ class HashingTests(BaseTest):
         (self.asset_path / "dir1" / "c.txt").write_text("c = 'hallo'")
         new_hash = generate_path_hash(str(self.asset_path), includes=excludes, excludes=excludes)
         assert original_hash == new_hash
+
+    def test__generate_path_hash__does_not_change_when_walk_order_changes(self):
+        """The digest must describe the tree, not the order the filesystem walks it.
+
+        `os.walk` yields directory entries in filesystem order, which differs
+        between filesystems (APFS vs overlayfs, say). A digest sensitive to that
+        order makes the same source tree hash differently on a developer laptop
+        and in CI.
+        """
+        original_hash = generate_path_hash(str(self.asset_path))
+
+        real_find_all_paths = find_all_paths
+
+        def reversed_find_all_paths(*args, **kwargs):
+            return list(reversed(real_find_all_paths(*args, **kwargs)))
+
+        with patch("aibs_informatics_core.utils.hashing.find_all_paths", reversed_find_all_paths):
+            reordered_hash = generate_path_hash(str(self.asset_path))
+
+        assert original_hash == reordered_hash
+
+    def test__generate_path_hash__matches_for_identical_trees_in_different_locations(self):
+        other_path = self.tmp_path()
+        shutil.copytree(self.asset_path, other_path, dirs_exist_ok=True)
+        assert generate_path_hash(str(self.asset_path)) == generate_path_hash(str(other_path))
+
+    def test__generate_path_hash__changes_when_file_renamed(self):
+        original_hash = generate_path_hash(str(self.asset_path))
+        (self.asset_path / "a.py").rename(self.asset_path / "renamed.py")
+        assert original_hash != generate_path_hash(str(self.asset_path))
+
+    def test__generate_path_hash__changes_when_file_moved_between_directories(self):
+        original_hash = generate_path_hash(str(self.asset_path))
+        (self.asset_path / "a.py").rename(self.asset_path / "dir1" / "a.py")
+        assert original_hash != generate_path_hash(str(self.asset_path))
+
+    def test__generate_path_hash__includes_the_name_when_given_a_single_file(self):
+        """A file input relativizes to ".", so its name has to come from elsewhere.
+
+        Otherwise two same-content files hash identically and renaming one does
+        not change its hash.
+        """
+        (self.asset_path / "twin.py").write_text('a = "hello"')  # same bytes as a.py
+        assert generate_path_hash(self.asset_path / "a.py") != generate_path_hash(
+            self.asset_path / "twin.py"
+        )
+
+    def test__generate_path_hash__changes_when_a_single_file_input_is_renamed(self):
+        original_hash = generate_path_hash(self.asset_path / "a.py")
+        (self.asset_path / "a.py").rename(self.asset_path / "renamed.py")
+        assert original_hash != generate_path_hash(self.asset_path / "renamed.py")
+
+    def test__generate_path_hash__orders_by_posix_relative_path(self):
+        """Pins the digest construction, including the ordering.
+
+        "/" (0x2F) sorts before "Z" (0x5A) but "\\" (0x5C) sorts after it, so a
+        tree holding both "a/b.py" and "aZ.py" would order differently between
+        posix and Windows if the sort used OS-native paths. Only the posix
+        ordering below is correct on every platform.
+        """
+        root = self.tmp_path()
+        (root / "a").mkdir()
+        (root / "a" / "b.py").write_text("one")
+        (root / "aZ.py").write_text("two")
+
+        expected = hashlib.sha256()
+        for relative_path in ["a/b.py", "aZ.py"]:  # posix order, not native order
+            expected.update(relative_path.encode("utf-8"))
+            expected.update(b"\0")
+            expected.update(generate_file_hash(root / relative_path).encode("utf-8"))
+
+        assert generate_path_hash(root) == expected.hexdigest()
+
+    def test__relative_digest_path__is_posix_normalized_and_names_bare_files(self):
+        root = Path("/repo")
+        assert relative_digest_path(root / "pkg" / "mod.py", root) == "pkg/mod.py"
+        assert relative_digest_path(root, root) == "repo"
