@@ -177,13 +177,6 @@ class HashingTests(BaseTest):
         assert original_hash == new_hash
 
     def test__generate_path_hash__does_not_change_when_walk_order_changes(self):
-        """The digest must describe the tree, not the order the filesystem walks it.
-
-        `os.walk` yields directory entries in filesystem order, which differs
-        between filesystems (APFS vs overlayfs, say). A digest sensitive to that
-        order makes the same source tree hash differently on a developer laptop
-        and in CI.
-        """
         original_hash = generate_path_hash(str(self.asset_path))
 
         real_find_all_paths = find_all_paths
@@ -212,11 +205,6 @@ class HashingTests(BaseTest):
         assert original_hash != generate_path_hash(str(self.asset_path))
 
     def test__generate_path_hash__includes_the_name_when_given_a_single_file(self):
-        """A file input relativizes to ".", so its name has to come from elsewhere.
-
-        Otherwise two same-content files hash identically and renaming one does
-        not change its hash.
-        """
         (self.asset_path / "twin.py").write_text('a = "hello"')  # same bytes as a.py
         assert generate_path_hash(self.asset_path / "a.py") != generate_path_hash(
             self.asset_path / "twin.py"
@@ -228,13 +216,6 @@ class HashingTests(BaseTest):
         assert original_hash != generate_path_hash(self.asset_path / "renamed.py")
 
     def test__generate_path_hash__orders_by_posix_relative_path(self):
-        """Pins the digest construction, including the ordering.
-
-        "/" (0x2F) sorts before "Z" (0x5A) but "\\" (0x5C) sorts after it, so a
-        tree holding both "a/b.py" and "aZ.py" would order differently between
-        posix and Windows if the sort used OS-native paths. Only the posix
-        ordering below is correct on every platform.
-        """
         root = self.tmp_path()
         (root / "a").mkdir()
         (root / "a" / "b.py").write_text("one")

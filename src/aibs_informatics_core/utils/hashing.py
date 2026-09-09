@@ -115,16 +115,10 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
 
 
 def relative_digest_path(file_path: str | Path, root: Path) -> str:
-    """Identity of `file_path` within `root`, as fed into `generate_path_hash`.
+    """Identity of `file_path` within `root`, posix-normalized so trees agree across platforms.
 
-    Posix-normalized so that the same tree agrees across platforms.
-
-    `root` itself relativizes to ".", which happens when `generate_path_hash` is
-    given a single file rather than a directory. Fall back to the file's own name
-    there, so the name is part of the digest in that case too -- otherwise two
-    same-content files hash identically and renaming one does not change its
-    hash. (Resolving `root.parent` instead would need a special case of its own
-    for a root without a parent.)
+    Falls back to the file's own name when `file_path == root` (relativizes to
+    "."), so single-file hashing still varies with the file name.
     """
     relative_path = Path(file_path).relative_to(root).as_posix()
     return Path(file_path).name if relative_path == "." else relative_path
@@ -167,15 +161,8 @@ def generate_path_hash(
                     break
     path_hash = hashlib.new(hash_type)
     # Digest each file's path alongside its contents, ordered by that path.
-    # `find_all_paths` walks with `os.walk`, which yields entries in filesystem
-    # order, so without the sort the digest is a function of the tree *and the
-    # filesystem it lives on* rather than of the tree alone.
-    #
-    # The sort key is the same posix-normalized string that gets hashed, not the
-    # OS-native path. Sorting native paths would reorder platforms against each
-    # other, because the separator sorts differently: "/" is 0x2F and "\\" is
-    # 0x5C, so a tree holding both "a/b.py" and "aZ.py" sorts the directory
-    # first on posix and second on Windows.
+    # sorting on the native path would reorder platforms against each other,
+    # since it differs by OS.
     digest_paths = sorted(
         (relative_digest_path(candidate, root), candidate) for candidate in paths_to_hash
     )
