@@ -2,6 +2,7 @@ __all__ = [
     "b64_decoded_str",
     "b64_encoded_str",
     "generate_file_hash",
+    "relative_digest_path",
     "generate_path_hash",
     "sha256_hexdigest",
     "urlsafe_b64_decoded_str",
@@ -113,6 +114,16 @@ def urlsafe_b64_encoded_str(decoded_str: str) -> str:
     return urlsafe_b64encode(decoded_str.encode()).decode()
 
 
+def relative_digest_path(file_path: str | Path, root: Path) -> str:
+    """Identity of `file_path` within `root`, posix-normalized so trees agree across platforms.
+
+    Falls back to the file's own name when `file_path == root` (relativizes to
+    "."), so single-file hashing still varies with the file name.
+    """
+    relative_path = Path(file_path).relative_to(root).as_posix()
+    return Path(file_path).name if relative_path == "." else relative_path
+
+
 def generate_path_hash(
     path: str | Path,
     includes: list[str] | None = None,
@@ -131,25 +142,34 @@ def generate_path_hash(
     Returns:
         hash value
     """
-    paths = find_all_paths(path, include_dirs=False)
+    root = Path(path)
+    paths = find_all_paths(root, include_dirs=False)
     include_patterns = [re.compile(include) for include in includes or [r".*"]]
     exclude_patterns = [re.compile(exclude) for exclude in excludes or []]
 
     paths_to_hash = []
-    for path in paths:
+    for candidate in paths:
         # First check exclude patterns
         for exclude_pattern in exclude_patterns:
-            if exclude_pattern.fullmatch(path):
+            if exclude_pattern.fullmatch(candidate):
                 break
         else:
             # Now check include patterns
             for include_pattern in include_patterns:
-                if include_pattern.fullmatch(path):
-                    paths_to_hash.append(path)
+                if include_pattern.fullmatch(candidate):
+                    paths_to_hash.append(candidate)
                     break
     path_hash = hashlib.new(hash_type)
-    for path in paths_to_hash:
-        path_hash.update(generate_file_hash(path, hash_type=hash_type).encode("utf-8"))
+    # Digest each file's path alongside its contents, ordered by that path.
+    # sorting on the native path would reorder platforms against each other,
+    # since it differs by OS.
+    digest_paths = sorted(
+        (relative_digest_path(candidate, root), candidate) for candidate in paths_to_hash
+    )
+    for relative_path, file_path in digest_paths:
+        path_hash.update(relative_path.encode("utf-8"))
+        path_hash.update(b"\0")
+        path_hash.update(generate_file_hash(file_path, hash_type=hash_type).encode("utf-8"))
 
     return path_hash.hexdigest()
 
