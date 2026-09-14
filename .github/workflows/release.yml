@@ -157,3 +157,36 @@ jobs:
           tag_name: ${{ needs.bump.outputs.VERSION_TAG }}
           name: ${{ needs.bump.outputs.VERSION_TAG }}
           generate_release_notes: true
+
+  publish-docs:
+    name: Publish versioned docs
+    needs: [bump, publish-to-pypi]
+    if: ${{ github.event.inputs.dry-run == 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Shared with publish_docs.yml -- both commit to gh-pages, and mike rejects a
+    # deploy when its local view of the branch is behind the remote.
+    concurrency:
+      group: publish-docs
+      cancel-in-progress: false
+    steps:
+      - name: Checkout the release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump.outputs.VERSION_TAG }}
+          fetch-depth: 0
+      - name: Fetch gh-pages branch
+        run: git fetch origin gh-pages:gh-pages || echo "No gh-pages branch yet; mike will create it."
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Sync dependencies
+        run: make install
+      - name: Configure git for github-actions[bot]
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      # Docs are versioned per minor release (SHORT_VERSION), so patch releases
+      # refresh the docs for their minor version instead of adding a new entry.
+      - name: Deploy ${{ needs.bump.outputs.SHORT_VERSION }} docs and move the latest alias
+        run: make docs-deploy-release DOCS_VERSION=${{ needs.bump.outputs.SHORT_VERSION }} DOCS_PUSH=true

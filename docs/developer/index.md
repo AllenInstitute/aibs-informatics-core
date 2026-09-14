@@ -73,6 +73,36 @@ make docs-serve
 make docs-build
 ```
 
+### Versioned documentation
+
+The published site keeps one entry per minor release alongside a `dev` build, using [mike](https://github.com/jimporter/mike). The version selector in the site header switches between them.
+
+| URL | Contents |
+| --- | --- |
+| `/` | Redirect to `latest/` |
+| `latest/` | The newest release (an alias for the highest `X.Y`) |
+| `X.Y/` | Built from that minor version's most recent release tag |
+| `dev/` | Built from the tip of `main` |
+
+Publishing is automatic:
+
+- Pushes to `main` redeploy `dev` (`.github/workflows/publish_docs.yml`).
+- A release redeploys its `X.Y` version and moves the `latest` alias (the `publish-docs` job in `.github/workflows/release.yml`). It builds from the release tag, so published docs match the released code. Patch releases refresh their minor version rather than adding an entry.
+
+To preview or publish by hand:
+
+```bash
+# Serve every published version, with the version selector
+make docs-serve-versions
+
+# List published versions
+make docs-versions
+
+# Commit to gh-pages without pushing; add DOCS_PUSH=true to publish
+make docs-deploy-dev
+make docs-deploy-release DOCS_VERSION=1.1
+```
+
 ## Contributing
 
 1. Fork the repository
